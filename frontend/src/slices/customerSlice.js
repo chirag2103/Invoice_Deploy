@@ -3,7 +3,7 @@ import axios from 'axios';
 
 export const fetchCustomers = createAsyncThunk('customers/fetch', async () => {
   try {
-    const response = await axios.get('http://localhost:4000/api/customers');
+    const response = await axios.get('https://invoice-deploy.onrender.com/api/customers');
     console.log(response.data);
     return response.data.customers;
   } catch (error) {
