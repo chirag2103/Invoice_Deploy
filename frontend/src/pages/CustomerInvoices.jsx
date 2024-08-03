@@ -223,13 +223,13 @@ const CustomerInvoices = () => {
       try {
         console.log('id:' + customerId);
         const response = await axios.get(
-          `http://localhost:4000/api/customer/${customerId}/invoices`
+          `https://invoice-deploy.onrender.com/api/customer/${customerId}/invoices`
         );
         setgToal(response.data.total);
         setCustomerName(response.data.customerName);
         console.log(response.data.invoices);
         const res = await axios.get(
-          `http://localhost:4000/api/customer/${customerId}/payments`
+          `https://invoice-deploy.onrender.com/api/customer/${customerId}/payments`
         );
         setPayments(res.data.payments);
         setPaidAmount(res.data.paidAmount);
