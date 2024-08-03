@@ -1,0 +1,78 @@
+.invoice-container {
+  /* max-width: 800px; */
+  margin: auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-right: 40px;
+}
+
+.invoice-header,
+.products-header {
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.invoice-form {
+  margin-bottom: 30px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #666;
+}
+
+.form-select,
+.form-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.products-table th,
+.products-table td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.remove-btn,
+.add-btn {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.remove-btn:hover,
+.add-btn:hover {
+  background-color: #0056b3;
+}
+
+.no-products {
+  color: #999;
+  text-align: center;
+}
+
+.totals {
+  text-align: right;
+}
+
+.total-amount,
+.grand-total {
+  font-size: 1.2em;
+  font-weight: bold;
+}

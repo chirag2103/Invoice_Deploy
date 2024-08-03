@@ -1,0 +1,111 @@
+:root {
+  --color1: #00539cff;
+  --color2: #eea47fff;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.main-container {
+  background-color: var(--color1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.container {
+  border: 8px solid var(--color2);
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: -5px -5px 15px var(--color2), 5px 5px 15px var(--color2),
+    inset -5px -5px 15px var(--color2), inset 5px 5px 15px var(--color2);
+}
+
+.container .form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 25px;
+}
+
+.container .form h2 {
+  color: #fff;
+  font-weight: 500;
+  letter-spacing: 0.5rem;
+}
+
+.container .form .inputFields {
+  position: relative;
+  width: 300px;
+}
+
+.container .form .inputFields input {
+  width: 100%;
+  padding: 12px 10px 12px 48px;
+  background: var(--color1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: white;
+  font-weight: 300;
+  border-radius: 25px;
+  font-size: 1em;
+  box-shadow: -5px -5px 15px var(--color2), 5px 5px 15px var(--color2);
+  outline: none;
+}
+
+.container .form .inputFields span {
+  pointer-events: none;
+  font-weight: 300;
+  font-size: 1em;
+  position: absolute;
+  left: 0;
+  padding: 12px 10px 12px 48px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.05em;
+  transition: 0.5s;
+}
+
+.container .form .inputFields input[type='submit'] {
+  background-color: #00dfc4;
+  color: #223243;
+  padding: 10px 0;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: -5px -5px 15px var(--color2), 5px 5px 15px var(--color2),
+    inset -5px -5px 15px var(--color2), inset 5px 5px 15px var(--color2);
+}
+
+.container .form .inputFields input:valid,
+.container .form .inputFields input:focus {
+  border: 1px solid #00dfc4;
+}
+
+.container .form p {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75em;
+  font-weight: 300;
+}
+
+.container .form p a {
+  color: white;
+  font-weight: 500;
+}
+
+.container .form .inputFields input:valid,
+.container .form .inputFields input:focus {
+  border: 1px solid #00dfc4;
+}
+
+.container .form .inputFields input:valid ~ span,
+.container .form .inputFields input:focus ~ span {
+  color: #00dfc4;
+  border: 1px solid #00dfc4;
+  background-color: black;
+  transform: translateX(25px) translateY(-7px);
+  font-size: 0.6em;
+  border-radius: 10px;
+  padding: 0 8px;
+  letter-spacing: 0.1em;
+}

@@ -1,0 +1,38 @@
+.products {
+  overflow-y: auto;
+  .bar {
+    height: 4rem;
+    @include flex(row, unset);
+    padding: 0 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.37);
+    > input {
+      margin-right: auto;
+      @include inputStyle(100%, 1rem 0);
+    }
+    > svg {
+      font-size: 1 rem;
+      opacity: 0.7;
+    }
+    > img {
+      @include square(2rem);
+      border-radius: 50%;
+    }
+  }
+  .bar-container {
+    @include flex(row, unset, unset, 2rem);
+    padding: 2rem 2rem 2rem 0;
+    > div {
+      background-color: white;
+      border-radius: 10px;
+    }
+    .bar1-chart {
+      width: 100%;
+      max-width: 37vw;
+      padding: 1rem 3rem;
+      > h2 {
+        @include heading;
+        margin: 1rem 0 2rem 0.25rem;
+      }
+    }
+  }
+}

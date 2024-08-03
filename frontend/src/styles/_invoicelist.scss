@@ -1,0 +1,142 @@
+.invoice-list {
+  overflow-y: auto;
+  background-color: #f8f9fa; // Light background for contrast
+  padding: 2rem;
+
+  .invoice-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 0 2rem 2rem 0;
+
+    // > div {
+    //   background-color: #ffffff; // White background for tables
+    //   border-radius: 10px;
+    //   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); // Subtle shadow for depth
+    //   overflow: hidden; // Rounded corners for inner elements
+    // }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    thead {
+      background-color: #007bff; // Blue header
+      color: #ffffff;
+
+      tr {
+        th,
+        td {
+          padding: 1rem;
+          text-align: left;
+          font-weight: bold;
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        &:hover {
+          background-color: #f1f1f1; // Light hover effect
+        }
+
+        td {
+          padding: 1rem;
+          border-bottom: 1px solid #e9ecef; // Light border between rows
+        }
+      }
+    }
+  }
+}
+
+.customer-container {
+  overflow-y: auto;
+  background-color: #f4f7fa; // Light background for contrast
+
+  .invoice-list {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    // background-color: #ffffff; // White background for the main area
+    // box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); // Subtle shadow for depth
+    border-radius: 8px;
+    margin: 1rem;
+
+    h3 {
+      margin-bottom: 1rem;
+      // color: #333; // Dark text color for readability
+    }
+
+    .invoice-container {
+      margin-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .invoices-table,
+    .payment-container table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+
+      thead {
+        background-color: #007bff; // Blue header
+        color: #ffffff;
+
+        tr {
+          th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 2px solid #dee2e6;
+          }
+        }
+      }
+
+      tbody {
+        tr {
+          &:hover {
+            background-color: #f1f1f1; // Light hover effect
+          }
+
+          td {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef; // Light border between rows
+          }
+
+          .edit-btn,
+          .delete-btn {
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+
+            &.edit-btn {
+              background-color: #28a745; // Green for edit
+              color: #ffffff;
+            }
+
+            &.delete-btn {
+              background-color: #dc3545; // Red for delete
+              color: #ffffff;
+            }
+
+            &:hover {
+              opacity: 0.9; // Slight opacity change on hover
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .payment-container {
+    background-color: #f8f9fa; // Light gray background
+    border-radius: 8px;
+    padding: 1rem;
+  }
+}

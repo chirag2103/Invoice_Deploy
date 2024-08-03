@@ -1,0 +1,64 @@
+.Print {
+  font-family: Arial, sans-serif;
+  margin: 0px 15px;
+  font-size: 16px;
+  overflow-x: auto;
+  white-space: normal;
+}
+
+.Print h2 {
+  font-size: 24px;
+  margin: 0;
+  text-align: center;
+  display: block;
+}
+
+.header-left img {
+  max-width: 100px;
+}
+
+.header-center b {
+  font-size: 18px;
+}
+
+.header-center p {
+  margin: 5px 0;
+}
+
+.table-container {
+  margin-bottom: 20px;
+}
+
+.table-3 {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table-1,
+.table-2 {
+  width: 100%;
+  /* line-height: 10px; */
+  border-collapse: collapse;
+  border: 2px solid black;
+}
+/* .table-1 p {
+  line-height: 5px;
+} */
+.center {
+  text-align: center;
+  font-weight: bold;
+}
+.bold {
+  font-weight: 900;
+  font-size: 18px;
+}
+.table-1 td,
+.table-2 td {
+  border: 1px solid black;
+}
+
+.table-3 th,
+.table-3 td {
+  border: 1px solid #000;
+  /* padding: 8px; */
+  /* text-align: center; */
+}

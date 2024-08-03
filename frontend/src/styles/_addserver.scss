@@ -1,0 +1,111 @@
+.add-server-container {
+  // overflow-y: auto;
+  margin-top: 20px;
+  position: relative;
+  text-align: center;
+
+  .add-server-form {
+    margin-top: 70px;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff;
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+    border-radius: 5px;
+    text-align: left;
+  }
+
+  .add-server-form label {
+    display: block;
+    margin-bottom: 10px;
+    color: #555;
+  }
+
+  .add-server-form input[type='text'],
+  .add-server-form input[type='password'] {
+    width: 100%;
+    padding: 4px;
+    margin-top: 3px;
+    margin-bottom: 3px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  .add-server-form input[type='submit'] {
+    background-color: #4caf50;
+    color: white;
+    margin: 0 auto;
+    padding: 8px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+
+    &:hover {
+      background-color: #45a049;
+    }
+  }
+}
+
+.server-container {
+  border: 1px solid #ddd;
+  padding: 10px;
+  display: inline-block;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-left: 10px;
+  // @include flex(row, unset, unset, 2rem);
+  // padding: 2rem 2rem 2rem 0;
+  // > div {
+  //   background-color: white;
+  //   border-radius: 10px;
+  // }
+}
+
+.add-server-header {
+  color: #333;
+  text-align: left;
+}
+
+.horizontal-line {
+  border-top: 1px solid #ccc;
+  margin: 20px 0;
+}
+
+.add-server-plus {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #c1c1c4;
+  color: white;
+  font-size: 40px;
+  cursor: pointer;
+  font-weight: 900;
+  padding-bottom: 5px;
+}
+
+.ssh-component-close-button {
+  background-color: #f80000;
+  color: white;
+  margin: 0 auto;
+  padding: 8px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.Ip {
+  color: blue;
+  text-decoration: underline;
+}

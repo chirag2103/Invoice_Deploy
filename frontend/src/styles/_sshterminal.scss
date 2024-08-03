@@ -1,0 +1,53 @@
+.ssh-terminal {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 96%;
+  margin: 0 auto;
+  padding: 0 10px;
+  background-color: #000;
+  color: #fff;
+  font-family: 'Courier New', Courier, monospace;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  resize: vertical;
+  overflow: auto;
+  max-height: 260px;
+  scrollbar-width: none;
+
+  .ssh-title {
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+
+  .output-container {
+    max-height: 210px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+
+    .output-line {
+      padding: 5px;
+      // white-space: pre-wrap;
+    }
+  }
+
+  .input {
+    width: 100%;
+    padding: 5px;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    margin-top: 10px;
+
+    &::placeholder {
+      color: #999;
+    }
+
+    &:focus::placeholder {
+      color: transparent;
+    }
+  }
+}
