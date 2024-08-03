@@ -38,7 +38,7 @@ export default function SignIn() {
         const token = res.data.token;
         localStorage.setItem('token', token);
 
-        navigate('/admin/dashboard');
+        navigate('admin/dashboard');
       })
       .catch((err) => {
         alert(err);

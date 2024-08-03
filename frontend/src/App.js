@@ -9,12 +9,13 @@ import CustomerInvoices from './pages/CustomerInvoices';
 import Customers from './pages/Customers';
 import CreateInvoice from './pages/CreateInvoice';
 import Payments from './pages/Payments';
+import SignIn from './pages/SignIn';
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path='/' element={<Dashboard />} />
+        <Route path='/' element={<SignIn />} />
         <Route path='/invoices/new' element={<InvoiceForm />} />
         <Route path='/invoices/preview' element={<Print />} />
         <Route path='/invoices/all' element={<InvoiceList />} />

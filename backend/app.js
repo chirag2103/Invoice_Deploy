@@ -4,6 +4,7 @@ import cors from 'cors';
 import customerRouter from './routes/customerRoute.js';
 import invoiceRouter from './routes/invoiceRoute.js';
 import paymentRouter from './routes/paymentRoute.js';
+import userRouter from './routes/userRoute.js';
 
 const app = express();
 
@@ -15,5 +16,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', customerRouter);
 app.use('/api', invoiceRouter);
 app.use('/api', paymentRouter);
+app.use('/api', userRouter);
 
 export default app;
