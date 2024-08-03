@@ -20,12 +20,12 @@ export const fetchInvoices = createAsyncThunk(
   async (id = null) => {
     try {
       if (id == null) {
-        const response = await axios.get('http://localhost:4000/api/invoices');
+        const response = await axios.get('https://invoice-deploy.onrender.com/api/invoices');
         console.log(response.data.invoices);
         return response.data.invoices;
       } else {
         const response = await axios.get(
-          `http://localhost:4000/api/customer/${id}/invoices`
+          `https://invoice-deploy.onrender.com/api/customer/${id}/invoices`
         );
         return response.data.invoices;
       }
@@ -48,10 +48,10 @@ export const fetchInvoices = createAsyncThunk(
 //     try {
 //       let response;
 //       if (id == null) {
-//         response = await axios.get('http://localhost:4000/api/invoices');
+//         response = await axios.get('https://invoice-deploy.onrender.com/api/invoices');
 //       } else {
 //         response = await axios.get(
-//           `http://localhost:4000/api/customer/${id}/invoices`
+//           `https://invoice-deploy.onrender.com/api/customer/${id}/invoices`
 //         );
 //       }
 //       console.log(response.data.invoice);
@@ -71,7 +71,7 @@ export const deleteInvoice = createAsyncThunk(
   'invoice/deleteInvoice',
   async (id) => {
     try {
-      const response = await axios.delete('http://localhost:4000/api/invoices');
+      const response = await axios.delete('https://invoice-deploy.onrender.com/api/invoices');
       console.log(response.data.invoices);
       return response.data.message;
     } catch (error) {
@@ -82,7 +82,7 @@ export const deleteInvoice = createAsyncThunk(
 
 export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
   try {
-    const response = await axios.get('http://localhost:4000/api/lastinvoice');
+    const response = await axios.get('https://invoice-deploy.onrender.com/api/lastinvoice');
     // console.log(response.data.invoice.invoiceNo);
     return parseInt(response.data.invoice.invoiceNo);
   } catch (error) {
