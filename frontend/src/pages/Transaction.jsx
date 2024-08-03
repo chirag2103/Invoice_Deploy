@@ -10,7 +10,7 @@ const Transaction = () => {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await axios.get(`http://localhost:4000/api/payments`);
+        const res = await axios.get(`https://invoice-deploy.onrender.com/api/payments`);
         setPayments(res.data.payments);
       } catch (error) {
         console.error('Error fetching data:', error);
