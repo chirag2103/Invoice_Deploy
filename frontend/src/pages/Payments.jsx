@@ -46,7 +46,7 @@ const Payments = () => {
     };
     let paymentDataJSON = JSON.stringify(paymentData);
     axios
-      .post('http://localhost:4000/api/payment/new', paymentDataJSON, {
+      .post('https://invoice-deploy.onrender.com/api/payment/new', paymentDataJSON, {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
