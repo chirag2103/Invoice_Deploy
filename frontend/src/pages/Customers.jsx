@@ -106,7 +106,7 @@ const Customers = () => {
     };
     let userDataJSON = JSON.stringify(userData);
     axios
-      .post('http://localhost:4000/api/customer/new', userDataJSON, {
+      .post('https://invoice-deploy.onrender.com/api/customer/new', userDataJSON, {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
