@@ -1,9 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './Print.css';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ToWords } from 'to-words';
 
 const Print = () => {
+  const navigate = useNavigate();
   const toWords = new ToWords({
     localeCode: 'en-IN',
     converterOptions: {
@@ -39,6 +40,21 @@ const Print = () => {
   } = location.state;
   console.log(date);
   const pdfRef = useRef();
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      navigate('/admin/customers');
+    };
+
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    // Open print dialog
+    window.print();
+
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, [navigate]);
 
   return (
     <div ref={pdfRef}>

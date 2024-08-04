@@ -20,7 +20,9 @@ export const fetchInvoices = createAsyncThunk(
   async (id = null) => {
     try {
       if (id == null) {
-        const response = await axios.get('https://invoice-deploy.onrender.com/api/invoices');
+        const response = await axios.get(
+          'https://invoice-deploy.onrender.com/api/invoices'
+        );
         console.log(response.data.invoices);
         return response.data.invoices;
       } else {
@@ -34,44 +36,14 @@ export const fetchInvoices = createAsyncThunk(
     }
   }
 );
-// const formatDate = (dateString) => {
-//   const date = new Date(dateString);
-//   const day = date.getDate();
-//   const month = date.getMonth() + 1; // Months are zero-based in JavaScript
-//   const year = date.getFullYear();
-//   return `${day}-${month}-${year}`;
-// };
 
-// export const fetchInvoices = createAsyncThunk(
-//   'invoice/fetchInvoices',
-//   async (id = null) => {
-//     try {
-//       let response;
-//       if (id == null) {
-//         response = await axios.get('https://invoice-deploy.onrender.com/api/invoices');
-//       } else {
-//         response = await axios.get(
-//           `https://invoice-deploy.onrender.com/api/customer/${id}/invoices`
-//         );
-//       }
-//       console.log(response.data.invoice);
-
-//       const formattedInvoices = response.data.invoices.map((invoice) => ({
-//         ...invoice,
-//         date: formatDate(invoice.date),
-//       }));
-
-//       return formattedInvoices;
-//     } catch (error) {
-//       throw error;
-//     }
-//   }
-// );
 export const deleteInvoice = createAsyncThunk(
   'invoice/deleteInvoice',
   async (id) => {
     try {
-      const response = await axios.delete('https://invoice-deploy.onrender.com/api/invoices');
+      const response = await axios.delete(
+        'https://invoice-deploy.onrender.com/api/invoices'
+      );
       console.log(response.data.invoices);
       return response.data.message;
     } catch (error) {
@@ -82,8 +54,9 @@ export const deleteInvoice = createAsyncThunk(
 
 export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
   try {
-    const response = await axios.get('https://invoice-deploy.onrender.com/api/lastinvoice');
-    // console.log(response.data.invoice.invoiceNo);
+    const response = await axios.get(
+      'https://invoice-deploy.onrender.com/api/lastinvoice'
+    );
     return parseInt(response.data.invoice.invoiceNo);
   } catch (error) {
     throw error;
@@ -127,6 +100,9 @@ const invoiceSlice = createSlice({
         state.totalAmount + (state.totalAmount * state.gst * 2) / 100;
     },
     storeInvoice(state, action) {},
+    clearAllData(state) {
+      return initialState;
+    },
   },
 
   extraReducers: (builder) => {
@@ -137,10 +113,6 @@ const invoiceSlice = createSlice({
       })
       .addCase(fetchInvoices.fulfilled, (state, action) => {
         state.loading = false;
-        // console.log('all invoices' + action.payload);
-        // console.log('builder' + invoices);
-        // // state.billNo = action.payload + 1;
-        // console.log(typeof action.payload);
         state.invoices = action.payload;
       })
       .addCase(fetchInvoices.rejected, (state, action) => {
@@ -187,6 +159,6 @@ const invoiceSlice = createSlice({
   },
 });
 
-export const { setCustomer, setGst, addProduct, removeProduct } =
+export const { setCustomer, setGst, addProduct, removeProduct, clearAllData } =
   invoiceSlice.actions;
 export default invoiceSlice.reducer;
