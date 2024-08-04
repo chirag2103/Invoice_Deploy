@@ -466,7 +466,7 @@ const InvoiceForm = ({ editInvoice }) => {
 
     if (customer && products && date) {
       try {
-        const res = await axios.post('http://localhost:4000/api/invoice/new', {
+        const res = await axios.post('https://invoice-deploy.onrender.com/api/invoice/new', {
           customer: customer._id,
           invoiceNo: billNo,
           gst,
@@ -504,7 +504,7 @@ const InvoiceForm = ({ editInvoice }) => {
     if (customer && products && date) {
       try {
         const res = await axios.put(
-          `http://localhost:4000/api/invoice/${invoiceToEdit._id}`,
+          `https://invoice-deploy.onrender.com/api/invoice/${invoiceToEdit._id}`,
           {
             customer: customer._id,
             gst,
