@@ -140,3 +140,57 @@
     padding: 1rem;
   }
 }
+
+.customerContainer {
+  overflow-y: auto;
+  padding: 20px;
+  width: 100%;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+  h3 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .customerTable {
+    width: 100%;
+    border-collapse: collapse;
+
+    thead {
+      background-color: #4caf50;
+      color: #fff;
+
+      th {
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+      }
+    }
+
+    tbody {
+      tr {
+        &:nth-child(even) {
+          background-color: #f2f2f2;
+        }
+
+        &:hover {
+          background-color: #ddd;
+        }
+
+        td {
+          padding: 12px;
+          border-bottom: 1px solid #ddd;
+        }
+      }
+    }
+  }
+
+  p {
+    text-align: center;
+    color: #ff0000;
+  }
+}

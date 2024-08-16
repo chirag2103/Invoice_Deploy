@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AdminSidebar from '../components/AdminSidebar';
-// import './CustomerDetails.css';
+// import './CustomerBills.scss';
 
 const CustomerBills = () => {
   const [customers, setCustomers] = useState([]);
@@ -24,17 +24,30 @@ const CustomerBills = () => {
     fetchCustomerBillingInfo();
   }, []);
 
+  const totalBill = customers.reduce(
+    (acc, customer) => acc + customer.totalBill,
+    0
+  );
+  const totalPaid = customers.reduce(
+    (acc, customer) => acc + customer.totalPaid,
+    0
+  );
+  const totalRemaining = customers.reduce(
+    (acc, customer) => acc + customer.remainingAmount,
+    0
+  );
+
   return (
     <div className='admin-container'>
       <AdminSidebar />
-      <div className='customer-container'>
+      <div className='customerContainer'>
         <h3>Customer Billing Information</h3>
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
           <p>{error}</p>
         ) : (
-          <table className='customer-table'>
+          <table className='customerTable'>
             <thead>
               <tr>
                 <th>Customer Name</th>
@@ -52,6 +65,12 @@ const CustomerBills = () => {
                   <td>{customer.remainingAmount}</td>
                 </tr>
               ))}
+              <tr className='totalRow'>
+                <td>Total</td>
+                <td>{totalBill}</td>
+                <td>{totalPaid}</td>
+                <td>{totalRemaining}</td>
+              </tr>
             </tbody>
           </table>
         )}
