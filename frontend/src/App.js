@@ -10,6 +10,7 @@ import Customers from './pages/Customers';
 import CreateInvoice from './pages/CreateInvoice';
 import Payments from './pages/Payments';
 import SignIn from './pages/SignIn';
+import CustomerBills from './pages/CustomerBills';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path='/admin/transaction' element={<Transaction />} />
         <Route path='/admin/dashboard' element={<Dashboard />} />
         <Route path='/admin/customers' element={<Customers />} />
+        <Route path='/admin/billinfo' element={<CustomerBills />} />
         <Route path='/admin/invoice/new' element={<CreateInvoice />} />
         <Route path='/admin/payment/new' element={<Payments />} />
         <Route

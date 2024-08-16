@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createInvoice,
   deleteInvoice,
+  getCustomerBillingInfo,
   getInvoices,
   getInvoicesByCustomer,
   getLastInvoice,
@@ -18,5 +19,6 @@ router.route('/invoice/:id').put(updateInvoice);
 router.route('/invoice/:id').delete(deleteInvoice);
 router.route('/lastinvoice').get(getLastInvoice);
 router.route('/customer/invoice').get(getInvoicesByCustomer);
+router.route('/billingInfo').get(getCustomerBillingInfo);
 
 export default router;

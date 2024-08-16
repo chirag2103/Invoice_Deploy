@@ -2,6 +2,7 @@ import Invoice from '../models/Invoice.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import Customer from '../models/Customer.js';
+import Payment from '../models/Payment.js';
 import mongoose from 'mongoose';
 
 export const getLastInvoice = catchAsyncError(async (req, res, next) => {
@@ -154,3 +155,42 @@ export const deleteInvoice = catchAsyncError(async (req, res, next) => {
     message: 'Invoice Deleted',
   });
 });
+
+export const getCustomerBillingInfo = catchAsyncError(
+  async (req, res, next) => {
+    try {
+      const customers = await Customer.find();
+
+      const customerBillingInfo = await Promise.all(
+        customers.map(async (customer) => {
+          const invoices = await Invoice.find({ customer: customer._id });
+          const payments = await Payment.find({ customer: customer._id });
+
+          const totalBill = invoices.reduce(
+            (acc, invoice) => acc + invoice.grandTotal,
+            0
+          );
+          const totalPaid = payments.reduce(
+            (acc, payment) => acc + payment.amountPaid,
+            0
+          );
+          const remainingAmount = totalBill - totalPaid;
+
+          return {
+            customerName: customer.name,
+            totalBill,
+            totalPaid,
+            remainingAmount,
+          };
+        })
+      );
+
+      res.status(200).json({
+        success: true,
+        data: customerBillingInfo,
+      });
+    } catch (error) {
+      next(new ErrorHandler('Error fetching customer billing info', 500));
+    }
+  }
+);

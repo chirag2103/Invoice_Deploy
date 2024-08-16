@@ -20,7 +20,7 @@ const AdminSidebar = () => {
     <aside>
       <h2>Logo.</h2>
       <DivOne location={location} />
-      <DivThree location={location} />
+      {/* <DivThree location={location} /> */}
     </aside>
   );
 };
@@ -64,15 +64,21 @@ const DivOne = ({ location }) => (
         Icon={AiFillFileText}
         location={location}
       />
+      <Li
+        url='/admin/billinfo'
+        text='Billing Info'
+        Icon={FaStopwatch}
+        location={location}
+      />
     </ul>
   </div>
 );
 const DivTwo = ({ location }) => (
   <div>
-    <h5>Charts</h5>
+    <h5>Due Info</h5>
     <ul>
       <Li
-        url='/admin/chart/bar'
+        url='/admin/billinfo'
         text='Bar'
         Icon={FaChartBar}
         location={location}
@@ -97,7 +103,7 @@ const DivThree = ({ location }) => (
     <h5>Logs</h5>
     <ul>
       <Li
-        url='/admin/app/stopwatch'
+        url='/admin/billinfo'
         text='Activity Log'
         Icon={FaStopwatch}
         location={location}

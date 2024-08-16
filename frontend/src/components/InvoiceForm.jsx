@@ -113,6 +113,7 @@ const InvoiceForm = ({ editInvoice }) => {
       grandTotal,
       totalAmount,
       invoicefor,
+      challanNo,
     };
 
     if (customer && products && date) {
@@ -127,6 +128,7 @@ const InvoiceForm = ({ editInvoice }) => {
             date,
             grandTotal,
             invoiceTotal: totalAmount,
+            challanNo: challanNo ? challanNo : '',
           }
         );
         console.log('Response: ' + res);
@@ -150,6 +152,7 @@ const InvoiceForm = ({ editInvoice }) => {
       grandTotal,
       totalAmount,
       invoicefor,
+      challanNo,
     };
 
     if (customer && products && date) {
@@ -169,6 +172,7 @@ const InvoiceForm = ({ editInvoice }) => {
             date,
             grandTotal,
             invoiceTotal: totalAmount,
+            challanNo: challanNo ? challanNo : '',
           }
         );
         console.log('Response: ' + res);
@@ -187,6 +191,7 @@ const InvoiceForm = ({ editInvoice }) => {
         grandTotal,
         totalAmount,
         invoicefor,
+        challanNo,
       };
       navigate('/invoices/preview', { state: dataRecipient });
     } else alert('Select Customer or products');
@@ -204,6 +209,7 @@ const InvoiceForm = ({ editInvoice }) => {
         grandTotal,
         totalAmount,
         invoicefor,
+        challanNo,
       };
       navigate('/invoices/preview', { state: dataRecipient });
     } else alert('Select Customer or products');

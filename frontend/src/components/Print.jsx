@@ -96,11 +96,11 @@ const Print = () => {
             <tr>
               <td>
                 <p>Challan No.</p>
-                <b>{challanNo ? challanNo : ''}</b>
+                <b>{challanNo ? billNo : ''}</b>
               </td>
               <td>
                 <p>Date</p>
-                <b>{challanDate ? challanDate : ''}</b>
+                <b>{challanNo ? date : ''}</b>
               </td>
             </tr>
           </table>
