@@ -142,10 +142,10 @@ const InvoiceForm = ({ editInvoice }) => {
 
   const handleGeneratePdfVendor = () => {
     let invoicefor = 'Duplicate Copy';
-    let date1 = date.toString().split('T');
+    let date1 = date.toString().split('T')[0];
     const dataVendor = {
       customer,
-      billNo,
+      billNo: isEdit ? invoiceToEdit.invoiceNo : billNo,
       gst,
       products,
       date: date1,
@@ -363,6 +363,7 @@ const InvoiceForm = ({ editInvoice }) => {
             <option value='NOS'>NOS</option>
             <option value='Kg'>Kg</option>
             <option value='Liters'>Liters</option>
+            <option value='Set'>Set</option>
           </select>
         </div>
         <div className='form-group'>
