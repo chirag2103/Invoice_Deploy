@@ -5,12 +5,13 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 const Transaction = () => {
+  const apiUrl = process.env.REACT_APP_API_URL;
   const [payments, setPayments] = useState([]);
   var total = 0;
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await axios.get(`https://invoice-deploy.onrender.com/api/payments`);
+        const res = await axios.get(`${apiUrl}/api/payments`);
         setPayments(res.data.payments);
       } catch (error) {
         console.error('Error fetching data:', error);

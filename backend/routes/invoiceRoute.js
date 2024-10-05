@@ -7,6 +7,7 @@ import {
   getInvoicesByCustomer,
   getLastInvoice,
   getSingleInvoice,
+  getStatementByCustomer,
   updateInvoice,
 } from '../controller/InvoiceController.js';
 
@@ -20,5 +21,6 @@ router.route('/invoice/:id').delete(deleteInvoice);
 router.route('/lastinvoice').get(getLastInvoice);
 router.route('/customer/invoice').get(getInvoicesByCustomer);
 router.route('/billingInfo').get(getCustomerBillingInfo);
+router.route('/statement/:id').get(getStatementByCustomer);
 
 export default router;

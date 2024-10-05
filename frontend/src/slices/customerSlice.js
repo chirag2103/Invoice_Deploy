@@ -2,8 +2,10 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
 export const fetchCustomers = createAsyncThunk('customers/fetch', async () => {
+  const apiUrl = process.env.REACT_APP_API_URL;
   try {
-    const response = await axios.get('https://invoice-deploy.onrender.com/api/customers');
+    console.log(apiUrl);
+    const response = await axios.get(`${apiUrl}/api/customers`);
     console.log(response.data);
     return response.data.customers;
   } catch (error) {

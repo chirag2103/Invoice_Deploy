@@ -70,6 +70,12 @@ const DivOne = ({ location }) => (
         Icon={FaStopwatch}
         location={location}
       />
+      <Li
+        url='/statements'
+        text='Statements'
+        Icon={FaStopwatch}
+        location={location}
+      />
     </ul>
   </div>
 );

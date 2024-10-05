@@ -6,6 +6,7 @@ import AdminSidebar from '../components/AdminSidebar';
 import axios from 'axios';
 
 const Payments = () => {
+  const apiUrl = process.env.REACT_APP_API_URL;
   const navigate = useNavigate();
   const dispatch = useDispatch();
   useEffect(() => {
@@ -46,7 +47,7 @@ const Payments = () => {
     };
     let paymentDataJSON = JSON.stringify(paymentData);
     axios
-      .post('https://invoice-deploy.onrender.com/api/payment/new', paymentDataJSON, {
+      .post(`${apiUrl}/api/payment/new`, paymentDataJSON, {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',

@@ -11,6 +11,8 @@ import CreateInvoice from './pages/CreateInvoice';
 import Payments from './pages/Payments';
 import SignIn from './pages/SignIn';
 import CustomerBills from './pages/CustomerBills';
+import Statement from './pages/Statement';
+import CustomerStatement from './pages/CustomerStatement';
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
       <Routes>
         <Route path='/' element={<SignIn />} />
         <Route path='/invoices/new' element={<InvoiceForm />} />
+        <Route path='/statements' element={<Statement />} />
+        <Route path='/statement/:customerId' element={<CustomerStatement />} />
         <Route path='/invoices/preview' element={<Print />} />
         <Route path='/invoices/all' element={<InvoiceList />} />
         <Route path='/admin/transaction' element={<Transaction />} />

@@ -82,6 +82,7 @@ import AdminSidebar from '../components/AdminSidebar';
 import axios from 'axios';
 
 const Customers = () => {
+  const apiUrl = process.env.REACT_APP_API_URL;
   const navigate = useNavigate();
   const dispatch = useDispatch();
   useEffect(() => {
@@ -106,7 +107,7 @@ const Customers = () => {
     };
     let userDataJSON = JSON.stringify(userData);
     axios
-      .post('https://invoice-deploy.onrender.com/api/customer/new', userDataJSON, {
+      .post(`${apiUrl}/api/customer/new`, userDataJSON, {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',

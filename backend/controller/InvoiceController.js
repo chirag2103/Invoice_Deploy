@@ -194,3 +194,78 @@ export const getCustomerBillingInfo = catchAsyncError(
     }
   }
 );
+
+export const getStatementByCustomer = catchAsyncError(
+  async (req, res, next) => {
+    const customerId = req.params.id;
+    try {
+      const customer = await Customer.findById(customerId);
+      if (!customer) {
+        return res.status(404).json({ error: 'Customer not found' });
+      }
+
+      const invoices = await Invoice.find({ customer: customerId }).sort({
+        date: 1,
+      });
+      const payments = await Payment.find({ customer: customerId }).sort({
+        date: 1,
+      });
+
+      const statement = [];
+      let totalPaid = 0;
+      let totalInvoice = 0;
+
+      // Add invoices to the statement
+      invoices.forEach((invoice) => {
+        totalInvoice += invoice.grandTotal;
+        statement.push({
+          date: invoice.date,
+          type: 'invoice',
+          detail: invoice.invoiceNo,
+          invoiceAmount: invoice.grandTotal,
+          paymentAmount: null,
+          balance: null, // We'll calculate balance later
+        });
+      });
+
+      // Add payments to the statement
+      payments.forEach((payment) => {
+        totalPaid += payment.amountPaid;
+        statement.push({
+          date: payment.date,
+          type: 'payment',
+          detail: 'Payment',
+          invoiceAmount: null,
+          paymentAmount: payment.amountPaid,
+          balance: null, // We'll calculate balance later
+        });
+      });
+
+      // Sort statement by date
+      statement.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      // Calculate balance
+      let currentBalance = 0;
+
+      statement.forEach((entry) => {
+        if (entry.type === 'invoice') {
+          currentBalance += entry.invoiceAmount; // Deduct invoice amount from balance
+          entry.balance = currentBalance; // Assign updated balance
+        } else if (entry.type === 'payment') {
+          currentBalance -= entry.paymentAmount; // Add payment amount to balance
+          entry.balance = currentBalance; // Assign updated balance
+        }
+      });
+
+      return res.json({
+        customerName: customer.name,
+        gstNo: customer.gstNo,
+        statement,
+        totalPaid,
+        totalInvoice,
+      });
+    } catch (error) {
+      next(new ErrorHandler('Error fetching customer billing info', 500));
+    }
+  }
+);

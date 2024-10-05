@@ -4,6 +4,7 @@ import '../styles/signin.scss';
 import { useNavigate } from 'react-router-dom';
 
 export default function SignIn() {
+  const apiUrl = process.env.REACT_APP_API_URL;
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +28,7 @@ export default function SignIn() {
     };
     let userDataJSON = JSON.stringify(userData);
     axios
-      .post('https://invoice-deploy.onrender.com/api/login', userDataJSON, {
+      .post(`${apiUrl}/api/login`, userDataJSON, {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',

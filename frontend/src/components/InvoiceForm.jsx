@@ -15,6 +15,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const InvoiceForm = ({ editInvoice }) => {
+  const apiUrl = process.env.REACT_APP_API_URL;
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -118,19 +119,16 @@ const InvoiceForm = ({ editInvoice }) => {
 
     if (customer && products && date) {
       try {
-        const res = await axios.post(
-          'https://invoice-deploy.onrender.com/api/invoice/new',
-          {
-            customer: customer._id,
-            invoiceNo: billNo,
-            gst,
-            invoiceProducts: products,
-            date,
-            grandTotal,
-            invoiceTotal: totalAmount,
-            challanNo: challanNo ? challanNo : '',
-          }
-        );
+        const res = await axios.post(`${apiUrl}/api/invoice/new`, {
+          customer: customer._id,
+          invoiceNo: billNo,
+          gst,
+          invoiceProducts: products,
+          date,
+          grandTotal,
+          invoiceTotal: totalAmount,
+          challanNo: challanNo ? challanNo : '',
+        });
         console.log('Response: ' + res);
       } catch (error) {
         console.log(error);
@@ -164,7 +162,7 @@ const InvoiceForm = ({ editInvoice }) => {
     if (customer && products && date) {
       try {
         const res = await axios.put(
-          `https://invoice-deploy.onrender.com/api/invoice/${invoiceToEdit._id}`,
+          `${apiUrl}/api/invoice/${invoiceToEdit._id}`,
           {
             customer: customer._id,
             gst,

@@ -14,20 +14,19 @@ const initialState = {
   invoices: [],
   message: '',
 };
+const apiUrl = process.env.REACT_APP_API_URL;
 
 export const fetchInvoices = createAsyncThunk(
   'invoice/fetchInvoices',
   async (id = null) => {
     try {
       if (id == null) {
-        const response = await axios.get(
-          'https://invoice-deploy.onrender.com/api/invoices'
-        );
+        const response = await axios.get(`${apiUrl}/api/invoices`);
         console.log(response.data.invoices);
         return response.data.invoices;
       } else {
         const response = await axios.get(
-          `https://invoice-deploy.onrender.com/api/customer/${id}/invoices`
+          `${apiUrl}/api/customer/${id}/invoices`
         );
         return response.data.invoices;
       }
@@ -41,9 +40,7 @@ export const deleteInvoice = createAsyncThunk(
   'invoice/deleteInvoice',
   async (id) => {
     try {
-      const response = await axios.delete(
-        'https://invoice-deploy.onrender.com/api/invoices'
-      );
+      const response = await axios.delete(`${apiUrl}/api/invoices`);
       console.log(response.data.invoices);
       return response.data.message;
     } catch (error) {
@@ -54,9 +51,7 @@ export const deleteInvoice = createAsyncThunk(
 
 export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
   try {
-    const response = await axios.get(
-      'https://invoice-deploy.onrender.com/api/lastinvoice'
-    );
+    const response = await axios.get(`${apiUrl}/api/lastinvoice`);
     return parseInt(response.data.invoice.invoiceNo);
   } catch (error) {
     throw error;
@@ -67,7 +62,7 @@ export const sendInvoiceData = createAsyncThunk(
   'invoice/sendInvoiceData',
   async (invoiceData) => {
     try {
-      const response = await axios.post('/api/invoices', invoiceData);
+      const response = await axios.post(`${apiUrl}/api/invoices`, invoiceData);
       return response.data;
     } catch (error) {
       throw error;

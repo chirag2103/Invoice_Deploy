@@ -208,6 +208,7 @@ import axios from 'axios';
 import AdminSidebar from '../components/AdminSidebar';
 
 const CustomerInvoices = () => {
+  const apiUrl = process.env.REACT_APP_API_URL;
   const { customerId } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -223,13 +224,13 @@ const CustomerInvoices = () => {
       try {
         console.log('id:' + customerId);
         const response = await axios.get(
-          `https://invoice-deploy.onrender.com/api/customer/${customerId}/invoices`
+          `${apiUrl}/api/customer/${customerId}/invoices`
         );
         setgToal(response.data.total);
         setCustomerName(response.data.customerName);
         console.log(response.data.invoices);
         const res = await axios.get(
-          `https://invoice-deploy.onrender.com/api/customer/${customerId}/payments`
+          `${apiUrl}/api/customer/${customerId}/payments`
         );
         setPayments(res.data.payments);
         setPaidAmount(res.data.paidAmount);
