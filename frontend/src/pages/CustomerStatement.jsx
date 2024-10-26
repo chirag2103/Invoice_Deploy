@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import './CustomerStatement.css';
+import './CustomerStatement.scss';
 
 const CustomerStatement = () => {
   const apiUrl = process.env.REACT_APP_API_URL;

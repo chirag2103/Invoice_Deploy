@@ -1,0 +1,98 @@
+.customer-statement-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-size: large;
+
+  h2 {
+    text-align: center;
+    color: #333;
+  }
+
+  p {
+    text-align: center;
+    color: #555;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    margin-top: 20px;
+  }
+
+  .responsive-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    thead {
+      background-color: #007bff;
+      color: #ffffff;
+    }
+
+    th,
+    td {
+      text-align: left;
+    }
+
+    tbody {
+      tr {
+        &:nth-child(even) {
+          background-color: #f2f2f2;
+        }
+
+        &:hover {
+          background-color: #d3e5ff;
+          cursor: pointer;
+        }
+      }
+    }
+
+    th {
+      letter-spacing: 1px;
+    }
+
+    td {
+      color: #333;
+    }
+  }
+
+  // Responsive adjustments
+  @media screen and (max-width: 768px) {
+    .responsive-table {
+      thead {
+        display: none;
+      }
+
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+      }
+
+      tr {
+        border-bottom: 1px solid #ddd;
+      }
+
+      td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+
+        &::before {
+          content: attr(data-label);
+          position: absolute;
+          left: 0;
+          width: 50%;
+          padding-left: 15px;
+          font-weight: bold;
+          text-align: left;
+          color: #333;
+        }
+      }
+    }
+  }
+}
