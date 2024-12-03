@@ -65,25 +65,23 @@ const Print = () => {
           <table className='table-1'>
             <tr>
               <td rowSpan={2} style={{ width: '60%' }}>
-                <b style={{ fontSize: '22px', fontWeight: '800' }}>
-                  HARI OM ENGINEERING WORKS
+                <b style={{ fontSize: '22px', fontWeight: 'bold' }}>
+                  SPARKTECH SOLUTION
                 </b>
                 <p>PLOT NO. I-77, G.I.D.C ESTATE, V.U NAGAR</p>
                 <p>ANAND-388121, GUJARAT,INDIA</p>
                 <p>
-                  <b>GSTIN:</b>24AMFPP7083F1ZX
-                </p>
-                <p>
-                  <b>MSME:</b>UDYAM-GJ-03-0019325
+                  <b>GSTIN:</b>24DXBPP3645D1ZO
                 </p>
 
                 <p>
-                  <b>Mobile No.</b> 9714275013
+                  <b>Mobile No.</b> +91{' '}
+                  {customer.name === 'CERACOATS' ? '7567654590' : '8866192720'}
                 </p>
               </td>
               <td style={{ width: '20%' }}>
                 <p>Invoice No.</p>
-                <b>HEW{billNo}</b>
+                <b>SS{billNo}</b>
               </td>
               <td style={{ width: '20%' }}>
                 <p>
@@ -130,18 +128,18 @@ const Print = () => {
             </tr>
             <tr>
               <td>
-                <p>Dis. Doc. No-</p>
+                <p>Dis.Doc. No-</p>
               </td>
               <td>
-                <p>Delivery Date -</p>
+                <p>Delivery Date-</p>
               </td>
             </tr>
             <tr>
               <td>
-                <p>Dispatched Through -</p>
+                <p>Dispatched Through-</p>
               </td>
               <td>
-                <p>Destination -</p>
+                <p>Destination-</p>
               </td>
             </tr>
           </table>
@@ -224,14 +222,14 @@ const Print = () => {
               rowSpan={2}
               style={{ paddingTop: '100px', textAlign: 'center' }}
             >
-              Hari Om Engineering Works
+              SPARKTECH SOLUTION
             </td>
           </tr>
           <tr>
             <td>
-              <p>Bank Name: Central Bank of India</p>
-              <p>A/C No: 3243013874</p>
-              <p>IFSC: CBIN0280532</p>
+              <p>Bank Name: Bank of Baroda</p>
+              <p>A/C No: 55480200000745</p>
+              <p>IFSC: BARB0VUNAGA</p>
             </td>
           </tr>
           <tr>
