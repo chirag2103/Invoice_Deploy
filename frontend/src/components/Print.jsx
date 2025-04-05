@@ -43,13 +43,13 @@ const Print = () => {
 
   useEffect(() => {
     const handleAfterPrint = () => {
-      navigate('/admin/customers');
+      navigate('/invoices/all');
     };
 
     window.addEventListener('afterprint', handleAfterPrint);
 
     // Open print dialog
-    window.print();
+    // window.print();
 
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
@@ -65,7 +65,7 @@ const Print = () => {
           <table className='table-1'>
             <tr>
               <td rowSpan={2} style={{ width: '60%' }}>
-                <b style={{ fontSize: '22px', fontWeight: '800' }}>
+                <b style={{ fontSize: '22px', fontWeight: 'bold' }}>
                   HARI OM ENGINEERING WORKS
                 </b>
                 <p>PLOT NO. I-77, G.I.D.C ESTATE, V.U NAGAR</p>

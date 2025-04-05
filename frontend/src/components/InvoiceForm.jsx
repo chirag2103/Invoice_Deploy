@@ -362,6 +362,7 @@ const InvoiceForm = ({ editInvoice }) => {
             <option value='Kg'>Kg</option>
             <option value='Liters'>Liters</option>
             <option value='Set'>Set</option>
+            <option value='Bunch'>Bunch</option>
           </select>
         </div>
         <div className='form-group'>

@@ -4,14 +4,32 @@ import TableHOC from '../components/TableHOC';
 import AdminSidebar from './AdminSidebar';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchInvoices } from '../slices/invoiceSlice';
+import { useNavigate } from 'react-router-dom';
 
 const InvoiceList = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   useEffect(() => {
     dispatch(fetchInvoices());
   }, [dispatch]);
   const { invoices, loading, error } = useSelector((state) => state.invoice);
+
+  const handlePrint = async (invoice, invoicefor) => {
+    const data = {
+      challanNo: invoice.challanNo ? invoice.challanNo : '',
+      gst: invoice.gst,
+      invoicefor,
+      billNo: invoice.invoiceNo,
+      products: invoice.invoiceProducts,
+      customer: invoice.customer,
+      date: invoice.date.split('T')[0],
+      grandTotal: invoice.grandTotal,
+      totalAmount: invoice.invoiceTotal,
+    };
+    navigate('/invoices/preview', { state: data });
+  };
+
   return (
     <>
       {loading ? (
@@ -31,6 +49,8 @@ const InvoiceList = () => {
                       <td>Company</td>
                       <td>Date</td>
                       <td>Amount</td>
+                      <td>Original Print</td>
+                      <td>Duplicate Print</td>
                     </tr>
                   </thead>
                   <tbody>
@@ -40,6 +60,24 @@ const InvoiceList = () => {
                         <td>{invoice.customer.name}</td>
                         <td>{invoice.date.split('T')[0]}</td>
                         <td>{invoice.grandTotal}</td>
+                        <td>
+                          <button
+                            onClick={() =>
+                              handlePrint(invoice, 'Original Copy')
+                            }
+                          >
+                            Original
+                          </button>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() =>
+                              handlePrint(invoice, 'Duplicate Copy')
+                            }
+                          >
+                            Duplicate
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
