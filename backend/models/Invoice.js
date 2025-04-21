@@ -30,6 +30,10 @@ const invoiceSchema = mongoose.Schema({
     type: Date,
     required: true,
   },
+  orderNo: String,
+  orderDate: {
+    type: Date,
+  },
 });
 
 invoiceSchema.pre('save', function (next) {

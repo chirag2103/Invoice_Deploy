@@ -71,17 +71,18 @@ const Print = () => {
                 <p>PLOT NO. I-77, G.I.D.C ESTATE, V.U NAGAR</p>
                 <p>ANAND-388121, GUJARAT,INDIA</p>
                 <p>
-                  <b>GSTIN:</b>24DXBPP3645D1ZO
+                  <b>GSTIN:</b>24AMFPP7083F1ZX
                 </p>
-
                 <p>
-                  <b>Mobile No.</b> +91{' '}
-                  {customer.name === 'CERACOATS' ? '7567654590' : '8866192720'}
+                  <b>MSME:</b>UDYAM-GJ-03-0019325
+                </p>
+                <p>
+                  <b>Mobile No:</b>9714275013
                 </p>
               </td>
               <td style={{ width: '20%' }}>
                 <p>Invoice No.</p>
-                <b>SS{billNo}</b>
+                <b>HEW{billNo}</b>
               </td>
               <td style={{ width: '20%' }}>
                 <p>
@@ -222,14 +223,14 @@ const Print = () => {
               rowSpan={2}
               style={{ paddingTop: '100px', textAlign: 'center' }}
             >
-              SPARKTECH SOLUTION
+              HARI OM ENGINEERING WORKS
             </td>
           </tr>
           <tr>
             <td>
-              <p>Bank Name: Bank of Baroda</p>
-              <p>A/C No: 55480200000745</p>
-              <p>IFSC: BARB0VUNAGA</p>
+              <p>Bank Name: Central Bank of India</p>
+              <p>A/C No: 3243013874</p>
+              <p>IFSC: CBIN0280532</p>
             </td>
           </tr>
           <tr>
