@@ -1,0 +1,18 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import CustomerList from '@/screens/CustomerList';
+import CustomerDetails from '@/screens/CustomerDetails';<NavigationContainer>
+      <Stack.Navigator initialRouteName='CustomerList'>
+        <Stack.Screen
+          name='CustomerList'
+          component={CustomerList}
+          options={{ title: 'Customers' }}
+        />
+        <Stack.Screen
+          name='CustomerDetails'
+          component={CustomerDetails}
+          options={{ title: 'Customer Details' }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
