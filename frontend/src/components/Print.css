@@ -4,6 +4,8 @@
   font-size: 16px;
   overflow-x: auto;
   white-space: normal;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .Print h2 {
@@ -32,33 +34,101 @@
 .table-3 {
   width: 100%;
   border-collapse: collapse;
+  font-size: 14px;
 }
+
 .table-1,
 .table-2 {
   width: 100%;
-  /* line-height: 10px; */
   border-collapse: collapse;
   border: 2px solid black;
+  font-size: 14px;
 }
-/* .table-1 p {
-  line-height: 5px;
-} */
+
 .center {
   text-align: center;
   font-weight: bold;
 }
+
 .bold {
   font-weight: 900;
   font-size: 18px;
 }
+
 .table-1 td,
 .table-2 td {
   border: 1px solid black;
+  padding: 4px;
 }
 
 .table-3 th,
 .table-3 td {
   border: 1px solid #000;
-  /* padding: 8px; */
-  /* text-align: center; */
+  padding: 4px;
+}
+
+/* Print-specific styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .Print,
+  .Print * {
+    visibility: visible;
+  }
+  .Print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+  }
+
+  .table-1,
+  .table-2,
+  .table-3 {
+    font-size: 12px;
+    page-break-inside: avoid;
+  }
+
+  .table-3 th,
+  .table-3 td {
+    padding: 2px;
+  }
+
+  @page {
+    size: auto;
+    margin: 5mm;
+  }
+}
+
+/* Mobile-specific adjustments */
+@media screen and (max-width: 768px) {
+  .Print {
+    font-size: 14px;
+  }
+
+  .table-1,
+  .table-2,
+  .table-3 {
+    font-size: 12px;
+  }
+
+  .table-1 td,
+  .table-2 td,
+  .table-3 th,
+  .table-3 td {
+    padding: 3px;
+  }
+
+  .Print h2 {
+    font-size: 20px;
+  }
+
+  .bold {
+    font-size: 16px;
+  }
 }
