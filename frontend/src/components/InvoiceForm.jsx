@@ -37,9 +37,16 @@ const InvoiceForm = ({ editInvoice }) => {
   const [challanNo, setChallanNo] = useState(
     isEdit ? invoiceToEdit.challanNo : ''
   );
+  const [challanDate, setChallanDate] = useState(
+    isEdit ? invoiceToEdit?.challanDate : ''
+  );
   const [uom, setUom] = useState('NOS');
   const [quantity, setQuantity] = useState(0);
   const [rate, setRate] = useState(0);
+  const [orderNo, setOrderNo] = useState(isEdit ? invoiceToEdit?.orderNo : '');
+  const [orderDate, setOrderDate] = useState(
+    isEdit ? invoiceToEdit?.orderDate : ''
+  );
 
   useEffect(() => {
     if (isEdit) {
@@ -61,6 +68,16 @@ const InvoiceForm = ({ editInvoice }) => {
 
   const handleDateChange = (event) => {
     setDate(event.target.value);
+  };
+  const handleOrderNo = (event) => {
+    setOrderNo(event.target.value);
+  };
+  const handleOrderDate = (event) => {
+    setOrderDate(event.target.value);
+  };
+
+  const handleChallanDateChange = (event) => {
+    setChallanDate(event.target.value);
   };
 
   const handleProductNameChange = (event) => {
@@ -115,6 +132,9 @@ const InvoiceForm = ({ editInvoice }) => {
       totalAmount,
       invoicefor,
       challanNo,
+      challanDate,
+      orderNo,
+      orderDate,
     };
 
     if (customer && products && date) {
@@ -128,6 +148,8 @@ const InvoiceForm = ({ editInvoice }) => {
           grandTotal,
           invoiceTotal: totalAmount,
           challanNo: challanNo ? challanNo : '',
+          orderNo: orderNo ? orderNo : '',
+          orderDate: orderDate ? orderDate : '',
         });
         console.log('Response: ' + res);
       } catch (error) {
@@ -141,6 +163,7 @@ const InvoiceForm = ({ editInvoice }) => {
   const handleGeneratePdfVendor = () => {
     let invoicefor = 'Duplicate Copy';
     let date1 = date.toString().split('T')[0];
+    let date2 = challanDate?.toString().split('T')[0];
     const dataVendor = {
       customer,
       billNo: isEdit ? invoiceToEdit.invoiceNo : billNo,
@@ -151,6 +174,9 @@ const InvoiceForm = ({ editInvoice }) => {
       totalAmount,
       invoicefor,
       challanNo,
+      challanDate: date2,
+      orderNo: isEdit ? invoiceToEdit?.orderNo : orderNo,
+      orderDate: isEdit ? invoiceToEdit?.orderDate : orderDate,
     };
 
     if (customer && products && date) {
@@ -171,6 +197,9 @@ const InvoiceForm = ({ editInvoice }) => {
             grandTotal,
             invoiceTotal: totalAmount,
             challanNo: challanNo ? challanNo : '',
+            challanDate: challanDate ? challanDate : null,
+            orderNo: orderNo ? orderNo : null,
+            orderDate: orderDate ? orderDate : null,
           }
         );
         console.log('Response: ' + res);
@@ -179,6 +208,7 @@ const InvoiceForm = ({ editInvoice }) => {
       }
       let invoicefor = 'Original Copy';
       let date1 = date.toString().split('T')[0];
+      let date2 = challanDate?.toString().split('T')[0];
       console.log('date1:' + date1);
       const dataRecipient = {
         customer,
@@ -190,6 +220,9 @@ const InvoiceForm = ({ editInvoice }) => {
         totalAmount,
         invoicefor,
         challanNo,
+        challanDate: date2,
+        orderNo: orderNo,
+        orderDate: orderDate,
       };
       navigate('/invoices/preview', { state: dataRecipient });
     } else alert('Select Customer or products');
@@ -198,6 +231,7 @@ const InvoiceForm = ({ editInvoice }) => {
     if (customer && products && date) {
       let invoicefor = 'Original Copy';
       let date1 = date.split('T')[0];
+      let date2 = challanDate?.split('T')[0];
       const dataRecipient = {
         customer,
         billNo: invoiceToEdit.invoiceNo,
@@ -208,6 +242,9 @@ const InvoiceForm = ({ editInvoice }) => {
         totalAmount,
         invoicefor,
         challanNo,
+        date2,
+        orderNo,
+        orderDate,
       };
       navigate('/invoices/preview', { state: dataRecipient });
     } else alert('Select Customer or products');
@@ -269,6 +306,21 @@ const InvoiceForm = ({ editInvoice }) => {
           />
         </div>
         <div className='form-group'>
+          <label htmlFor='challanDate' className='form-label'>
+            Challan Date
+          </label>
+          <input
+            type='date'
+            placeholder={isEdit ? invoiceToEdit?.challanDate : challanDate}
+            id='date'
+            className='form-input'
+            value={isEdit ? invoiceToEdit?.challanDate : challanDate}
+            onChange={handleChallanDateChange}
+            style={{ width: '10rem' }}
+            required
+          />
+        </div>
+        <div className='form-group'>
           <label htmlFor='gst' className='form-label'>
             GST
           </label>
@@ -295,6 +347,36 @@ const InvoiceForm = ({ editInvoice }) => {
             className='form-input'
             value={isEdit ? invoiceToEdit.date : date}
             onChange={handleDateChange}
+            style={{ width: '10rem' }}
+            required
+          />
+        </div>
+        <div className='form-group'>
+          <label htmlFor='orderNo' className='form-label'>
+            OrderNo:
+          </label>
+          <input
+            type='text'
+            placeholder={isEdit ? invoiceToEdit?.orderNo : orderNo}
+            id='date'
+            className='form-input'
+            value={isEdit ? invoiceToEdit?.orderNo : orderNo}
+            onChange={handleOrderNo}
+            style={{ width: '10rem' }}
+            required
+          />
+        </div>
+        <div className='form-group'>
+          <label htmlFor='orderDate' className='form-label'>
+            OrderDate:
+          </label>
+          <input
+            type='date'
+            placeholder={isEdit ? invoiceToEdit?.orderDate : orderDate}
+            id='date'
+            className='form-input'
+            value={isEdit ? invoiceToEdit?.orderDate : orderDate}
+            onChange={handleOrderDate}
             style={{ width: '10rem' }}
             required
           />

@@ -18,6 +18,7 @@ const invoiceSchema = mongoose.Schema({
     unique: true,
     required: true,
   },
+  orderNo: String,
   challanNo: String,
   gst: Number,
   challanDate: Date,

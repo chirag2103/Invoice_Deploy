@@ -37,19 +37,21 @@ const Print = () => {
     grandTotal,
     totalAmount,
     challanDate,
+    orderNo,
+    orderDate,
   } = location.state;
   console.log(date);
   const pdfRef = useRef();
 
   useEffect(() => {
     const handleAfterPrint = () => {
-      navigate('/admin/customers');
+      navigate('/invoices/all');
     };
 
-    window.addEventListener('afterprint', handleAfterPrint);
+    // window.addEventListener('afterprint', handleAfterPrint);
 
     // Open print dialog
-    window.print();
+    // window.print();
 
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
@@ -94,11 +96,11 @@ const Print = () => {
             <tr>
               <td>
                 <p>Challan No.</p>
-                <b>{challanNo ? billNo : ''}</b>
+                <b>{challanNo ? challanNo : ''}</b>
               </td>
               <td>
                 <p>Date</p>
-                <b>{challanNo ? date : ''}</b>
+                <b>{challanDate ? challanDate : ''}</b>
               </td>
             </tr>
           </table>
@@ -119,11 +121,11 @@ const Print = () => {
               </td>
               <td style={{ width: '20%' }}>
                 <p>Buyer's Order No.</p>
-                <b></b>
+                <b>{orderNo}</b>
               </td>
               <td style={{ width: '20%' }}>
                 <p>Dated</p>
-                <b></b>
+                <b>{orderDate}</b>
               </td>
             </tr>
             <tr>
