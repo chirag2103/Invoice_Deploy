@@ -1,0 +1,121 @@
+// Flexbox mixin
+@mixin flex($direction: row, $justify: center, $align: center, $gap: 1rem) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+  gap: $gap;
+}
+
+// Grid mixin
+@mixin grid($cols: 1fr, $gap: 1rem) {
+  display: grid;
+  grid-template-columns: $cols;
+  gap: $gap;
+}
+
+// Heading mixin
+@mixin heading($letterSpacing: 1px) {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: $letterSpacing;
+}
+
+// Square dimensions mixin
+@mixin square($size) {
+  width: $size;
+  height: $size;
+}
+
+// Position center mixin
+@mixin posCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// Input style mixin
+@mixin inputStyle($width: 100%, $padding: 1rem) {
+  width: $width;
+  padding: $padding;
+  border: none;
+  outline: none;
+  background-color: transparent;
+}
+
+// Responsive breakpoints
+@mixin mobile {
+  @media (max-width: 640px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (max-width: 768px) {
+    @content;
+  }
+}
+
+@mixin laptop {
+  @media (max-width: 1024px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (max-width: 1280px) {
+    @content;
+  }
+}
+
+// Box shadow mixin
+@mixin shadow($opacity: 0.1) {
+  box-shadow: 0 0 10px rgba(0, 0, 0, $opacity);
+}
+
+// Border radius mixin
+@mixin rounded($radius: 10px) {
+  border-radius: $radius;
+}
+
+// Transition mixin
+@mixin transition($property: all, $duration: 0.3s) {
+  transition: $property $duration ease-in-out;
+}
+
+// Text truncate mixin
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Gradient background mixin
+@mixin gradient($start-color, $end-color, $direction: to right) {
+  background: linear-gradient($direction, $start-color, $end-color);
+}
+
+// Container padding mixin
+@mixin container-padding {
+  padding-left: 1rem;
+  padding-right: 1rem;
+
+  @include tablet {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  @include laptop {
+    padding-left: 4rem;
+    padding-right: 4rem;
+  }
+}
+
+// Card style mixin
+@mixin card {
+  @include rounded;
+  @include shadow;
+  background-color: white;
+  padding: 1rem;
+}

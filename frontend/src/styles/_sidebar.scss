@@ -1,0 +1,145 @@
+.admin-sidebar {
+  width: 16rem;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  background-color: white;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+
+  .sidebar-header {
+    padding: 1.5rem;
+    background: linear-gradient(to right, #2563eb, #3b82f6);
+    color: white;
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+
+      svg {
+        font-size: 2rem;
+      }
+
+      h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+    }
+
+    .user-info {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+
+      p {
+        &:first-child {
+          font-size: 0.875rem;
+          opacity: 0.8;
+          margin-bottom: 0.25rem;
+        }
+
+        &:nth-child(2) {
+          font-size: 1.125rem;
+          font-weight: 500;
+          margin-bottom: 0.25rem;
+        }
+
+        &:last-child {
+          font-size: 0.875rem;
+          opacity: 0.8;
+          text-transform: capitalize;
+        }
+      }
+    }
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: white;
+
+    &::-webkit-scrollbar {
+      width: 0;
+      background: transparent;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      li {
+        a {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem 1rem;
+          border-radius: 0.5rem;
+          color: #4b5563;
+          transition: all 0.2s ease;
+          text-decoration: none;
+
+          svg {
+            font-size: 1.25rem;
+          }
+
+          span {
+            font-weight: 500;
+          }
+
+          &:hover {
+            background-color: #f3f4f6;
+          }
+
+          &.active {
+            background-color: #2563eb;
+            color: white;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+          }
+        }
+      }
+    }
+  }
+
+  .sidebar-footer {
+    padding: 1rem;
+    border-top: 1px solid #e5e7eb;
+    background-color: white;
+
+    button {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      color: #4b5563;
+      transition: all 0.2s ease;
+      background: none;
+      border: none;
+      cursor: pointer;
+
+      svg {
+        font-size: 1.25rem;
+      }
+
+      span {
+        font-weight: 500;
+      }
+
+      &:hover {
+        background-color: #fef2f2;
+        color: #dc2626;
+      }
+    }
+  }
+}

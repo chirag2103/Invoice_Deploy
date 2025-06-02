@@ -1,85 +1,103 @@
-import { useState, FormEvent, useEffect } from 'react';
-import axios, { AxiosError, AxiosResponse } from 'axios';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { login, clearError } from '../slices/authSlice';
+import { toast } from 'react-toastify';
 import '../styles/signin.scss';
-import { useNavigate } from 'react-router-dom';
 
-export default function SignIn() {
-  const apiUrl = process.env.REACT_APP_API_URL;
+const SignIn = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const location = useLocation();
+  const { isAuthenticated, error, loading } = useSelector(
+    (state) => state.auth
+  );
+
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
 
   useEffect(() => {
-    // Check if the user has a valid token
-    const token = localStorage.getItem('token');
-    console.log(localStorage);
-    if (token) {
-      setIsLoggedIn(true);
-      navigate('/admin/dashboard');
+    if (isAuthenticated) {
+      // Navigate to the attempted URL or dashboard
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from);
     }
-  }, []);
+  }, [isAuthenticated, navigate, location]);
 
-  const handleLogin = (event) => {
-    event.preventDefault();
-    let userData = {
-      email: email,
-      password: password,
-    };
-    let userDataJSON = JSON.stringify(userData);
-    axios
-      .post(`${apiUrl}/api/login`, userDataJSON, {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      })
-      .then((res) => {
-        console.log(res);
-        const token = res.data.token;
-        localStorage.setItem('token', token);
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
 
-        navigate('admin/dashboard');
-      })
-      .catch((err) => {
-        alert(err);
-      });
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (loading) {
+      return; // Prevent multiple submissions while loading
+    }
+
+    // Basic validation
+    if (!formData.email || !formData.password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      await dispatch(login(formData)).unwrap();
+    } catch (err) {
+      // Error is already handled by the error useEffect
+      console.error('Login failed:', err);
+    }
   };
 
   return (
-    <>
-      <div className='main-container'>
-        <div className='container'>
-          <form action='' className='form signin' onSubmit={handleLogin}>
-            <h2>Sign In</h2>
-            <div className='inputFields'>
-              <input
-                type='email'
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                }}
-                required
-              />
-              <span>email</span>
-            </div>
-            <div className='inputFields'>
-              <input
-                type='password'
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                }}
-                required
-              />
-              <span>password</span>
-            </div>
-            <div className='inputFields'>
-              <input type='submit' />
-            </div>
-          </form>
-        </div>
+    <div className='main-container'>
+      <div className='container'>
+        <form className='form' onSubmit={handleSubmit}>
+          <h2>Sign In</h2>
+          <div className='inputFields'>
+            <input
+              type='email'
+              name='email'
+              required
+              value={formData.email}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            <span>Email</span>
+          </div>
+          <div className='inputFields'>
+            <input
+              type='password'
+              name='password'
+              required
+              value={formData.password}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            <span>Password</span>
+          </div>
+          <div className='inputFields'>
+            <input
+              type='submit'
+              value={loading ? 'Signing in...' : 'Sign in'}
+              disabled={loading}
+            />
+          </div>
+        </form>
       </div>
-    </>
+    </div>
   );
-}
+};
+
+export default SignIn;

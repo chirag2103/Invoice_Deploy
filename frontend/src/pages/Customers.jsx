@@ -2,7 +2,6 @@
 // import AdminSidebar from '../components/AdminSidebar';
 // import { BarChart1, LineChart, PieChart } from '../components/Charts';
 // import { FaRegBell } from 'react-icons/fa';
-// import userImg from '../assets/userpic.png';
 // const Customers = () => {
 //   const months = [
 //     'January',
@@ -74,118 +73,119 @@
 
 // export default Customers;
 
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { fetchCustomers } from '../slices/customerSlice';
-import AdminSidebar from '../components/AdminSidebar';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import TableHOC from '../components/TableHOC';
+import AdminSidebar from '../components/AdminSidebar';
 
 const Customers = () => {
-  const apiUrl = process.env.REACT_APP_API_URL;
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useSelector((state) => state.auth);
+
   useEffect(() => {
-    console.log('Hello World');
-    dispatch(fetchCustomers());
-  }, [dispatch]);
-  const { customers } = useSelector((state) => state.customers);
+    fetchCustomers();
+  }, []);
 
-  const handleCustomerClick = (customerId) => {
-    navigate(`/customer/${customerId}/invoices`);
+  const fetchCustomers = async () => {
+    try {
+      const response = await axios.get('/api/customers');
+      setCustomers(response.data.customers);
+    } catch (error) {
+      toast.error('Error fetching customers');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const [name, setName] = useState('');
-  const [gstNo, setgstNo] = useState('');
-  const [address, setAddress] = useState('');
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    let userData = {
-      name: name,
-      gstNo: gstNo,
-      address: address,
-    };
-    let userDataJSON = JSON.stringify(userData);
-    axios
-      .post(`${apiUrl}/api/customer/new`, userDataJSON, {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      })
-      .then((res) => {
-        console.log(res);
-        alert(res.status + 'Customer added');
-      })
-      .catch((err) => {
-        alert(err);
-      });
+  const deleteCustomer = async (id) => {
+    if (window.confirm('Are you sure you want to delete this customer?')) {
+      try {
+        await axios.delete(`/api/customers/${id}`);
+        toast.success('Customer deleted successfully');
+        fetchCustomers();
+      } catch (error) {
+        toast.error('Error deleting customer');
+      }
+    }
   };
+
+  const columns = [
+    {
+      Header: 'Name',
+      accessor: 'name',
+    },
+    {
+      Header: 'Email',
+      accessor: 'email',
+    },
+    {
+      Header: 'Phone',
+      accessor: 'phone',
+    },
+    {
+      Header: 'Total Invoices',
+      accessor: 'invoiceCount',
+    },
+    {
+      Header: 'Total Amount',
+      accessor: 'totalAmount',
+      Cell: ({ value }) => `₹${value.toFixed(2)}`,
+    },
+    {
+      Header: 'Actions',
+      accessor: '_id',
+      Cell: ({ row }) => (
+        <div className='space-x-2'>
+          <Link
+            to={`/customers/${row.original._id}/invoices`}
+            className='text-blue-600 hover:text-blue-800'
+          >
+            View Invoices
+          </Link>
+          <Link
+            to={`/customers/edit/${row.original._id}`}
+            className='text-green-600 hover:text-green-800'
+          >
+            Edit
+          </Link>
+          <button
+            onClick={() => deleteCustomer(row.original._id)}
+            className='text-red-600 hover:text-red-800'
+          >
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const Table = TableHOC(
+    columns,
+    customers,
+    'Customers List',
+    'customers-table',
+    loading
+  );
+
   return (
     <div className='admin-container'>
-      {/* AdminSideBar */}
       <AdminSidebar />
-      <div className='customer-container'>
-        <div className='add-customer'>
-          <p>Create Customer</p>
-          <form onSubmit={handleSubmit} method='post' className='invoice-form'>
-            <label htmlFor='name' className='form-label'>
-              Name
-            </label>
-            <input
-              type='text'
-              value={name}
-              className='form-input'
-              onChange={(event) => {
-                setName(event.target.value);
-              }}
-              name='customer'
-              id='customer'
-            />
-            <label htmlFor='gstin' className='form-label'>
-              GSTIN:
-            </label>
-
-            <input
-              type='text'
-              name='gstin'
-              className='form-input'
-              value={gstNo}
-              onChange={(event) => {
-                setgstNo(event.target.value);
-              }}
-              id='customer'
-            />
-            <label htmlFor='adddress' className='form-label'>
-              Address:
-            </label>
-            <input
-              type='text'
-              name='address'
-              className='form-input'
-              value={address}
-              onChange={(event) => {
-                setAddress(event.target.value);
-              }}
-              id='customer'
-            />
-            <input type='submit' className='add-btn' value='Add' />
-          </form>
+      <main className='p-5'>
+        <div className='flex justify-between items-center mb-5'>
+          <h2 className='text-2xl font-bold'>Customers</h2>
+          <Link
+            to='/customers/new'
+            className='px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+          >
+            Add New Customer
+          </Link>
         </div>
-        <div className='customer-list-container'>
-          <h1>Select a Customer</h1>
-          <div className='customr-list'>
-            {customers.map((customer) => (
-              <li
-                key={customer._id}
-                onClick={() => handleCustomerClick(customer._id)}
-              >
-                {customer.name}
-              </li>
-            ))}
-          </div>
-        </div>
-      </div>
+        {Table}
+      </main>
     </div>
   );
 };

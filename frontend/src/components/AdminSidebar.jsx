@@ -1,153 +1,124 @@
-import { Link, Location, useLocation } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../slices/authSlice';
+import { toast } from 'react-toastify';
 import {
-  RiCoupon3Fill,
-  RiDashboardFill,
-  RiShoppingBag3Fill,
+  RiDashboardLine,
+  RiFileList3Line,
+  RiUserLine,
+  RiMoneyDollarCircleLine,
+  RiFileTextLine,
+  RiLogoutBoxLine,
+  RiShoppingBag3Line,
+  RiFileListLine,
+  RiTruckLine,
+  RiBuilding4Line,
 } from 'react-icons/ri';
-import { IoIosPeople } from 'react-icons/io';
-import { AiFillFileText } from 'react-icons/ai';
-import { IconType } from 'react-icons';
-import {
-  FaChartBar,
-  FaChartLine,
-  FaChartPie,
-  FaGamepad,
-  FaStopwatch,
-} from 'react-icons/fa';
+
 const AdminSidebar = () => {
   const location = useLocation();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    toast.success('Logged out successfully');
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  const menuItems = [
+    {
+      path: '/dashboard',
+      name: 'Dashboard',
+      icon: <RiDashboardLine />,
+      roles: ['admin', 'manager', 'user'],
+    },
+    {
+      path: '/invoices',
+      name: 'Invoices',
+      icon: <RiFileList3Line />,
+      roles: ['admin', 'manager', 'user'],
+    },
+    {
+      path: '/quotations',
+      name: 'Quotations',
+      icon: <RiFileTextLine />,
+      roles: ['admin', 'manager'],
+    },
+    {
+      path: '/challans',
+      name: 'Challans',
+      icon: <RiTruckLine />,
+      roles: ['admin', 'manager', 'user'],
+    },
+    {
+      path: '/customers',
+      name: 'Customers',
+      icon: <RiUserLine />,
+      roles: ['admin', 'manager'],
+    },
+    {
+      path: '/products',
+      name: 'Products',
+      icon: <RiShoppingBag3Line />,
+      roles: ['admin', 'manager'],
+    },
+    {
+      path: '/payments',
+      name: 'Payments',
+      icon: <RiMoneyDollarCircleLine />,
+      roles: ['admin', 'manager'],
+    },
+    {
+      path: '/statements',
+      name: 'Statements',
+      icon: <RiFileListLine />,
+      roles: ['admin'],
+    },
+  ];
+
   return (
-    <aside>
-      <h2>Logo.</h2>
-      <DivOne location={location} />
-      {/* <DivThree location={location} /> */}
+    <aside className='admin-sidebar'>
+      <div className='sidebar-header'>
+        <div className='logo-container'>
+          <RiBuilding4Line />
+          <h2>Invoice Manager</h2>
+        </div>
+        <div className='user-info'>
+          <p>Welcome,</p>
+          <p>{user?.name}</p>
+          <p>{user?.role}</p>
+        </div>
+      </div>
+
+      <nav className='sidebar-nav'>
+        <ul>
+          {menuItems
+            .filter((item) => item.roles.includes(user?.role))
+            .map((item) => (
+              <li key={item.path}>
+                <Link
+                  to={item.path}
+                  className={isActive(item.path) ? 'active' : ''}
+                >
+                  {item.icon}
+                  <span>{item.name}</span>
+                </Link>
+              </li>
+            ))}
+        </ul>
+      </nav>
+
+      <div className='sidebar-footer'>
+        <button onClick={handleLogout}>
+          <RiLogoutBoxLine />
+          <span>Logout</span>
+        </button>
+      </div>
     </aside>
   );
 };
-const DivOne = ({ location }) => (
-  <div>
-    <h5>Dashboard</h5>
-    <ul>
-      <Li
-        url='/admin/dashboard'
-        text='Dashboard'
-        Icon={RiDashboardFill}
-        location={location}
-      />
-      <Li
-        url='/invoices/all'
-        text='Invoices'
-        Icon={RiShoppingBag3Fill}
-        location={location}
-      />
-      <Li
-        url='/admin/customers'
-        text='Customer'
-        Icon={IoIosPeople}
-        location={location}
-      />
-      <Li
-        url='/admin/transaction'
-        text='Transaction'
-        Icon={AiFillFileText}
-        location={location}
-      />
-      <Li
-        url='/admin/invoice/new'
-        text='Create Invoice'
-        Icon={AiFillFileText}
-        location={location}
-      />
-      <Li
-        url='/admin/payment/new'
-        text='Add Payment'
-        Icon={AiFillFileText}
-        location={location}
-      />
-      <Li
-        url='/admin/billinfo'
-        text='Billing Info'
-        Icon={FaStopwatch}
-        location={location}
-      />
-      <Li
-        url='/statements'
-        text='Statements'
-        Icon={FaStopwatch}
-        location={location}
-      />
-    </ul>
-  </div>
-);
-const DivTwo = ({ location }) => (
-  <div>
-    <h5>Due Info</h5>
-    <ul>
-      <Li
-        url='/admin/billinfo'
-        text='Bar'
-        Icon={FaChartBar}
-        location={location}
-      />
-      <Li
-        url='/admin/chart/pie'
-        text='Pie'
-        Icon={FaChartPie}
-        location={location}
-      />
-      <Li
-        url='/admin/chart/line'
-        text='Line'
-        Icon={FaChartLine}
-        location={location}
-      />
-    </ul>
-  </div>
-);
-const DivThree = ({ location }) => (
-  <div>
-    <h5>Logs</h5>
-    <ul>
-      <Li
-        url='/admin/billinfo'
-        text='Activity Log'
-        Icon={FaStopwatch}
-        location={location}
-      />
-      <Li
-        url='/admin/coupon'
-        text='Anomaly Log'
-        Icon={RiCoupon3Fill}
-        location={location}
-      />
-      <Li
-        url='/admin/toss'
-        text='Fault Log'
-        Icon={FaGamepad}
-        location={location}
-      />
-    </ul>
-  </div>
-);
-
-const Li = ({ url, text, location, Icon }) => (
-  <li
-    style={{
-      backgroundColor: location.pathname.includes(url)
-        ? 'rgba(0,115,255,0.1)'
-        : 'white',
-    }}
-  >
-    <Link
-      to={url}
-      style={{
-        color: location.pathname.includes(url) ? 'rgb(0,115,255)' : 'black',
-      }}
-    >
-      <Icon />
-      {text}
-    </Link>
-  </li>
-);
 
 export default AdminSidebar;

@@ -13,6 +13,7 @@ import { fetchCustomers } from '../slices/customerSlice.js';
 import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const InvoiceForm = ({ editInvoice }) => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -250,12 +251,118 @@ const InvoiceForm = ({ editInvoice }) => {
     } else alert('Select Customer or products');
   };
 
+  const [formData, setFormData] = useState(
+    editInvoice || {
+      customer: '',
+      items: [{ product: '', quantity: 1, price: 0, amount: 0 }],
+      subtotal: 0,
+      tax: 0,
+      total: 0,
+      dueDate: '',
+      notes: '',
+      terms: '',
+      paymentStatus: 'pending',
+    }
+  );
+
+  const calculateItemAmount = (item) => {
+    return item.quantity * item.price;
+  };
+
+  const calculateSubtotal = (items) => {
+    return items.reduce((sum, item) => sum + calculateItemAmount(item), 0);
+  };
+
+  const calculateTotal = (subtotal, tax) => {
+    return subtotal + (subtotal * tax) / 100;
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const updatedItems = [...formData.items];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      [field]: value,
+      amount:
+        field === 'quantity' || field === 'price'
+          ? calculateItemAmount({
+              ...updatedItems[index],
+              [field]: value,
+            })
+          : updatedItems[index].amount,
+    };
+
+    const subtotal = calculateSubtotal(updatedItems);
+    const total = calculateTotal(subtotal, formData.tax);
+
+    setFormData({
+      ...formData,
+      items: updatedItems,
+      subtotal,
+      total,
+    });
+  };
+
+  const handleAddItem = () => {
+    setFormData({
+      ...formData,
+      items: [
+        ...formData.items,
+        { product: '', quantity: 1, price: 0, amount: 0 },
+      ],
+    });
+  };
+
+  const handleRemoveItem = (index) => {
+    const updatedItems = formData.items.filter((_, i) => i !== index);
+    const subtotal = calculateSubtotal(updatedItems);
+    const total = calculateTotal(subtotal, formData.tax);
+
+    setFormData({
+      ...formData,
+      items: updatedItems,
+      subtotal,
+      total,
+    });
+  };
+
+  const handleTaxChange = (e) => {
+    const tax = parseFloat(e.target.value) || 0;
+    const total = calculateTotal(formData.subtotal, tax);
+
+    setFormData({
+      ...formData,
+      tax,
+      total,
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!formData.customer) {
+      toast.error('Please select a customer');
+      return;
+    }
+
+    if (formData.items.length === 0) {
+      toast.error('Please add at least one item');
+      return;
+    }
+
+    if (formData.items.some((item) => !item.product || item.quantity <= 0)) {
+      toast.error('Please fill in all item details correctly');
+      return;
+    }
+
+    // Handle form submission
+  };
+
   return (
     <div className='invoice-container'>
       <h2 className='invoice-header'>
         {isEdit ? 'Edit Invoice' : 'Create Invoice'}
       </h2>
-      <form className='invoice-form'>
+      <form onSubmit={handleSubmit} className='invoice-form'>
         <div className='form-group'>
           <label htmlFor='customer' className='form-label'>
             Customer:
@@ -263,7 +370,7 @@ const InvoiceForm = ({ editInvoice }) => {
           <select
             id='customer'
             className='form-select'
-            value={customer ? customer._id : ''}
+            value={formData.customer}
             onChange={handleCustomerChange}
             aria-required
           >
@@ -381,8 +488,8 @@ const InvoiceForm = ({ editInvoice }) => {
             required
           />
         </div>
-        <h3 className='products-header'>Products</h3>
-        {products.length > 0 ? (
+        <h3 className='products-header'>Items</h3>
+        {formData.items.length > 0 ? (
           <table className='products-table'>
             <thead>
               <tr>
@@ -395,18 +502,18 @@ const InvoiceForm = ({ editInvoice }) => {
               </tr>
             </thead>
             <tbody>
-              {products.map((product, index) => (
+              {formData.items.map((item, index) => (
                 <tr key={index}>
-                  <td>{product.name}</td>
-                  <td>{product.quantity}</td>
-                  <td>{product.uom}</td>
-                  <td>{product.rate}</td>
-                  <td>{product.quantity * product.rate}</td>
+                  <td>{item.product}</td>
+                  <td>{item.quantity}</td>
+                  <td>{uom}</td>
+                  <td>{item.price}</td>
+                  <td>{item.amount.toFixed(2)}</td>
                   <td>
                     <button
                       type='button'
                       className='remove-btn'
-                      onClick={() => handleRemoveProduct(index)}
+                      onClick={() => handleRemoveItem(index)}
                     >
                       Remove
                     </button>
@@ -470,16 +577,16 @@ const InvoiceForm = ({ editInvoice }) => {
             onChange={handleRateChange}
           />
         </div>
-        <button type='button' className='add-btn' onClick={handleAddProduct}>
-          Add Product
+        <button type='button' className='add-btn' onClick={handleAddItem}>
+          Add Item
         </button>
       </form>
       <div className='invoice-totals'>
         <p>
-          Total Amount: <span>{totalAmount}</span>
+          Total Amount: <span>{formData.subtotal.toFixed(2)}</span>
         </p>
         <p>
-          Grand Total: <span>{grandTotal}</span>
+          Grand Total: <span>{formData.total.toFixed(2)}</span>
         </p>
       </div>
       <div className='form-actions'>

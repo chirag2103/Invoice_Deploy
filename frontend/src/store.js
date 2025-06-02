@@ -1,10 +1,17 @@
 import { configureStore } from '@reduxjs/toolkit';
-import invoiceSlice from './slices/invoiceSlice';
-import customerSlice from './slices/customerSlice';
+import invoiceReducer from './slices/invoiceSlice';
+import customerReducer from './slices/customerSlice';
+import quotationReducer from './slices/quotationSlice';
+import challanReducer from './slices/challanSlice';
+import authReducer from './slices/authSlice';
+
 const store = configureStore({
   reducer: {
-    invoice: invoiceSlice,
-    customers: customerSlice,
+    invoice: invoiceReducer,
+    customer: customerReducer,
+    quotation: quotationReducer,
+    challan: challanReducer,
+    auth: authReducer,
   },
 });
 

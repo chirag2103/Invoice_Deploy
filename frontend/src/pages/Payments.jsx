@@ -1,130 +1,126 @@
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { fetchCustomers } from '../slices/customerSlice';
-import AdminSidebar from '../components/AdminSidebar';
+import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import TableHOC from '../components/TableHOC';
+import AdminSidebar from '../components/AdminSidebar';
 
 const Payments = () => {
-  const apiUrl = process.env.REACT_APP_API_URL;
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useSelector((state) => state.auth);
+
   useEffect(() => {
-    console.log('Hello World');
-    dispatch(fetchCustomers());
-  }, [dispatch]);
-  const { loading, error, customers } = useSelector((state) => state.customers);
+    fetchPayments();
+  }, []);
 
-  const handleCustomerClick = (customerId) => {
-    navigate(`/customer/${customerId}/invoices`);
+  const fetchPayments = async () => {
+    try {
+      const response = await axios.get('/api/payments');
+      setPayments(response.data.payments);
+    } catch (error) {
+      toast.error('Error fetching payments');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const [amount, setAmount] = useState();
-  const [date, setDate] = useState();
-  const [customer, setCustomer] = useState('');
+  const columns = [
+    {
+      Header: 'Payment ID',
+      accessor: 'paymentId',
+    },
+    {
+      Header: 'Customer',
+      accessor: 'customer.name',
+    },
+    {
+      Header: 'Invoice Number',
+      accessor: 'invoice.invoiceNumber',
+    },
+    {
+      Header: 'Amount',
+      accessor: 'amount',
+      Cell: ({ value }) => `₹${value.toFixed(2)}`,
+    },
+    {
+      Header: 'Payment Method',
+      accessor: 'paymentMethod',
+      Cell: ({ value }) => (
+        <span
+          className={`px-2 py-1 rounded text-sm ${
+            value === 'cash'
+              ? 'bg-green-100 text-green-800'
+              : value === 'bank'
+              ? 'bg-blue-100 text-blue-800'
+              : 'bg-yellow-100 text-yellow-800'
+          }`}
+        >
+          {value.charAt(0).toUpperCase() + value.slice(1)}
+        </span>
+      ),
+    },
+    {
+      Header: 'Payment Date',
+      accessor: 'paymentDate',
+      Cell: ({ value }) => new Date(value).toLocaleDateString(),
+    },
+    {
+      Header: 'Status',
+      accessor: 'status',
+      Cell: ({ value }) => (
+        <span
+          className={`px-2 py-1 rounded text-sm ${
+            value === 'completed'
+              ? 'bg-green-100 text-green-800'
+              : value === 'pending'
+              ? 'bg-yellow-100 text-yellow-800'
+              : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {value.charAt(0).toUpperCase() + value.slice(1)}
+        </span>
+      ),
+    },
+  ];
 
-  const handleCustomerChange = async (event) => {
-    const selectedCustomerId = event.target.value;
-    const selectedCustomerObject = await customers.find(
-      (customer) => customer._id === selectedCustomerId
-    );
-    setCustomer(selectedCustomerObject);
-  };
+  const Table = TableHOC(
+    columns,
+    payments,
+    'Payments List',
+    'payments-table',
+    loading
+  );
 
-  const handleDateChange = (event) => {
-    setDate(event.target.value);
-  };
-
-  const handleAmountChange = (event) => {
-    setAmount(event.target.value);
-  };
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    let paymentData = {
-      customer: customer._id,
-      amountPaid: amount,
-      date: date,
-    };
-    let paymentDataJSON = JSON.stringify(paymentData);
-    axios
-      .post(`${apiUrl}/api/payment/new`, paymentDataJSON, {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      })
-      .then((res) => {
-        console.log(res);
-        alert(res.status + 'Payment added');
-      })
-      .catch((err) => {
-        alert(err);
-      });
-  };
   return (
     <div className='admin-container'>
-      {/* AdminSideBar */}
       <AdminSidebar />
-      <div className='customer-container'>
-        <form className='invoice-form'>
-          <div className='form-group'>
-            <label htmlFor='customer' className='form-label'>
-              Customer:
-            </label>
-            <select
-              id='customer'
-              className='form-select'
-              value={customer ? customer._id : ''}
-              onChange={handleCustomerChange}
-              aria-required
-            >
-              <option value=''>select</option>
-              {loading ? (
-                <option value=''>Loading...</option>
-              ) : error ? (
-                <option value=''>Error: {error}</option>
-              ) : (
-                customers.map((customer) => (
-                  <option key={customer._id} value={customer._id}>
-                    {customer.name}
-                  </option>
-                ))
-              )}
-            </select>
+      <main className='p-5'>
+        <div className='flex justify-between items-center mb-5'>
+          <h2 className='text-2xl font-bold'>Payments</h2>
+          <div className='flex space-x-4'>
+            <div className='bg-white p-4 rounded-lg shadow'>
+              <h3 className='text-lg font-semibold mb-2'>Total Payments</h3>
+              <p className='text-2xl'>
+                ₹
+                {payments
+                  .reduce((sum, payment) => sum + payment.amount, 0)
+                  .toFixed(2)}
+              </p>
+            </div>
+            <div className='bg-white p-4 rounded-lg shadow'>
+              <h3 className='text-lg font-semibold mb-2'>Completed Payments</h3>
+              <p className='text-2xl'>
+                {
+                  payments.filter((payment) => payment.status === 'completed')
+                    .length
+                }
+              </p>
+            </div>
           </div>
-          <div className='form-group'>
-            <label htmlFor='billNo' className='form-label'>
-              Amount
-            </label>
-            <input
-              type='number'
-              id='amountNo'
-              className='form-input'
-              value={amount}
-              onChange={handleAmountChange}
-            />
-          </div>
-
-          <div className='form-group'>
-            <label htmlFor='date' className='form-label'>
-              Date:
-            </label>
-            <input
-              type='date'
-              placeholder={date}
-              id='date'
-              className='form-input'
-              value={date}
-              onChange={handleDateChange}
-              style={{ width: '10rem' }}
-              required
-            />
-          </div>
-          <button type='submit' onClick={handleSubmit}>
-            Add Payment
-          </button>
-        </form>
-      </div>
+        </div>
+        {Table}
+      </main>
     </div>
   );
 };

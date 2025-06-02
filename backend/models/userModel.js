@@ -3,6 +3,8 @@ import validator from 'validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { ROLES } from '../config/roles.js';
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -32,15 +34,52 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    default: 'user',
+    enum: Object.values(ROLES),
+    default: ROLES.USER,
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+  companyDetails: {
+    name: {
+      type: String,
+      required: [true, 'Please enter company name'],
+    },
+    address: {
+      type: String,
+      required: [true, 'Please enter company address'],
+    },
+    gstin: {
+      type: String,
+      required: [true, 'Please enter GSTIN'],
+    },
+    contactNumber: {
+      type: String,
+      required: [true, 'Please enter contact number'],
+    },
+  },
+  bankDetails: {
+    bankName: {
+      type: String,
+      required: [true, 'Please enter bank name'],
+    },
+    accountNumber: {
+      type: String,
+      required: [true, 'Please enter account number'],
+    },
+    ifscCode: {
+      type: String,
+      required: [true, 'Please enter IFSC code'],
+    },
+  },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
 });
+
+// Indexes for better query performance
+userSchema.index({ email: 1 });
+userSchema.index({ role: 1 });
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
@@ -50,16 +89,23 @@ userSchema.pre('save', async function (next) {
 });
 
 userSchema.methods.getJWTToken = function () {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_TOKEN,
-  });
+  return jwt.sign(
+    {
+      id: this._id,
+      role: this.role,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRE || '5d',
+    }
+  );
 };
+
 userSchema.methods.matchPassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
 userSchema.methods.getResetPasswordToken = function () {
-  console.log('hello');
   const resetToken = crypto.randomBytes(20).toString('hex');
   this.resetPasswordToken = crypto
     .createHash('sha256')

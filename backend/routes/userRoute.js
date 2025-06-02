@@ -11,23 +11,28 @@ import {
   updatePassword,
   updateProfile,
   updateUserRole,
-} from '../controller/userController.js';
-import { authorizedRoles, isAuthenticatedUser } from '../middlewares/auth.js';
+} from '../controllers/userController.js';
+import { authorizeRoles, isAuthenticatedUser } from '../middlewares/auth.js';
 
 const router = express.Router();
-router.route('/register').post(registerUser);
-router.route('/login').post(loginUser);
-router.route('/logout').get(logout);
-router.route('/user/forgotPassword').post(forgotPassword);
-router.route('/user/password/reset/:token').put(resetPassword);
-router.route('/user/me').get(isAuthenticatedUser, getUserDetails);
-router.route('/user/password/update').put(isAuthenticatedUser, updatePassword);
-router.route('/user/me/update').put(isAuthenticatedUser, updateProfile);
 
+// Public routes (no auth required)
+router.post('/auth/register', registerUser);
+router.post('/auth/login', loginUser);
+router.post('/auth/forgot-password', forgotPassword);
+router.put('/auth/reset-password/:token', resetPassword);
+router.get('/auth/logout', logout);
+
+// Protected routes (auth required)
+router.get('/auth/me', isAuthenticatedUser, getUserDetails);
+router.put('/auth/password/update', isAuthenticatedUser, updatePassword);
+router.put('/auth/me/update', isAuthenticatedUser, updateProfile);
+
+// Admin routes
 router
-  .route('/admin/user/:id')
-  .get(isAuthenticatedUser, authorizedRoles('admin'), getSingleUser)
-  .put(isAuthenticatedUser, authorizedRoles('admin'), updateUserRole)
-  .delete(isAuthenticatedUser, authorizedRoles('admin'), deleteUser);
+  .route('/admin/users/:id')
+  .get(isAuthenticatedUser, authorizeRoles('admin'), getSingleUser)
+  .put(isAuthenticatedUser, authorizeRoles('admin'), updateUserRole)
+  .delete(isAuthenticatedUser, authorizeRoles('admin'), deleteUser);
 
 export default router;

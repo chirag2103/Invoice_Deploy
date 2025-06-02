@@ -1,18 +1,18 @@
+import React from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
+  PointElement,
+  LineElement,
   BarElement,
   Title,
   Tooltip,
   Legend,
-  ChartData,
-  ChartOptions,
   ArcElement,
-  PointElement,
-  LineElement,
 } from 'chart.js';
-import { Bar, Doughnut, Line, Pie } from 'react-chartjs-2';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import api from '../utils/axios';
 
 ChartJS.register(
   CategoryScale,
@@ -26,268 +26,159 @@ ChartJS.register(
   ArcElement
 );
 
-interface BarChartPorps {
-  horizontal?: boolean;
-  data_1: number[];
-  data_2: number[];
-  title_1: string;
-  title_2: string;
-  bgColor_1: string;
-  bgColor_2: string;
-  labels?: string[];
-}
+const defaultChartData = {
+  revenueData: {
+    labels: [],
+    datasets: [],
+  },
+  documentStats: {
+    labels: [],
+    datasets: [],
+  },
+  statusStats: {
+    labels: [],
+    datasets: [],
+  },
+};
 
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
+const Charts = () => {
+  const [chartData, setChartData] = React.useState(defaultChartData);
 
-export const BarChart = ({
-  data_1 = [],
-  data_2 = [],
-  title_1,
-  title_2,
-  bgColor_1,
-  bgColor_2,
-  labels = months,
-  horizontal,
-}: BarChartPorps) => {
-  const options: ChartOptions<'bar'> = {
+  React.useEffect(() => {
+    fetchChartData();
+  }, []);
+
+  const fetchChartData = async () => {
+    try {
+      const response = await api.get('/dashboard/stats');
+      const data = response.data;
+
+      setChartData({
+        revenueData: {
+          labels: [
+            'Total Revenue',
+            'Total Paid',
+            'Total Pending',
+            'Total Overdue',
+          ],
+          datasets: [
+            {
+              label: 'Amount (₹)',
+              data: [
+                data.totalRevenue,
+                data.totalPaid,
+                data.totalPending,
+                data.totalOverdue,
+              ],
+              backgroundColor: [
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(54, 162, 235, 0.5)',
+                'rgba(255, 206, 86, 0.5)',
+                'rgba(255, 99, 132, 0.5)',
+              ],
+              borderColor: [
+                'rgb(75, 192, 192)',
+                'rgb(54, 162, 235)',
+                'rgb(255, 206, 86)',
+                'rgb(255, 99, 132)',
+              ],
+              borderWidth: 1,
+            },
+          ],
+        },
+        documentStats: {
+          labels: ['Invoices', 'Quotations', 'Challans'],
+          datasets: [
+            {
+              label: 'Document Count',
+              data: [
+                data.totalInvoices,
+                data.totalQuotations,
+                data.totalChallans,
+              ],
+              backgroundColor: [
+                'rgba(255, 99, 132, 0.5)',
+                'rgba(54, 162, 235, 0.5)',
+                'rgba(255, 206, 86, 0.5)',
+              ],
+              borderColor: [
+                'rgb(255, 99, 132)',
+                'rgb(54, 162, 235)',
+                'rgb(255, 206, 86)',
+              ],
+              borderWidth: 1,
+            },
+          ],
+        },
+        statusStats: {
+          labels: ['Paid', 'Pending', 'Overdue'],
+          datasets: [
+            {
+              data: [data.totalPaid, data.totalPending, data.totalOverdue],
+              backgroundColor: [
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(255, 206, 86, 0.5)',
+                'rgba(255, 99, 132, 0.5)',
+              ],
+              borderColor: [
+                'rgb(75, 192, 192)',
+                'rgb(255, 206, 86)',
+                'rgb(255, 99, 132)',
+              ],
+              borderWidth: 1,
+            },
+          ],
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+    }
+  };
+
+  const barOptions = {
     responsive: true,
-    indexAxis: horizontal ? 'y' : 'x',
     plugins: {
       legend: {
-        display: false,
+        position: 'top',
       },
       title: {
-        display: false,
-        text: 'Chart.js Bar Chart',
+        display: true,
+        text: 'Document Statistics',
       },
     },
     scales: {
       y: {
         beginAtZero: true,
-        grid: {
-          display: false,
-        },
-      },
-      x: {
-        grid: {
-          display: false,
-        },
       },
     },
   };
 
-  const data: ChartData<'bar', number[], string> = {
-    labels,
-    datasets: [
-      {
-        label: title_1,
-        data: data_1,
-        backgroundColor: bgColor_1,
-        barThickness: 'flex',
-        barPercentage: 1,
-        categoryPercentage: 0.4,
-      },
-      {
-        label: title_2,
-        data: data_2,
-
-        backgroundColor: bgColor_2,
-        barThickness: 'flex',
-        barPercentage: 1,
-        categoryPercentage: 0.4,
-      },
-    ],
-  };
-  return <Bar options={options} data={data} />;
-};
-interface BarChartPorps1 {
-  horizontal?: boolean;
-  data_1: number[];
-  title_1: string;
-  bgColor_1: string;
-  labels?: string[];
-}
-
-export const BarChart1 = ({
-  data_1 = [],
-  title_1,
-  bgColor_1,
-  labels = months,
-  horizontal,
-}: BarChartPorps1) => {
-  const options: ChartOptions<'bar'> = {
+  const doughnutOptions = {
     responsive: true,
-    indexAxis: horizontal ? 'y' : 'x',
     plugins: {
       legend: {
-        display: false,
+        position: 'top',
       },
       title: {
-        display: false,
-        text: 'Chart.js Bar Chart',
+        display: true,
+        text: 'Payment Status',
       },
     },
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: {
-          display: false,
-        },
-      },
-      x: {
-        grid: {
-          display: false,
-        },
-      },
-    },
+    cutout: '70%',
   };
 
-  const data: ChartData<'bar', number[], string> = {
-    labels,
-    datasets: [
-      {
-        label: title_1,
-        data: data_1,
-        backgroundColor: bgColor_1,
-        barThickness: 'flex',
-        barPercentage: 1,
-        categoryPercentage: 0.4,
-      },
-    ],
-  };
-  return <Bar options={options} data={data} />;
-};
-interface DoughnutChartProps {
-  labels: string[];
-  data: number[];
-  backgroundColor: string[];
-  cutout?: number | string;
-  legends?: boolean;
-  offset?: number[];
-}
-export const DoughnutChart = ({
-  labels,
-  data,
-  backgroundColor,
-  cutout,
-  legends = true,
-  offset,
-}: DoughnutChartProps) => {
-  const doughnutData: ChartData<'doughnut', number[], string> = {
-    labels,
-    datasets: [
-      {
-        data,
-        backgroundColor,
-        borderWidth: 0,
-        offset,
-      },
-    ],
-  };
-
-  const doughnutOptions: ChartOptions<'doughnut'> = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: legends,
-        position: 'bottom',
-        labels: {
-          padding: 40,
-        },
-      },
-    },
-    cutout,
-  };
-
-  return <Doughnut data={doughnutData} options={doughnutOptions} />;
+  return (
+    <div className='space-y-8'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+        <div className='bg-white p-4 rounded-lg shadow'>
+          <Bar options={barOptions} data={chartData.documentStats} />
+        </div>
+        <div className='bg-white p-4 rounded-lg shadow'>
+          <Doughnut options={doughnutOptions} data={chartData.statusStats} />
+        </div>
+      </div>
+    </div>
+  );
 };
 
-interface PieChartProps {
-  labels: string[];
-  label: string;
-  data: number[];
-  backgroundColor: string[];
-  borderColor: string[];
-  borderWidth: number;
-}
-
-export const PieChart = ({
-  labels,
-  label,
-  data,
-  backgroundColor,
-  borderColor,
-  borderWidth = 1,
-}: PieChartProps) => {
-  const pieChartData: ChartData<'pie', number[], string> = {
-    labels,
-    datasets: [
-      {
-        label,
-        data,
-        backgroundColor,
-        borderColor,
-        borderWidth,
-      },
-    ],
-  };
-
-  return <Pie data={pieChartData} />;
-};
-
-interface LineChartProps {
-  data: number[];
-  label: string;
-  backgroundColor: string;
-  borderColor: string;
-  labels?: string[];
-}
-
-export const LineChart = ({
-  data,
-  label,
-  backgroundColor,
-  borderColor,
-  labels = months,
-}: LineChartProps) => {
-  const options: ChartOptions<'line'> = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      title: {
-        display: false,
-      },
-    },
-
-    scales: {
-      y: {
-        beginAtZero: true,
-        grid: {
-          display: false,
-        },
-      },
-      x: {
-        grid: {
-          display: false,
-        },
-      },
-    },
-  };
-
-  const lineChartData: ChartData<'line', number[], string> = {
-    labels,
-    datasets: [
-      {
-        fill: true,
-        label,
-        data,
-        backgroundColor,
-        borderColor,
-      },
-    ],
-  };
-
-  return <Line options={options} data={lineChartData} />;
-};
+export default Charts;

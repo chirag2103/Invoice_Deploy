@@ -1,192 +1,274 @@
 .dashboard {
-  overflow-y: auto;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding: 1rem;
 
   .bar {
     height: 4rem;
-    @include flex(row, unset);
-    padding: 0 1rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.37);
-    > input {
-      margin-right: auto;
-      @include inputStyle(100%, 1rem 0);
+    @include flex(row, space-between, center);
+    padding: 0 1.5rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+
+    .search-container {
+      flex: 1;
+      max-width: 40rem;
+      position: relative;
+      margin-right: 2rem;
+
+      input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 3rem;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 0.5rem;
+        font-size: 0.95rem;
+
+        &:focus {
+          outline: none;
+          border-color: rgba(37, 99, 235, 0.5);
+          box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+      }
+
+      svg {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: rgba(0, 0, 0, 0.5);
+      }
     }
-    > svg {
-      font-size: 1 rem;
-      opacity: 0.7;
-    }
-    > img {
-      @include square(2rem);
-      border-radius: 50%;
+
+    .user-section {
+      @include flex(row, center, center);
+      gap: 1.5rem;
+
+      .notification-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: all 0.2s;
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        svg {
+          font-size: 1.25rem;
+          color: rgba(0, 0, 0, 0.6);
+        }
+      }
+
+      .user-profile {
+        @include flex(row, center, center);
+        gap: 1rem;
+        padding: 0.5rem 1rem;
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+        img {
+          width: 2.5rem;
+          height: 2.5rem;
+          border-radius: 50%;
+          border: 2px solid rgba(0, 0, 0, 0.1);
+        }
+
+        span {
+          font-weight: 500;
+          color: rgba(0, 0, 0, 0.8);
+        }
+      }
     }
   }
+
   .widget-container {
-    @include flex(row, space-between, stretch, 2rem);
-    padding: 2rem 2rem 2rem 0;
+    @include flex(row, space-between, stretch);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+
     .widget {
-      width: 16rem;
+      width: 16vw;
       background-color: white;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.132);
-      padding: 2rem;
-      border-radius: 10px;
-      @include flex(row, space-between, stretch, 0rem);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      @include flex(row, space-between, center);
+
       .widget-info {
         > p {
-          opacity: 0.7;
-          font-size: 0.8rem;
+          color: rgba(0, 0, 0, 0.6);
+          font-size: 0.875rem;
+          margin-bottom: 0.25rem;
         }
         > h4 {
           font-size: 1.5rem;
+          font-weight: 600;
+          color: rgba(0, 0, 0, 0.8);
+          margin-bottom: 0.5rem;
         }
         > span {
-          @include flex(row, unset, center, 0.2rem);
+          @include flex(row, unset, center);
+          gap: 0.25rem;
+          font-size: 0.875rem;
+          &.up {
+            color: #22c55e;
+          }
+          &.down {
+            color: #ef4444;
+          }
         }
       }
+
       .widget-circle {
         position: relative;
-        @include square(5rem);
-        flex: none;
+        @include square(4rem);
         border-radius: 50%;
         display: grid;
         place-items: center;
-        margin-left: 1rem;
-        background-color: gray;
+        background: linear-gradient(
+          135deg,
+          rgba(37, 99, 235, 0.1),
+          rgba(37, 99, 235, 0.2)
+        );
+
         &::before {
           content: '';
           position: absolute;
-          @include square(4rem);
+          @include square(3rem);
           background-color: white;
-          border-radius: 100%;
+          border-radius: 50%;
         }
+
         span {
           position: relative;
+          font-weight: 600;
+          color: rgba(37, 99, 235, 0.8);
         }
       }
     }
   }
+
   .graph-container {
-    @include flex(row, unset, unset, 2rem);
-    padding: 0 2rem 2rem 0;
+    display: grid;
+    grid-template-columns: 1fr 12rem;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+
     > div {
       background-color: white;
-      border-radius: 10px;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      height: 20rem;
     }
+
     .revenue-chart {
-      width: 100%;
-      max-width: 52rem;
-      padding: 1rem 3rem;
+      padding: 1rem;
       > h2 {
-        @include heading;
-        margin: 1rem 0 2rem 0.25rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.8);
+        margin-bottom: 1rem;
       }
     }
 
     .dashboard-categories {
       width: 100%;
-      max-width: 16rem;
-      @include flex(column, center, unset, 0);
-      padding-bottom: 2rem;
+      padding: 1rem;
+
       > h2 {
-        @include heading;
-        margin: 1.5rem 0 2rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.8);
+        margin-bottom: 1rem;
         text-align: center;
-      }
-      > div {
-        overflow-y: auto;
-        padding-left: 0.5rem;
       }
 
       .category-item {
-        width: 100%;
-        @include flex(row, space-between);
-        padding: 1rem;
+        @include flex(row, space-between, center);
+        padding: 0.5rem;
+
         > h5 {
-          letter-spacing: 1px;
-          font-weight: 300;
+          font-size: 0.75rem;
+          color: rgba(0, 0, 0, 0.6);
         }
+
         > div {
-          margin-left: auto;
-          width: 6rem;
-          background-color: rgb(217, 217, 217);
-          border-radius: 20px;
-          height: 0.5rem;
-          flex: none;
+          width: 4rem;
+          height: 0.25rem;
+          background-color: rgba(0, 0, 0, 0.1);
+          border-radius: 1rem;
+          overflow: hidden;
 
           .inner-div-category {
-            height: 0.5rem;
-            border-radius: 20px;
+            height: 100%;
+            border-radius: 1rem;
+            background-color: #2563eb;
           }
         }
+
         > span {
-          font-size: 0.8rem;
-          font-weight: 700;
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: rgba(0, 0, 0, 0.8);
         }
       }
     }
   }
 
   .transaction-container {
-    display: flex;
-    gap: 2rem;
-    padding: 0 2rem 2rem 0;
-    height: 30rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
 
     > div {
       background-color: white;
-      box-shadow: 0px 10px 10px rgba(0, 0, 0, 0.132);
-      border-radius: 10px;
-    }
-    .gender-chart {
-      width: 100%;
-      max-width: 32rem;
-      height: 37rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       padding: 1rem;
-      position: relative;
+      height: 20rem;
+
       > h2 {
-        text-align: center;
-        margin: 1.5rem 0 2rem 0;
-        @include heading;
+        font-size: 1rem;
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.8);
+        margin-bottom: 1rem;
       }
+    }
+
+    .gender-chart {
+      position: relative;
+      min-height: 16rem;
+
       > p {
         @include posCenter;
-        font-size: 2rem;
-        color: rgba(0, 0, 0, 0.634);
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.8);
       }
     }
-    .transaction-container {
-      display: flex;
-      gap: 2rem;
-      padding: 0 2rem 2rem 0;
-      height: 30rem;
 
-      > div {
-        background-color: white;
-        box-shadow: 0px 10px 10px rgba(0, 0, 0, 0.132);
-        border-radius: 10px;
-      }
-      .gender-chart {
-        width: 100%;
-        max-width: 20rem;
-        padding: 1rem;
-        position: relative;
-        > h2 {
-          text-align: center;
-          margin: 1.5rem 0 2rem 0;
-          @include heading;
-        }
-        > p {
-          @include posCenter;
-          font-size: 2rem;
-          color: rgba(0, 0, 0, 0.634);
-        }
-      }
-    }
     .transaction-box {
-      width: 100%;
-      padding: 1rem;
       overflow-x: auto;
-      > h2 {
-        margin: 1.5rem 0 0 0;
-        @include heading;
+
+      &::-webkit-scrollbar {
+        height: 0.25rem;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 0.5rem;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 0.5rem;
       }
     }
   }

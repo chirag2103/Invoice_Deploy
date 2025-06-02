@@ -8,6 +8,11 @@ const productSchema = mongoose.Schema({
 });
 
 const invoiceSchema = mongoose.Schema({
+  user: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'User',
+    required: true,
+  },
   customer: {
     type: mongoose.Schema.ObjectId,
     ref: 'Customer',

@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../utils/axios';
 
 const initialState = {
   billNo: 1,
@@ -14,58 +14,66 @@ const initialState = {
   invoices: [],
   message: '',
 };
-const apiUrl = process.env.REACT_APP_API_URL;
 
 export const fetchInvoices = createAsyncThunk(
   'invoice/fetchInvoices',
-  async (id = null) => {
+  async (id = null, { rejectWithValue }) => {
     try {
       if (id == null) {
-        const response = await axios.get(`${apiUrl}/api/invoices`);
-        console.log(response.data.invoices);
+        const response = await api.get('/invoices');
+        console.log('Fetched invoices:', response.data);
         return response.data.invoices;
       } else {
-        const response = await axios.get(
-          `${apiUrl}/api/customer/${id}/invoices`
-        );
+        const response = await api.get(`/customer/${id}/invoices`);
         return response.data.invoices;
       }
     } catch (error) {
-      throw error;
+      console.error('Error fetching invoices:', error);
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch invoices'
+      );
     }
   }
 );
 
 export const deleteInvoice = createAsyncThunk(
   'invoice/deleteInvoice',
-  async (id) => {
+  async (id, { rejectWithValue }) => {
     try {
-      const response = await axios.delete(`${apiUrl}/api/invoices`);
-      console.log(response.data.invoices);
+      const response = await api.delete(`/invoice/${id}`);
       return response.data.message;
     } catch (error) {
-      throw error;
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to delete invoice'
+      );
     }
   }
 );
 
-export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
-  try {
-    const response = await axios.get(`${apiUrl}/api/lastinvoice`);
-    return parseInt(response.data.invoice.invoiceNo);
-  } catch (error) {
-    throw error;
+export const fetchBillNo = createAsyncThunk(
+  'invoice/fetchBillNo',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/lastinvoice');
+      return parseInt(response.data.invoice.invoiceNo);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch bill number'
+      );
+    }
   }
-});
+);
 
 export const sendInvoiceData = createAsyncThunk(
   'invoice/sendInvoiceData',
-  async (invoiceData) => {
+  async (invoiceData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${apiUrl}/api/invoices`, invoiceData);
+      const response = await api.post('/invoice/new', invoiceData);
       return response.data;
     } catch (error) {
-      throw error;
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to send invoice data'
+      );
     }
   }
 );
@@ -83,7 +91,6 @@ const invoiceSlice = createSlice({
     addProduct(state, action) {
       state.products.push(action.payload);
       state.totalAmount += action.payload.quantity * action.payload.rate;
-      console.log(state.gst + 'gst');
       state.grandTotal = Math.round(
         state.totalAmount + (state.totalAmount * state.gst * 2) / 100
       );
@@ -94,12 +101,10 @@ const invoiceSlice = createSlice({
       state.grandTotal =
         state.totalAmount + (state.totalAmount * state.gst * 2) / 100;
     },
-    storeInvoice(state, action) {},
     clearAllData(state) {
       return initialState;
     },
   },
-
   extraReducers: (builder) => {
     builder
       .addCase(fetchInvoices.pending, (state) => {
@@ -109,10 +114,11 @@ const invoiceSlice = createSlice({
       .addCase(fetchInvoices.fulfilled, (state, action) => {
         state.loading = false;
         state.invoices = action.payload;
+        state.error = null;
       })
       .addCase(fetchInvoices.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload;
       })
       .addCase(fetchBillNo.pending, (state) => {
         state.loading = true;
@@ -120,12 +126,12 @@ const invoiceSlice = createSlice({
       })
       .addCase(fetchBillNo.fulfilled, (state, action) => {
         state.loading = false;
-        // console.log('last bill' + action.payload);
         state.billNo = action.payload + 1;
+        state.error = null;
       })
       .addCase(fetchBillNo.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload;
       })
       .addCase(deleteInvoice.pending, (state) => {
         state.loading = true;
@@ -133,12 +139,12 @@ const invoiceSlice = createSlice({
       })
       .addCase(deleteInvoice.fulfilled, (state, action) => {
         state.loading = false;
-        // console.log('last bill' + action.payload);
         state.message = action.payload;
+        state.error = null;
       })
       .addCase(deleteInvoice.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload;
       })
       .addCase(sendInvoiceData.pending, (state) => {
         state.loading = true;
@@ -146,14 +152,16 @@ const invoiceSlice = createSlice({
       })
       .addCase(sendInvoiceData.fulfilled, (state, action) => {
         state.loading = false;
+        state.error = null;
       })
       .addCase(sendInvoiceData.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload;
       });
   },
 });
 
 export const { setCustomer, setGst, addProduct, removeProduct, clearAllData } =
   invoiceSlice.actions;
+
 export default invoiceSlice.reducer;
