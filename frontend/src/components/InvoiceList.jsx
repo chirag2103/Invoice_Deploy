@@ -27,7 +27,7 @@ const InvoiceList = () => {
       grandTotal: invoice.grandTotal,
       totalAmount: invoice.invoiceTotal,
       orderNo: invoice?.orderNo,
-      orderDate: invoice?.orderDate.split('T')[0],
+      orderDate: invoice?.orderDate?.split('T')[0],
     };
     navigate('/invoices/preview', { state: data });
   };

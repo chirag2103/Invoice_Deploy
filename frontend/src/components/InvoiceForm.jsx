@@ -57,6 +57,16 @@ const InvoiceForm = ({ editInvoice }) => {
       );
     }
   }, [dispatch, isEdit, invoiceToEdit]);
+  useEffect(() => {
+    return () => {
+      dispatch(clearAllData()); // on component unmount
+    };
+  }, []);
+  useEffect(() => {
+    document.getElementById('productName')?.focus();
+  }, []);
+
+  const parseDate = (d) => d?.split('T')[0];
 
   const handleCustomerChange = async (event) => {
     const selectedCustomerId = event.target.value;
@@ -105,7 +115,7 @@ const InvoiceForm = ({ editInvoice }) => {
   };
 
   const handleAddProduct = () => {
-    if (!name && !quantity && !rate && !date) {
+    if (!name || !quantity || !rate || !date) {
       alert('Enter all fields');
     } else {
       dispatch(addProduct({ name, quantity, rate, uom, date }));
@@ -150,6 +160,7 @@ const InvoiceForm = ({ editInvoice }) => {
           challanNo: challanNo ? challanNo : '',
           orderNo: orderNo ? orderNo : '',
           orderDate: orderDate ? orderDate : '',
+          challanDate: challanDate ? challanDate : '',
         });
         console.log('Response: ' + res);
       } catch (error) {
@@ -312,9 +323,9 @@ const InvoiceForm = ({ editInvoice }) => {
           <input
             type='date'
             placeholder={isEdit ? invoiceToEdit?.challanDate : challanDate}
-            id='date'
+            id='challanDate'
             className='form-input'
-            value={isEdit ? invoiceToEdit?.challanDate : challanDate}
+            value={isEdit ? parseDate(invoiceToEdit?.challanDate) : challanDate}
             onChange={handleChallanDateChange}
             style={{ width: '10rem' }}
             required
@@ -345,7 +356,7 @@ const InvoiceForm = ({ editInvoice }) => {
             placeholder={isEdit ? invoiceToEdit.date : date}
             id='date'
             className='form-input'
-            value={isEdit ? invoiceToEdit.date : date}
+            value={isEdit ? parseDate(invoiceToEdit.date) : date}
             onChange={handleDateChange}
             style={{ width: '10rem' }}
             required
@@ -358,7 +369,7 @@ const InvoiceForm = ({ editInvoice }) => {
           <input
             type='text'
             placeholder={isEdit ? invoiceToEdit?.orderNo : orderNo}
-            id='date'
+            id='orderNo'
             className='form-input'
             value={isEdit ? invoiceToEdit?.orderNo : orderNo}
             onChange={handleOrderNo}
@@ -373,9 +384,9 @@ const InvoiceForm = ({ editInvoice }) => {
           <input
             type='date'
             placeholder={isEdit ? invoiceToEdit?.orderDate : orderDate}
-            id='date'
+            id='orderDate'
             className='form-input'
-            value={isEdit ? invoiceToEdit?.orderDate : orderDate}
+            value={isEdit ? parseDate(invoiceToEdit?.orderDate) : orderDate}
             onChange={handleOrderDate}
             style={{ width: '10rem' }}
             required

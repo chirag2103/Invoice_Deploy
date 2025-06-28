@@ -22,6 +22,7 @@ const invoiceSchema = mongoose.Schema({
   challanNo: String,
   gst: Number,
   challanDate: Date,
+  orderDate: Date,
   invoiceProducts: [productSchema],
   invoiceTotal: Number,
   paidAmount: Number,

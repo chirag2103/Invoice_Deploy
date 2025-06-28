@@ -22,6 +22,7 @@ const Payments = () => {
   const [amount, setAmount] = useState();
   const [date, setDate] = useState();
   const [customer, setCustomer] = useState('');
+  const [remarks, setRemarks] = useState('');
 
   const handleCustomerChange = async (event) => {
     const selectedCustomerId = event.target.value;
@@ -38,12 +39,17 @@ const Payments = () => {
   const handleAmountChange = (event) => {
     setAmount(event.target.value);
   };
+  const handleRemarksChange = (event) => {
+    setRemarks(event.target.value);
+  };
+
   const handleSubmit = (event) => {
     event.preventDefault();
     let paymentData = {
       customer: customer._id,
       amountPaid: amount,
       date: date,
+      remarks: remarks,
     };
     let paymentDataJSON = JSON.stringify(paymentData);
     axios
@@ -118,6 +124,18 @@ const Payments = () => {
               onChange={handleDateChange}
               style={{ width: '10rem' }}
               required
+            />
+          </div>
+          <div className='form-group'>
+            <label htmlFor='remarks' className='form-label'>
+              Remarks
+            </label>
+            <input
+              type='text'
+              id='remarks'
+              className='form-input'
+              value={remarks}
+              onChange={handleRemarksChange}
             />
           </div>
           <button type='submit' onClick={handleSubmit}>
