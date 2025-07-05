@@ -35,8 +35,38 @@ const DivOne = ({ location }) => (
         location={location}
       />
       <Li
+        url='/admin/invoice/new'
+        text='Create Invoice'
+        Icon={AiFillFileText}
+        location={location}
+      />
+      <Li
+        url='/admin/quotation/new'
+        text='Create Quotation'
+        Icon={AiFillFileText}
+        location={location}
+      />
+      <Li
+        url='/admin/challan/new'
+        text='Create Challan'
+        Icon={AiFillFileText}
+        location={location}
+      />
+      <Li
         url='/invoices/all'
         text='Invoices'
+        Icon={RiShoppingBag3Fill}
+        location={location}
+      />
+      <Li
+        url='/challans/all'
+        text='Challans'
+        Icon={RiShoppingBag3Fill}
+        location={location}
+      />
+      <Li
+        url='/quotations/all'
+        text='Quotations'
         Icon={RiShoppingBag3Fill}
         location={location}
       />
@@ -52,12 +82,7 @@ const DivOne = ({ location }) => (
         Icon={AiFillFileText}
         location={location}
       />
-      <Li
-        url='/admin/invoice/new'
-        text='Create Invoice'
-        Icon={AiFillFileText}
-        location={location}
-      />
+
       <Li
         url='/admin/payment/new'
         text='Add Payment'
