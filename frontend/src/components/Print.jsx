@@ -57,7 +57,9 @@ const Print = () => {
   // }, [navigate]);
   useEffect(() => {
     const handleAfterPrint = () => {
-      navigate('/invoices/all');
+      setTimeout(() => {
+        navigate('/invoices/all');
+      }, 1000);
     };
 
     window.addEventListener('afterprint', handleAfterPrint);
