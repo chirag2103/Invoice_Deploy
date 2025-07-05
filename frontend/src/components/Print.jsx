@@ -66,9 +66,12 @@ const Print = () => {
     document.title = `${type} - ${number}`;
 
     // Open print dialog
-    window.print();
+    const printTimeout = setTimeout(() => {
+      window.print();
+    }, 500);
 
     return () => {
+      clearTimeout(printTimeout);
       window.removeEventListener('afterprint', handleAfterPrint);
     };
   }, [navigate]);
