@@ -13,7 +13,6 @@ const Print = () => {
       ignoreZeroCurrency: false,
       doNotAddOnly: false,
       currencyOptions: {
-        // can be used to override defaults for the selected locale
         name: 'Rupee',
         plural: 'Rupees',
         symbol: '₹',
@@ -40,18 +39,34 @@ const Print = () => {
     orderNo,
     orderDate,
   } = location.state;
-  console.log(date);
+  console.log(location.state);
+
+  const isQuotation = invoicefor === 'Quotation';
+  const isChallan = invoicefor === 'Challan';
+
   const pdfRef = useRef();
 
+  // useEffect(() => {
+  //   const handleAfterPrint = () => {
+  //     navigate('/invoices/all');
+  //     console.log(isChallan);
+  //   };
+  //   return () => {
+  //     window.removeEventListener('afterprint', handleAfterPrint);
+  //   };
+  // }, [navigate]);
   useEffect(() => {
     const handleAfterPrint = () => {
       navigate('/invoices/all');
     };
 
-    // window.addEventListener('afterprint', handleAfterPrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    const type = isQuotation ? 'Quotation' : isChallan ? 'Challan' : 'Invoice';
+    const number = `SS${billNo}`;
+    document.title = `${type} - ${number}`;
 
     // Open print dialog
-    // window.print();
+    window.print();
 
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
@@ -61,8 +76,10 @@ const Print = () => {
   return (
     <div ref={pdfRef}>
       <div className='Print'>
-        <h2 className='bold'>TAX INVOICE</h2>
-        <h3>{invoicefor}</h3>
+        <h2 className='bold'>
+          {isQuotation ? 'QUOTATION' : isChallan ? 'CHALLAN' : 'TAX INVOICE'}
+        </h2>
+        <h3>{!isChallan && !isQuotation ? invoicefor : ''}</h3>
         <div className='print-header'>
           <table className='table-1'>
             <tr>
@@ -75,14 +92,19 @@ const Print = () => {
                 <p>
                   <b>GSTIN:</b>24DXBPP3645D1ZO
                 </p>
-
                 <p>
                   <b>Mobile No.</b> +91{' '}
                   {customer.name === 'CERACOATS' ? '7567654590' : '8866192720'}
                 </p>
               </td>
               <td style={{ width: '20%' }}>
-                <p>Invoice No.</p>
+                <p>
+                  {isQuotation
+                    ? 'Quotation No.'
+                    : isChallan
+                    ? 'Challan No.'
+                    : 'Invoice No.'}
+                </p>
                 <b>SS{billNo}</b>
               </td>
               <td style={{ width: '20%' }}>
@@ -90,19 +112,20 @@ const Print = () => {
                   <b>Date:</b>
                 </p>
                 <b>{date}</b>
-                {/* <b>{date.toLocaleDateString()}</b> */}
               </td>
             </tr>
-            <tr>
-              <td>
-                <p>Challan No.</p>
-                <b>{challanNo ? challanNo : ''}</b>
-              </td>
-              <td>
-                <p>Date</p>
-                <b>{challanDate ? challanDate : ''}</b>
-              </td>
-            </tr>
+            {!isQuotation && !isChallan && (
+              <tr>
+                <td>
+                  <p>Challan No.</p>
+                  <b>{challanNo ? challanNo : ''}</b>
+                </td>
+                <td>
+                  <p>Date</p>
+                  <b>{challanDate ? challanDate : ''}</b>
+                </td>
+              </tr>
+            )}
           </table>
           <table className='table-2'>
             <tr>
@@ -154,68 +177,71 @@ const Print = () => {
               <th style={{ width: '55%' }}>Particulars</th>
               <th style={{ width: '10%' }}>Quantity</th>
               <th style={{ width: '10%' }}>UOM</th>
-              <th style={{ width: '10%' }}>Rate</th>
-              <th style={{ width: '10%' }}>Amount</th>
+              {!isChallan && (
+                <>
+                  <th style={{ width: '10%' }}>Rate</th>
+                  <th style={{ width: '10%' }}>Amount</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
-            {products.map((product, index) => (
-              <tr key={index}>
-                <td className='center'>{index + 1}</td>
-                <td style={{ fontWeight: 'bold' }}>{product.name}</td>
-                <td className='center'>{product.quantity}</td>
-                <td className='center'>{product.uom}</td>
-                <td className='center'>{product.rate}</td>
-                <td className='center'>{product.quantity * product.rate}</td>
-              </tr>
-            ))}
+            {[...Array(12)].map((_, index) => {
+              const product = products[index];
+              return (
+                <tr key={index}>
+                  <td className='center'>{product ? index + 1 : '\u00A0'}</td>
+                  <td>{product?.name || ''}</td>
+                  <td className='center'>{product?.quantity || ''}</td>
+                  <td className='center'>{product?.uom || ''}</td>
+                  {!isChallan && (
+                    <>
+                      <td className='center'>{product?.rate || ''}</td>
+                      <td className='center'>
+                        {product ? product.quantity * product.rate : ''}
+                      </td>
+                    </>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        <div className='calculation'>
-          <table className='table-3 center'>
-            <tr>
-              <td rowSpan={4} style={{ width: '60%' }}>
-                Ruppes in Words :{' '}
-                <b>{toWords.convert(grandTotal, { currency: true })}</b>
-              </td>
-              <td style={{ width: '20%' }}>
-                <b className='bold'>Subtotal</b>
-              </td>
-              <td style={{ width: '20%' }}>
-                <b className='bold'>{totalAmount}</b>
-              </td>
-            </tr>
-            <tr>
-              <td>CGST ({gst}%)</td>
-              <td>{(totalAmount * (gst / 100)).toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td>SGST ({gst}%)</td>
-              <td>{(totalAmount * (gst / 100)).toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td>
-                <b className='bold'>Grand Total</b>
-              </td>
-              <td>
-                <b className='bold'>{grandTotal}</b>
-              </td>
-            </tr>
-            {/* <tr>
-              <td>Advance Paid</td>
-              <td>33000</td>
-            </tr>
-            <tr>
-              <td>
-                <b>Remaining Total</b>
-              </td>
-              <td>
-                <b>96800</b>
-              </td>
-            </tr> */}
-          </table>
-        </div>
-        <table className='table-3'>
+        {!isChallan && (
+          <div className='calculation'>
+            <table className='table-3 center'>
+              <tr>
+                <td rowSpan={4} style={{ width: '60%' }}>
+                  Ruppes in Words :{' '}
+                  <b>{toWords.convert(grandTotal, { currency: true })}</b>
+                </td>
+                <td style={{ width: '20%' }}>
+                  <b className='bold'>Subtotal</b>
+                </td>
+                <td style={{ width: '20%' }}>
+                  <b className='bold'>{totalAmount}</b>
+                </td>
+              </tr>
+              <tr>
+                <td>CGST ({gst}%)</td>
+                <td>{(totalAmount * (gst / 100)).toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>SGST ({gst}%)</td>
+                <td>{(totalAmount * (gst / 100)).toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td>
+                  <b className='bold'>Grand Total</b>
+                </td>
+                <td>
+                  <b className='bold'>{grandTotal}</b>
+                </td>
+              </tr>
+            </table>
+          </div>
+        )}
+        <table className='table-4'>
           <tr>
             <td>
               <b>Bank Details</b>
@@ -239,7 +265,6 @@ const Print = () => {
           </tr>
         </table>
       </div>
-      {/* <button onClick={generatePDF}>PDF</button> */}
     </div>
   );
 };

@@ -6,7 +6,7 @@ import {
   addProduct,
   removeProduct,
   fetchBillNo,
-  updateInvoice,
+  updateProduct,
   clearAllData,
 } from '../slices/invoiceSlice.js';
 import { fetchCustomers } from '../slices/customerSlice.js';
@@ -22,9 +22,42 @@ const InvoiceForm = ({ editInvoice }) => {
 
   const isEdit = location.state?.invoice ? true : false;
   const invoiceToEdit = location.state?.invoice;
+  const challanData = location.state?.fromChallan;
+
+  const isFromQuotation = location.state?.fromQuotation;
+  const quotationData = location.state?.quotation;
 
   useEffect(() => {
     dispatch(fetchCustomers());
+
+    if (isFromQuotation && quotationData) {
+      dispatch(setCustomer(quotationData.customer));
+      dispatch(setGst(quotationData.gst));
+      quotationData.quotationProducts.forEach((product) =>
+        dispatch(addProduct(product))
+      );
+    }
+
+    if (!isEdit && challanData) {
+      dispatch(setCustomer(challanData.customer));
+      setDate(new Date().toISOString().split('T')[0]); // default to today's date
+      setChallanNo(challanData.challanNo || '');
+      setChallanDate(parseDate(challanData.challanDate) || '');
+      setOrderNo(challanData.orderNo || '');
+      setOrderDate(parseDate(challanData.orderDate) || '');
+
+      challanData.products.forEach((product) => {
+        dispatch(
+          addProduct({
+            name: product.name,
+            quantity: product.quantity,
+            uom: product.uom,
+            rate: 0,
+          })
+        );
+      });
+    }
+
     if (!isEdit) dispatch(fetchBillNo());
   }, [dispatch, isEdit]);
 
@@ -408,10 +441,70 @@ const InvoiceForm = ({ editInvoice }) => {
             <tbody>
               {products.map((product, index) => (
                 <tr key={index}>
-                  <td>{product.name}</td>
-                  <td>{product.quantity}</td>
-                  <td>{product.uom}</td>
-                  <td>{product.rate}</td>
+                  <td>
+                    <input
+                      type='text'
+                      value={product.name}
+                      onChange={(e) =>
+                        dispatch(
+                          updateProduct({
+                            index,
+                            updatedFields: { name: e.target.value },
+                          })
+                        )
+                      }
+                      className='table-input'
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type='number'
+                      value={product.quantity}
+                      onChange={(e) =>
+                        dispatch(
+                          updateProduct({
+                            index,
+                            updatedFields: { quantity: Number(e.target.value) },
+                          })
+                        )
+                      }
+                      className='table-input'
+                    />
+                  </td>
+                  <td>
+                    <select
+                      value={product.uom}
+                      onChange={(e) =>
+                        dispatch(
+                          updateProduct({
+                            index,
+                            updatedFields: { uom: e.target.value },
+                          })
+                        )
+                      }
+                      className='table-select'
+                    >
+                      <option value='NOS'>NOS</option>
+                      <option value='Kg'>Kg</option>
+                      <option value='Liters'>Liters</option>
+                      <option value='Set'>Set</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      type='number'
+                      value={product.rate}
+                      onChange={(e) =>
+                        dispatch(
+                          updateProduct({
+                            index,
+                            updatedFields: { rate: Number(e.target.value) },
+                          })
+                        )
+                      }
+                      className='table-input'
+                    />
+                  </td>
                   <td>{product.quantity * product.rate}</td>
                   <td>
                     <button

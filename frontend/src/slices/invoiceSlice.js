@@ -94,6 +94,25 @@ const invoiceSlice = createSlice({
       state.grandTotal =
         state.totalAmount + (state.totalAmount * state.gst * 2) / 100;
     },
+    updateProduct: (state, action) => {
+      const { index, updatedFields } = action.payload;
+      const product = state.products[index];
+
+      if (!product) return;
+
+      const updatedProduct = { ...product, ...updatedFields };
+      state.products[index] = updatedProduct;
+
+      // Recalculate totals
+      state.totalAmount = state.products.reduce(
+        (sum, prod) => sum + prod.quantity * prod.rate,
+        0
+      );
+      state.grandTotal = Math.round(
+        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      );
+    },
+
     storeInvoice(state, action) {},
     clearAllData(state) {
       return initialState;
@@ -154,6 +173,12 @@ const invoiceSlice = createSlice({
   },
 });
 
-export const { setCustomer, setGst, addProduct, removeProduct, clearAllData } =
-  invoiceSlice.actions;
+export const {
+  setCustomer,
+  setGst,
+  addProduct,
+  removeProduct,
+  updateProduct,
+  clearAllData,
+} = invoiceSlice.actions;
 export default invoiceSlice.reducer;
