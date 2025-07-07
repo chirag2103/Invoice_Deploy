@@ -14,7 +14,6 @@ const app = express();
 app.use(
   cors({
     origin: '*', // or your frontend domain
-    credentials: true,
   })
 );
 
