@@ -1,13 +1,13 @@
 import Customer from '../models/Customer.js';
 
 export const createCustomer = async (req, res, next) => {
-  const customer = await Customer.create(req.body);
+  const customer = await Customer.create({ ...req.body, user: req.user.id });
   res.status(201).json({
     customer,
   });
 };
 export const getCustomers = async (req, res, next) => {
-  const customers = await Customer.find();
+  const customers = await Customer.find({ user: req.user.id });
   // console.log(customers);
   res.status(200).json({
     customers,

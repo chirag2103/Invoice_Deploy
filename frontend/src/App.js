@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import InvoiceForm from './components/InvoiceForm'; // Replace with your path
+
+import InvoiceForm from './components/InvoiceForm';
 import Print from './components/Print';
 import InvoiceList from './components/InvoiceList';
 import Dashboard from './pages/Dashboard';
@@ -20,34 +21,168 @@ import CreateChallan from './pages/CreateChallan';
 import ChallanList from './components/ChallanList';
 import QuotationList from './components/QuotationList';
 
+import ProtectedRoute from './components/ProtectedRoute';
+
 function App() {
   return (
     <Router>
       <Routes>
         <Route path='/' element={<SignIn />} />
-        <Route path='/invoices/new' element={<InvoiceForm />} />
-        <Route path='/quotations/new' element={<QuotationForm />} />
-        <Route path='/challans/new' element={<ChallanForm />} />
-        <Route path='/statements' element={<Statement />} />
-        <Route path='/statement/:customerId' element={<CustomerStatement />} />
-        <Route path='/invoices/preview' element={<Print />} />
-        <Route path='/invoices/all' element={<InvoiceList />} />
-        <Route path='/challans/all' element={<ChallanList />} />
-        <Route path='/quotations/all' element={<QuotationList />} />
-        <Route path='/admin/transaction' element={<Transaction />} />
-        <Route path='/admin/dashboard' element={<Dashboard />} />
-        <Route path='/admin/customers' element={<Customers />} />
-        <Route path='/admin/billinfo' element={<CustomerBills />} />
-        <Route path='/admin/invoice/new' element={<CreateInvoice />} />
-        <Route path='/admin/quotation/new' element={<CreateQuotation />} />
-        <Route path='/admin/challan/new' element={<CreateChallan />} />
-        <Route path='/admin/payment/new' element={<Payments />} />
+
+        {/* Protected Routes */}
+        <Route
+          path='/admin/dashboard'
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/transaction'
+          element={
+            <ProtectedRoute>
+              <Transaction />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/customers'
+          element={
+            <ProtectedRoute>
+              <Customers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/invoice/new'
+          element={
+            <ProtectedRoute>
+              <CreateInvoice />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/quotation/new'
+          element={
+            <ProtectedRoute>
+              <CreateQuotation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/challan/new'
+          element={
+            <ProtectedRoute>
+              <CreateChallan />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/payment/new'
+          element={
+            <ProtectedRoute>
+              <Payments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/billinfo'
+          element={
+            <ProtectedRoute>
+              <CustomerBills />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path='/invoices/new'
+          element={
+            <ProtectedRoute>
+              <InvoiceForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/quotations/new'
+          element={
+            <ProtectedRoute>
+              <QuotationForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/challans/new'
+          element={
+            <ProtectedRoute>
+              <ChallanForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/statements'
+          element={
+            <ProtectedRoute>
+              <Statement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/statement/:customerId'
+          element={
+            <ProtectedRoute>
+              <CustomerStatement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/invoices/preview'
+          element={
+            <ProtectedRoute>
+              <Print />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/invoices/all'
+          element={
+            <ProtectedRoute>
+              <InvoiceList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/challans/all'
+          element={
+            <ProtectedRoute>
+              <ChallanList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/quotations/all'
+          element={
+            <ProtectedRoute>
+              <QuotationList />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path='/customer/:customerId/invoices'
-          element={<CustomerInvoices />}
+          element={
+            <ProtectedRoute>
+              <CustomerInvoices />
+            </ProtectedRoute>
+          }
         />
-        <Route path='/invoices/:invoiceId/edit' element={<InvoiceForm />} />
-        {/* Add other routes here */}
+        <Route
+          path='/invoices/:invoiceId/edit'
+          element={
+            <ProtectedRoute>
+              <InvoiceForm />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );

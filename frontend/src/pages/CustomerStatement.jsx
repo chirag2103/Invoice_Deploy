@@ -4,6 +4,7 @@ import './CustomerStatement.scss';
 
 const CustomerStatement = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
+  const token = localStorage.getItem('token');
   const [statementData, setStatementData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +13,11 @@ const CustomerStatement = () => {
   useEffect(() => {
     const fetchCustomerStatement = async () => {
       try {
-        const response = await fetch(`${apiUrl}/api/statement/${customerId}`);
+        const response = await fetch(`${apiUrl}/api/statement/${customerId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
 
         if (data.error) {

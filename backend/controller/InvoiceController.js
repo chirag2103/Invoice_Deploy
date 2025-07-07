@@ -7,8 +7,11 @@ import mongoose from 'mongoose';
 
 export const getLastInvoice = catchAsyncError(async (req, res, next) => {
   try {
-    const invoice = await Invoice.findOne().sort({ _id: -1 });
-    console.log(invoice);
+    const invoice = await Invoice.findOne({ user: req.user.id }).sort({
+      _id: -1,
+    });
+
+    // console.log(invoice);
     res.status(200).json({
       invoice,
     });
@@ -19,7 +22,7 @@ export const getLastInvoice = catchAsyncError(async (req, res, next) => {
 
 export const createInvoice = catchAsyncError(async (req, res, next) => {
   try {
-    const invoice = await Invoice.create(req.body);
+    const invoice = await Invoice.create({ ...req.body, user: req.user.id });
 
     res.status(201).json({
       invoice,
@@ -30,8 +33,14 @@ export const createInvoice = catchAsyncError(async (req, res, next) => {
 });
 
 export const getInvoices = catchAsyncError(async (req, res, next) => {
+  // console.log(req.user);
   try {
-    const invoices = await Invoice.find().populate('customer');
+    const invoices = await Invoice.find({ user: req.user.id })
+      .populate('customer')
+      .sort({
+        invoiceNo: -1,
+      });
+    // console.log(invoices);
     res.status(200).json({
       invoices,
     });
@@ -42,7 +51,10 @@ export const getInvoices = catchAsyncError(async (req, res, next) => {
 
 export const getSingleInvoice = catchAsyncError(async (req, res, next) => {
   try {
-    const invoice = await Invoice.findById(req.params.id);
+    const invoice = await Invoice.findOne({
+      _id: req.params.id,
+      user: req.user.id,
+    });
     res.status(200).json({
       invoice,
     });
@@ -96,9 +108,10 @@ export const getInvoicesByCustomer = catchAsyncError(async (req, res, next) => {
 
     // const invoices = await Invoice.find().populate('customer');
 
-    const invoices = await Invoice.find({ customer: customerId }).populate(
-      'customer'
-    );
+    const invoices = await Invoice.find({
+      customer: customerId,
+      user: req.user.id,
+    }).populate('customer');
     // const invoices = await Invoice.find().populate('customer');
 
     const customer = await Customer.findById(customerId);
@@ -106,7 +119,7 @@ export const getInvoicesByCustomer = catchAsyncError(async (req, res, next) => {
 
     let total = 0;
     invoices.map((invoice) => {
-      console.log(invoice.invoiceProducts);
+      // console.log(invoice.invoiceProducts);
       total += invoice.grandTotal;
     });
 
@@ -116,14 +129,17 @@ export const getInvoicesByCustomer = catchAsyncError(async (req, res, next) => {
       customerName,
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     next(new ErrorHandler('Error fetching invoices for the customer', 500));
   }
 });
 
 export const updateInvoice = catchAsyncError(async (req, res, next) => {
   try {
-    let invoice = await Invoice.findById(req.params.id);
+    let invoice = await Invoice.findOne({
+      _id: req.params.id,
+      user: req.user.id,
+    });
     if (!invoice) {
       return next(new ErrorHandler('Invoice not found', 404));
     }
@@ -139,13 +155,16 @@ export const updateInvoice = catchAsyncError(async (req, res, next) => {
       invoice,
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     next(new ErrorHandler('Error updating invoice', 500));
   }
 });
 
 export const deleteInvoice = catchAsyncError(async (req, res, next) => {
-  let product = await Invoice.findById(req.params.id);
+  let product = await Invoice.findOne({
+    _id: req.params.id,
+    user: req.user.id,
+  });
   if (!product) {
     return next(new ErrorHandler('Product not found', 404));
   }
@@ -159,7 +178,7 @@ export const deleteInvoice = catchAsyncError(async (req, res, next) => {
 export const getCustomerBillingInfo = catchAsyncError(
   async (req, res, next) => {
     try {
-      const customers = await Customer.find();
+      const customers = await Customer.find({ user: req.user.id });
 
       const customerBillingInfo = await Promise.all(
         customers.map(async (customer) => {
@@ -199,15 +218,24 @@ export const getStatementByCustomer = catchAsyncError(
   async (req, res, next) => {
     const customerId = req.params.id;
     try {
-      const customer = await Customer.findById(customerId);
+      const customer = await Customer.findOne({
+        customerId,
+        user: req.user.id,
+      });
       if (!customer) {
         return res.status(404).json({ error: 'Customer not found' });
       }
 
-      const invoices = await Invoice.find({ customer: customerId }).sort({
+      const invoices = await Invoice.find({
+        user: req.user.id,
+        customer: customerId,
+      }).sort({
         date: 1,
       });
-      const payments = await Payment.find({ customer: customerId }).sort({
+      const payments = await Payment.find({
+        user: req.user.id,
+        customer: customerId,
+      }).sort({
         date: 1,
       });
 

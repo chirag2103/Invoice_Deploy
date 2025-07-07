@@ -209,6 +209,7 @@ import AdminSidebar from '../components/AdminSidebar';
 
 const CustomerInvoices = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
+  const token = localStorage.getItem('token');
   const { customerId } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -222,15 +223,25 @@ const CustomerInvoices = () => {
   useEffect(() => {
     async function fetchData() {
       try {
-        console.log('id:' + customerId);
+        // console.log('id:' + customerId);
         const response = await axios.get(
-          `${apiUrl}/api/customer/${customerId}/invoices`
+          `${apiUrl}/api/customer/${customerId}/invoices`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         setgToal(response.data.total);
         setCustomerName(response.data.customerName);
-        console.log(response.data.invoices);
+        // console.log(response.data.invoices);
         const res = await axios.get(
-          `${apiUrl}/api/customer/${customerId}/payments`
+          `${apiUrl}/api/customer/${customerId}/payments`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         setPayments(res.data.payments);
         setPaidAmount(res.data.paidAmount);

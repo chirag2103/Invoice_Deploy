@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
 const apiUrl = process.env.REACT_APP_API_URL;
+const token = localStorage.getItem('token');
 
 const initialState = {
   challanNo: '',
@@ -22,7 +23,11 @@ const initialState = {
 export const fetchChallans = createAsyncThunk(
   'challan/fetchChallans',
   async () => {
-    const response = await axios.get(`${apiUrl}/api/challans`);
+    const response = await axios.get(`${apiUrl}/api/challans`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return response.data.challans;
   }
 );
@@ -30,7 +35,11 @@ export const fetchChallans = createAsyncThunk(
 export const fetchChallanNo = createAsyncThunk(
   'challan/fetchChallanNo',
   async () => {
-    const res = await axios.get(`${apiUrl}/api/lastchallan`);
+    const res = await axios.get(`${apiUrl}/api/lastchallan`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return parseInt(res.data.challan.challanNo);
   }
 );
@@ -38,7 +47,15 @@ export const fetchChallanNo = createAsyncThunk(
 export const sendChallanData = createAsyncThunk(
   'challan/sendChallanData',
   async (challanData) => {
-    const response = await axios.post(`${apiUrl}/api/challan/new`, challanData);
+    const response = await axios.post(
+      `${apiUrl}/api/challan/new`,
+      challanData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     return response.data;
   }
 );
@@ -46,7 +63,11 @@ export const sendChallanData = createAsyncThunk(
 export const deleteChallan = createAsyncThunk(
   'challan/deleteChallan',
   async (id) => {
-    const response = await axios.delete(`${apiUrl}/api/challan/${id}`);
+    const response = await axios.delete(`${apiUrl}/api/challan/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return response.data.message;
   }
 );
@@ -136,7 +157,7 @@ const challanSlice = createSlice({
         state.error = action.error.message;
       })
       .addCase(fetchChallanNo.fulfilled, (state, action) => {
-        console.log(action);
+        // console.log(action);
         state.challanNo = action.payload + 1;
       });
   },

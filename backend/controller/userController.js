@@ -19,6 +19,7 @@ export const registerUser = catchAsyncError(async (req, res, next) => {
 });
 export const loginUser = catchAsyncError(async (req, res, next) => {
   const { email, password } = req.body;
+  // console.log(email, password);
   if (!email || !password) {
     return next(new ErrorHandler('Please Enter Password', 400));
   }
@@ -27,6 +28,7 @@ export const loginUser = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler('Invalid email or password', 401));
   }
   let isPasswordMatched = await user.matchPassword(password);
+  // console.log(isPasswordMatched);
   if (!isPasswordMatched) {
     return next(new ErrorHandler('Invalid email or password', 401));
   }
@@ -103,7 +105,7 @@ export const resetPassword = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler('password does not same', 400));
   }
   user.password = req.body.password;
-  console.log(user.password);
+  // console.log(user.password);
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
   await user.save();

@@ -7,6 +7,11 @@ const challanProductSchema = mongoose.Schema({
 });
 
 const challanSchema = mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
   customer: {
     type: mongoose.Schema.ObjectId,
     ref: 'Customer',

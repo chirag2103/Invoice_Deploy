@@ -5,6 +5,7 @@ import AdminSidebar from '../components/AdminSidebar';
 
 const CustomerBills = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
+  const token = localStorage.getItem('token');
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,7 +13,11 @@ const CustomerBills = () => {
   useEffect(() => {
     async function fetchCustomerBillingInfo() {
       try {
-        const response = await axios.get(`${apiUrl}/api/billingInfo`);
+        const response = await axios.get(`${apiUrl}/api/billingInfo`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setCustomers(response.data.data);
         setLoading(false);
       } catch (error) {

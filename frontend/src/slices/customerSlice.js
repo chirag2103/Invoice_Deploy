@@ -3,10 +3,15 @@ import axios from 'axios';
 
 export const fetchCustomers = createAsyncThunk('customers/fetch', async () => {
   const apiUrl = process.env.REACT_APP_API_URL;
+  const token = localStorage.getItem('token');
   try {
-    console.log(apiUrl);
-    const response = await axios.get(`${apiUrl}/api/customers`);
-    console.log(response.data);
+    // console.log(apiUrl);
+    const response = await axios.get(`${apiUrl}/api/customers`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    // console.log(response.data);
     return response.data.customers;
   } catch (error) {
     console.error('Error fetching customers:', error.message);

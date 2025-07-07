@@ -6,12 +6,17 @@ import axios from 'axios';
 
 const Transaction = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
+  const token = localStorage.getItem('token');
   const [payments, setPayments] = useState([]);
   var total = 0;
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await axios.get(`${apiUrl}/api/payments`);
+        const res = await axios.get(`${apiUrl}/api/payments`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setPayments(res.data.payments);
       } catch (error) {
         console.error('Error fetching data:', error);

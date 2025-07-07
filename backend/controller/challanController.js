@@ -3,7 +3,7 @@ import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 
 export const createChallan = catchAsyncError(async (req, res, next) => {
-  console.log(req.body);
+  // console.log(req.body);
   const challan = await Challan.create(req.body);
   res.status(201).json({ challan });
 });

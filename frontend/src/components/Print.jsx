@@ -2,8 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import './Print.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ToWords } from 'to-words';
+import { useSelector } from 'react-redux';
 
 const Print = () => {
+  const user = useSelector((state) => state.user.user);
+  // console.log(user);
+
   const navigate = useNavigate();
   const toWords = new ToWords({
     localeCode: 'en-IN',
@@ -39,7 +43,7 @@ const Print = () => {
     orderNo,
     orderDate,
   } = location.state;
-  console.log(location.state);
+  // console.log(location.state);
 
   const isQuotation = invoicefor === 'Quotation';
   const isChallan = invoicefor === 'Challan';
@@ -69,7 +73,7 @@ const Print = () => {
 
     // Open print dialog
     const printTimeout = setTimeout(() => {
-      window.print();
+      // window.print();
     }, 500);
 
     return () => {
@@ -90,16 +94,20 @@ const Print = () => {
             <tr>
               <td rowSpan={2} style={{ width: '60%' }}>
                 <b style={{ fontSize: '22px', fontWeight: 'bold' }}>
-                  SPARKTECH SOLUTION
+                  {user.companyDetails.name}
                 </b>
-                <p>PLOT NO. I-77, G.I.D.C ESTATE, V.U NAGAR</p>
-                <p>ANAND-388121, GUJARAT,INDIA</p>
+                <p>{user.companyDetails.address}</p>
+                {/* <p>ANAND-388121, GUJARAT,INDIA</p> */}
                 <p>
-                  <b>GSTIN:</b>24DXBPP3645D1ZO
+                  <b>GSTIN:</b>
+                  {user.companyDetails.gstin}
                 </p>
                 <p>
-                  <b>Mobile No.</b> +91{' '}
-                  {customer.name === 'CERACOATS' ? '7567654590' : '8866192720'}
+                  <b>Mobile No.</b>
+                  {customer.name === 'CERACOATS' &&
+                  user.email === 'parmarnikunj454@gmail.com'
+                    ? '7567654590'
+                    : user.companyDetails.mobile}
                 </p>
               </td>
               <td style={{ width: '20%' }}>
@@ -255,14 +263,14 @@ const Print = () => {
               rowSpan={2}
               style={{ paddingTop: '100px', textAlign: 'center' }}
             >
-              SPARKTECH SOLUTION
+              {user.companyDetails.name}
             </td>
           </tr>
           <tr>
             <td>
-              <p>Bank Name: Bank of Baroda</p>
-              <p>A/C No: 55480200000745</p>
-              <p>IFSC: BARB0VUNAGA</p>
+              <p>Bank Name: {user.bankDetails.name}</p>
+              <p>A/C No: {user.bankDetails.accountNumber}</p>
+              <p>IFSC: {user.bankDetails.ifscCode}</p>
             </td>
           </tr>
           <tr>

@@ -20,6 +20,18 @@ const userSchema = new mongoose.Schema({
     minLength: [8, 'password should be greater than 8 characters'],
     select: false,
   },
+  companyDetails: {
+    name: { type: String },
+    address: { type: String },
+    gstin: { type: String },
+    mobile: { type: String },
+  },
+
+  bankDetails: {
+    bankName: { type: String },
+    accountNumber: { type: String },
+    ifsc: { type: String },
+  },
   avatar: {
     public_id: {
       type: String,
@@ -50,8 +62,9 @@ userSchema.pre('save', async function (next) {
 });
 
 userSchema.methods.getJWTToken = function () {
+  // console.log(process.env.JWT_EXPIRE);
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_TOKEN,
+    expiresIn: process.env.JWT_EXPIRE,
   });
 };
 userSchema.methods.matchPassword = async function (password) {
@@ -59,7 +72,7 @@ userSchema.methods.matchPassword = async function (password) {
 };
 
 userSchema.methods.getResetPasswordToken = function () {
-  console.log('hello');
+  // console.log('hello');
   const resetToken = crypto.randomBytes(20).toString('hex');
   this.resetPasswordToken = crypto
     .createHash('sha256')

@@ -2,6 +2,8 @@ import { useState, FormEvent, useEffect } from 'react';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import '../styles/signin.scss';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '../slices/userSlice';
 
 export default function SignIn() {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -10,10 +12,12 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const dispatch = useDispatch();
+
   useEffect(() => {
     // Check if the user has a valid token
     const token = localStorage.getItem('token');
-    console.log(localStorage);
+    // console.log(localStorage);
     if (token) {
       setIsLoggedIn(true);
       navigate('/admin/dashboard');
@@ -35,11 +39,12 @@ export default function SignIn() {
         },
       })
       .then((res) => {
-        console.log(res);
+        // console.log(res);
         const token = res.data.token;
-        localStorage.setItem('token', token);
+        const user = res.data.user;
 
-        navigate('admin/dashboard');
+        dispatch(loginSuccess({ token, user }));
+        navigate('/admin/dashboard');
       })
       .catch((err) => {
         alert(err);

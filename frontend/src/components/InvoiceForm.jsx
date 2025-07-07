@@ -16,6 +16,7 @@ import axios from 'axios';
 
 const InvoiceForm = ({ editInvoice }) => {
   const apiUrl = process.env.REACT_APP_API_URL;
+  const token = localStorage.getItem('token');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -182,22 +183,30 @@ const InvoiceForm = ({ editInvoice }) => {
 
     if (customer && products && date) {
       try {
-        const res = await axios.post(`${apiUrl}/api/invoice/new`, {
-          customer: customer._id,
-          invoiceNo: billNo,
-          gst,
-          invoiceProducts: products,
-          date,
-          grandTotal,
-          invoiceTotal: totalAmount,
-          challanNo: challanNo ? challanNo : '',
-          orderNo: orderNo ? orderNo : '',
-          orderDate: orderDate ? orderDate : '',
-          challanDate: challanDate ? challanDate : '',
-        });
-        console.log('Response: ' + res);
+        const res = await axios.post(
+          `${apiUrl}/api/invoice/new`,
+          {
+            customer: customer._id,
+            invoiceNo: billNo,
+            gst,
+            invoiceProducts: products,
+            date,
+            grandTotal,
+            invoiceTotal: totalAmount,
+            challanNo: challanNo ? challanNo : '',
+            orderNo: orderNo ? orderNo : '',
+            orderDate: orderDate ? orderDate : '',
+            challanDate: challanDate ? challanDate : '',
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        // console.log('Response: ' + res);
       } catch (error) {
-        console.log(error);
+        // console.log(error);
       }
 
       navigate('/invoices/preview', { state: dataRecipient });
@@ -244,16 +253,21 @@ const InvoiceForm = ({ editInvoice }) => {
             challanDate: challanDate ? challanDate : null,
             orderNo: orderNo ? orderNo : null,
             orderDate: orderDate ? orderDate : null,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
-        console.log('Response: ' + res);
+        // console.log('Response: ' + res);
       } catch (error) {
-        console.log(error);
+        // console.log(error);
       }
       let invoicefor = 'Original Copy';
       let date1 = date.toString().split('T')[0];
       let date2 = challanDate?.toString().split('T')[0];
-      console.log('date1:' + date1);
+      // console.log('date1:' + date1);
       const dataRecipient = {
         customer,
         billNo: invoiceToEdit.invoiceNo,

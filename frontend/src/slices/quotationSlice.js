@@ -16,11 +16,16 @@ const initialState = {
 };
 
 const apiUrl = process.env.REACT_APP_API_URL;
+const token = localStorage.getItem('token');
 
 export const fetchQuotations = createAsyncThunk(
   'quotation/fetchQuotations',
   async () => {
-    const res = await axios.get(`${apiUrl}/api/quotations`);
+    const res = await axios.get(`${apiUrl}/api/quotations`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return res.data.quotations;
   }
 );
@@ -28,7 +33,11 @@ export const fetchQuotations = createAsyncThunk(
 export const fetchQuoteNo = createAsyncThunk(
   'quotation/fetchQuoteNo',
   async () => {
-    const res = await axios.get(`${apiUrl}/api/lastquotation`);
+    const res = await axios.get(`${apiUrl}/api/lastquotation`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return parseInt(res.data.quotation.quoteNo);
   }
 );
@@ -36,7 +45,11 @@ export const fetchQuoteNo = createAsyncThunk(
 export const sendQuotationData = createAsyncThunk(
   'quotation/sendQuotationData',
   async (data) => {
-    const res = await axios.post(`${apiUrl}/api/quotation/new`, data);
+    const res = await axios.post(`${apiUrl}/api/quotation/new`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return res.data;
   }
 );

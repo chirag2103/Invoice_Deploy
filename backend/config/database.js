@@ -5,10 +5,10 @@ const connectDb = () => {
   mongoose
     .connect(process.env.MONGOURI)
     .then((conn) => {
-      console.log(conn.connection.host);
+      // console.log(conn.connection.host);
     })
     .catch((err) => {
-      console.log(err);
+      // console.log(err);
     });
 };
 

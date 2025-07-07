@@ -6,5 +6,5 @@ const port = process.env.PORT || 4000;
 connectDb();
 
 app.listen(port, (req, res) => {
-  console.log(`server is working on ${port}`);
+  // console.log(`server is working on ${port}`);
 });
