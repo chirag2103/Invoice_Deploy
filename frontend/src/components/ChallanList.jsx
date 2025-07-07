@@ -44,7 +44,7 @@ const ChallanList = () => {
         rate: 0, // let user add rate in invoice form
       })),
     };
-    console.log(data.products);
+    // console.log(data.products);
 
     navigate('/admin/invoice/new', { state: { fromChallan: data } });
   };

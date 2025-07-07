@@ -7,10 +7,11 @@ import axios from 'axios';
 
 const Payments = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
+  const token = localStorage.getItem('token');
   const navigate = useNavigate();
   const dispatch = useDispatch();
   useEffect(() => {
-    console.log('Hello World');
+    // console.log('Hello World');
     dispatch(fetchCustomers());
   }, [dispatch]);
   const { loading, error, customers } = useSelector((state) => state.customers);
@@ -57,10 +58,11 @@ const Payments = () => {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
         },
       })
       .then((res) => {
-        console.log(res);
+        // console.log(res);
         alert(res.status + 'Payment added');
       })
       .catch((err) => {

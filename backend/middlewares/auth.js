@@ -4,12 +4,19 @@ import catchAsyncError from './catchAsyncError.js';
 import User from '../models/userModel.js';
 
 export const isAuthenticatedUser = catchAsyncError(async (req, res, next) => {
-  const { token } = req.cookies;
+  let token;
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  }
   if (!token) {
-    return next(new ErrorHandler('Please Login to access this resource', 401));
+    return next(new ErrorHandler('Please login to access this resource', 401));
   }
   const decodedData = jwt.verify(token, process.env.JWT_SECRET);
-  req.user = await User.findById(decodedData.id);
+  // console.log(decodedData);
+  req.user = await User.findById(decodedData.id).select('-password');
   next();
 });
 

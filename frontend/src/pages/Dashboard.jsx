@@ -9,11 +9,14 @@ import Table from '../components/DashboardTable';
 import { useEffect } from 'react';
 import { fetchInvoices } from '../slices/invoiceSlice';
 import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../slices/userSlice';
+import { useNavigate } from 'react-router-dom';
 // import { BiMaleFemale } from 'react-icons/bi';
 const Dashboard = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   useEffect(() => {
-    console.log('Hello World');
+    // console.log('Hello World');
     dispatch(fetchInvoices());
   }, [dispatch]);
   const { invoices } = useSelector((state) => state.invoice);
@@ -22,8 +25,12 @@ const Dashboard = () => {
     invoices.forEach((invoice) => {
       grandTotal += invoice.grandTotal;
     });
-    console.log(grandTotal);
+    // console.log(grandTotal);
     return grandTotal;
+  };
+  const SignOut = () => {
+    dispatch(logout());
+    navigate('/');
   };
 
   return (
@@ -36,7 +43,7 @@ const Dashboard = () => {
           <BsSearch />
           <input type='text' placeholder='Search for data,users,docs' />
           <FaRegBell />
-          <img src={userImg} alt='User' />
+          <img src={userImg} alt='User' onClick={SignOut} />
         </div>
 
         <section className='widget-container'>

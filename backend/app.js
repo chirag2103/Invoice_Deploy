@@ -7,10 +7,18 @@ import quotationRouter from './routes/quotationRoute.js';
 import challanRouter from './routes/challanRoute.js';
 import paymentRouter from './routes/paymentRoute.js';
 import userRouter from './routes/userRoute.js';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: '*', // or your frontend domain
+    credentials: true,
+  })
+);
+
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());

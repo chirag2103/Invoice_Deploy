@@ -8,6 +8,11 @@ const productSchema = new mongoose.Schema({
 });
 
 const quotationSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
   customer: {
     type: mongoose.Schema.ObjectId,
     ref: 'Customer',

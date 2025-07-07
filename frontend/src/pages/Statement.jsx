@@ -8,7 +8,7 @@ const Statement = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   useEffect(() => {
-    console.log('Hello World');
+    // console.log('Hello World');
     dispatch(fetchCustomers());
   }, [dispatch]);
   const { customers } = useSelector((state) => state.customers);

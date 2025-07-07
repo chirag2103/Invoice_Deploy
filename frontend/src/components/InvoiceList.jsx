@@ -9,11 +9,12 @@ import { useNavigate } from 'react-router-dom';
 const InvoiceList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { invoices, loading, error } = useSelector((state) => state.invoice);
 
   useEffect(() => {
     dispatch(fetchInvoices());
+    // console.log(invoices, loading, error);
   }, [dispatch]);
-  const { invoices, loading, error } = useSelector((state) => state.invoice);
   const handlePrint = async (invoice, invoicefor) => {
     const data = {
       challanNo: invoice.challanNo ? invoice.challanNo : '',
@@ -58,7 +59,7 @@ const InvoiceList = () => {
                     {invoices.map((invoice) => (
                       <tr key={invoice._id}>
                         <td>{invoice.invoiceNo}</td>
-                        <td>{invoice.customer.name}</td>
+                        <td>{invoice?.customer?.name}</td>
                         <td>{invoice.date.split('T')[0]}</td>
                         <td>{invoice.grandTotal}</td>
                         <td>

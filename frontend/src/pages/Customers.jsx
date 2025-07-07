@@ -83,10 +83,11 @@ import axios from 'axios';
 
 const Customers = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
+  const token = localStorage.getItem('token');
   const navigate = useNavigate();
   const dispatch = useDispatch();
   useEffect(() => {
-    console.log('Hello World');
+    // console.log('Hello World');
     dispatch(fetchCustomers());
   }, [dispatch]);
   const { customers } = useSelector((state) => state.customers);
@@ -111,10 +112,11 @@ const Customers = () => {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
         },
       })
       .then((res) => {
-        console.log(res);
+        // console.log(res);
         alert(res.status + 'Customer added');
       })
       .catch((err) => {

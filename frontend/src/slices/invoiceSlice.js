@@ -20,13 +20,23 @@ export const fetchInvoices = createAsyncThunk(
   'invoice/fetchInvoices',
   async (id = null) => {
     try {
+      const token = localStorage.getItem('token');
       if (id == null) {
-        const response = await axios.get(`${apiUrl}/api/invoices`);
-        console.log(response.data.invoices);
+        const response = await axios.get(`${apiUrl}/api/invoices`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // console.log(response.data.invoices);
         return response.data.invoices;
       } else {
         const response = await axios.get(
-          `${apiUrl}/api/customer/${id}/invoices`
+          `${apiUrl}/api/customer/${id}/invoices`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         return response.data.invoices;
       }
@@ -39,9 +49,14 @@ export const fetchInvoices = createAsyncThunk(
 export const deleteInvoice = createAsyncThunk(
   'invoice/deleteInvoice',
   async (id) => {
+    const token = localStorage.getItem('token');
     try {
-      const response = await axios.delete(`${apiUrl}/api/invoices`);
-      console.log(response.data.invoices);
+      const response = await axios.delete(`${apiUrl}/api/invoices`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      // console.log(response.data.invoices);
       return response.data.message;
     } catch (error) {
       throw error;
@@ -51,7 +66,13 @@ export const deleteInvoice = createAsyncThunk(
 
 export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
   try {
-    const response = await axios.get(`${apiUrl}/api/lastinvoice`);
+    const token = localStorage.getItem('token');
+
+    const response = await axios.get(`${apiUrl}/api/lastinvoice`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return parseInt(response.data.invoice.invoiceNo);
   } catch (error) {
     throw error;
@@ -61,8 +82,14 @@ export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
 export const sendInvoiceData = createAsyncThunk(
   'invoice/sendInvoiceData',
   async (invoiceData) => {
+    const token = localStorage.getItem('token');
+
     try {
-      const response = await axios.post(`${apiUrl}/api/invoices`, invoiceData);
+      const response = await axios.post(`${apiUrl}/api/invoices`, invoiceData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       return response.data;
     } catch (error) {
       throw error;
@@ -83,7 +110,7 @@ const invoiceSlice = createSlice({
     addProduct(state, action) {
       state.products.push(action.payload);
       state.totalAmount += action.payload.quantity * action.payload.rate;
-      console.log(state.gst + 'gst');
+      // console.log(state.gst + 'gst');
       state.grandTotal = Math.round(
         state.totalAmount + (state.totalAmount * state.gst * 2) / 100
       );
@@ -128,6 +155,8 @@ const invoiceSlice = createSlice({
       .addCase(fetchInvoices.fulfilled, (state, action) => {
         state.loading = false;
         state.invoices = action.payload;
+        // console.log('slice');
+        // console.log(state.invoices);
       })
       .addCase(fetchInvoices.rejected, (state, action) => {
         state.loading = false;
