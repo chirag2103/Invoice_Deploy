@@ -48,6 +48,17 @@ const Print = () => {
   const isQuotation = invoicefor === 'Quotation';
   const isChallan = invoicefor === 'Challan';
 
+  const prefix = user.companyDetails.name
+    .split(' ')
+    .map((word) => word[0].toUpperCase())
+    .join('');
+
+  const formatDate = (inputDate) => {
+    if (!inputDate) return '';
+    const [yyyy, mm, dd] = inputDate.split('-');
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
   const pdfRef = useRef();
 
   // useEffect(() => {
@@ -68,7 +79,7 @@ const Print = () => {
 
     window.addEventListener('afterprint', handleAfterPrint);
     const type = isQuotation ? 'Quotation' : isChallan ? 'Challan' : 'Invoice';
-    const number = `SS${billNo}`;
+    const number = `${prefix}${billNo}`;
     document.title = `${type} - ${number}`;
 
     // Open print dialog
@@ -118,13 +129,16 @@ const Print = () => {
                     ? 'Challan No.'
                     : 'Invoice No.'}
                 </p>
-                <b>SS{billNo}</b>
+                <b>
+                  {prefix}
+                  {billNo}
+                </b>
               </td>
               <td style={{ width: '20%' }}>
                 <p>
                   <b>Date:</b>
                 </p>
-                <b>{date}</b>
+                <b>{formatDate(date)}</b>
               </td>
             </tr>
             {!isQuotation && !isChallan && (
@@ -135,7 +149,7 @@ const Print = () => {
                 </td>
                 <td>
                   <p>Date</p>
-                  <b>{challanDate ? challanDate : ''}</b>
+                  <b>{challanDate ? formatDate(challanDate) : ''}</b>
                 </td>
               </tr>
             )}
@@ -161,7 +175,7 @@ const Print = () => {
               </td>
               <td style={{ width: '20%' }}>
                 <p>Dated</p>
-                <b>{orderDate}</b>
+                <b>{formatDate(orderDate)}</b>
               </td>
             </tr>
             <tr>
@@ -199,7 +213,7 @@ const Print = () => {
             </tr>
           </thead>
           <tbody>
-            {[...Array(12)].map((_, index) => {
+            {[...Array(13)].map((_, index) => {
               const product = products[index];
               return (
                 <tr key={index}>

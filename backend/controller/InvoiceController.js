@@ -144,11 +144,15 @@ export const updateInvoice = catchAsyncError(async (req, res, next) => {
       return next(new ErrorHandler('Invoice not found', 404));
     }
 
-    invoice = await Invoice.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-      useFindAndModify: false,
-    });
+    invoice = await Invoice.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, user: req.user.id },
+      {
+        new: true,
+        runValidators: true,
+        useFindAndModify: false,
+      }
+    );
 
     res.status(200).json({
       success: true,

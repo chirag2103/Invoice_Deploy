@@ -19,7 +19,6 @@ const challanSchema = mongoose.Schema({
   },
   challanNo: {
     type: String,
-    unique: true,
     required: true,
   },
   challanProducts: [challanProductSchema],

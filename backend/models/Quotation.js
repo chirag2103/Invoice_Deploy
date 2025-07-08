@@ -21,7 +21,6 @@ const quotationSchema = new mongoose.Schema({
   quoteNo: {
     type: String,
     required: true,
-    unique: true,
   },
   quotationProducts: [productSchema],
   date: { type: Date, required: true },

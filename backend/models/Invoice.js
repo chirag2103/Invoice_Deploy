@@ -20,7 +20,6 @@ const invoiceSchema = mongoose.Schema({
   },
   invoiceNo: {
     type: String,
-    unique: true,
     required: true,
   },
   orderNo: String,
