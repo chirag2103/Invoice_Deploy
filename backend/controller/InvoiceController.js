@@ -223,7 +223,7 @@ export const getStatementByCustomer = catchAsyncError(
     const customerId = req.params.id;
     try {
       const customer = await Customer.findOne({
-        customerId,
+        _id: customerId,
         user: req.user.id,
       });
       if (!customer) {
