@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+  addPaymentToPurchase,
   createPurchaseInvoice,
   getAllPurchases,
 } from '../controller/purchaseController.js';
@@ -12,5 +13,7 @@ router.post('/purchase/new', isAuthenticatedUser, createPurchaseInvoice);
 
 // Get all purchases (optional)
 router.get('/purchase/all', isAuthenticatedUser, getAllPurchases);
+
+router.put('/purchase/:id/payment', isAuthenticatedUser, addPaymentToPurchase);
 
 export default router;

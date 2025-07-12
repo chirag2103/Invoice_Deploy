@@ -18,6 +18,14 @@ const purchaseInvoiceSchema = new mongoose.Schema(
     remarks: {
       type: String,
     },
+    paid: {
+      type: Number,
+      default: 0,
+    },
+    status: {
+      type: String,
+      default: 'pending',
+    },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User', // assuming you have a User model

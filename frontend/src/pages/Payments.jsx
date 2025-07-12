@@ -28,6 +28,7 @@ const Payments = () => {
   const [purchaseRemarks, setPurchaseRemarks] = useState('');
 
   const [amount, setAmount] = useState();
+  const [paid, setPaid] = useState();
   const [date, setDate] = useState();
   const [customer, setCustomer] = useState('');
   const [remarks, setRemarks] = useState('');
@@ -79,6 +80,7 @@ const Payments = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log(seller, purchaseAmount, purchaseDate);
 
     const url =
       mode === 'payment'
@@ -98,6 +100,7 @@ const Payments = () => {
             amount: purchaseAmount,
             date: purchaseDate,
             remarks: purchaseRemarks,
+            paid,
           };
 
     axios
@@ -272,6 +275,15 @@ const Payments = () => {
                   type='number'
                   value={purchaseAmount}
                   onChange={(e) => setPurchaseAmount(e.target.value)}
+                  className='form-input'
+                />
+              </div>
+              <div className='form-group'>
+                <label className='form-label'>Paid</label>
+                <input
+                  type='number'
+                  value={paid}
+                  onChange={(e) => setPaid(e.target.value)}
                   className='form-input'
                 />
               </div>

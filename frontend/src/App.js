@@ -22,6 +22,7 @@ import ChallanList from './components/ChallanList';
 import QuotationList from './components/QuotationList';
 
 import ProtectedRoute from './components/ProtectedRoute';
+import PurchaseInvoiceList from './components/PurchaseInvoiceList';
 
 function App() {
   return (
@@ -164,6 +165,14 @@ function App() {
           element={
             <ProtectedRoute>
               <QuotationList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/purchasedBills/all'
+          element={
+            <ProtectedRoute>
+              <PurchaseInvoiceList />
             </ProtectedRoute>
           }
         />
