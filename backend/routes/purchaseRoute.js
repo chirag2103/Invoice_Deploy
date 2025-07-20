@@ -3,6 +3,7 @@ import {
   addPaymentToPurchase,
   createPurchaseInvoice,
   getAllPurchases,
+  getPurchaseSummaryBySeller,
 } from '../controller/purchaseController.js';
 import { isAuthenticatedUser } from '../middlewares/auth.js';
 
@@ -13,6 +14,11 @@ router.post('/purchase/new', isAuthenticatedUser, createPurchaseInvoice);
 
 // Get all purchases (optional)
 router.get('/purchase/all', isAuthenticatedUser, getAllPurchases);
+router.get(
+  '/purchaseSummary/all',
+  isAuthenticatedUser,
+  getPurchaseSummaryBySeller
+);
 
 router.put('/purchase/:id/payment', isAuthenticatedUser, addPaymentToPurchase);
 

@@ -96,6 +96,12 @@ const DivOne = ({ location }) => (
         location={location}
       />
       <Li
+        url='/purchaseSummary/all'
+        text='Purchased Summary'
+        Icon={AiFillFileText}
+        location={location}
+      />
+      <Li
         url='/admin/billinfo'
         text='Billing Info'
         Icon={FaStopwatch}

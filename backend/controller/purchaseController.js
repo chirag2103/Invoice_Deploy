@@ -82,3 +82,41 @@ export const addPaymentToPurchase = async (req, res, next) => {
     next(err);
   }
 };
+
+export const getPurchaseSummaryBySeller = async (req, res, next) => {
+  try {
+    const summary = await PurchaseInvoice.aggregate([
+      {
+        $match: {
+          user: req.user._id,
+        },
+      },
+      {
+        $group: {
+          _id: '$seller',
+          totalAmount: { $sum: '$amount' },
+          totalPaid: { $sum: '$paid' },
+        },
+      },
+      {
+        $project: {
+          seller: '$_id',
+          totalAmount: 1,
+          totalPaid: 1,
+          remaining: { $subtract: ['$totalAmount', '$totalPaid'] },
+          _id: 0,
+        },
+      },
+      {
+        $sort: { seller: 1 }, // optional: sort alphabetically by seller
+      },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      summary,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
