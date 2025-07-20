@@ -9,6 +9,11 @@ const CustomerStatement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { customerId } = useParams();
+  const formatDate = (inputDate) => {
+    if (!inputDate) return '';
+    const [yyyy, mm, dd] = inputDate.split('-');
+    return `${dd}-${mm}-${yyyy}`;
+  };
 
   useEffect(() => {
     const fetchCustomerStatement = async () => {
@@ -56,8 +61,14 @@ const CustomerStatement = () => {
           <tbody>
             {statementData.statement.map((entry, index) => (
               <tr key={index}>
-                <td>{new Date(entry.date).toLocaleDateString()}</td>
-                <td>{entry.type === 'invoice' ? 'Invoice' : 'Payment'}</td>
+                <td>{formatDate(entry.date.split('T')[0])}</td>
+                <td>
+                  {entry.type === 'invoice'
+                    ? 'Invoice'
+                    : entry.type === 'opening'
+                    ? 'Opening Balance'
+                    : 'Payment'}
+                </td>
                 <td>{entry.invoiceAmount ? `₹${entry.invoiceAmount}` : '-'}</td>
                 <td>{entry.paymentAmount ? `₹${entry.paymentAmount}` : '-'}</td>
                 <td>₹{entry.balance}</td>
@@ -68,13 +79,20 @@ const CustomerStatement = () => {
                 <b>Total:</b>
               </td>
               <td>
-                <b>₹{statementData.totalInvoice}</b>
+                <b>
+                  ₹{statementData.totalInvoice + statementData.openingBalance}
+                </b>
               </td>
               <td>
                 <b>₹{statementData.totalPaid}</b>
               </td>
               <td>
-                <b>₹{statementData.totalInvoice - statementData.totalPaid}</b>
+                <b>
+                  ₹
+                  {statementData.totalInvoice +
+                    statementData.openingBalance -
+                    statementData.totalPaid}
+                </b>
               </td>
             </tr>
           </tbody>

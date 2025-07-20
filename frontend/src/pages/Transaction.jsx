@@ -8,6 +8,11 @@ const Transaction = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem('token');
   const [payments, setPayments] = useState([]);
+  const formatDate = (inputDate) => {
+    if (!inputDate) return '';
+    const [yyyy, mm, dd] = inputDate.split('-');
+    return `${dd}-${mm}-${yyyy}`;
+  };
   var total = 0;
   useEffect(() => {
     async function fetchData() {
@@ -47,7 +52,7 @@ const Transaction = () => {
                       <tr key={payment._id}>
                         <td>{id + 1}</td>
                         <td>{payment.customer.name}</td>
-                        <td>{payment.date.split('T')[0]}</td>
+                        <td>{formatDate(payment.date.split('T')[0])}</td>
                         <td>{payment.amountPaid}</td>
                       </tr>
                     );

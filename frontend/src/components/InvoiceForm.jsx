@@ -149,8 +149,9 @@ const InvoiceForm = ({ editInvoice }) => {
   };
 
   const handleAddProduct = () => {
-    if (!name || !quantity || !rate || !date) {
-      alert('Enter all fields');
+    if (!name || !quantity || !rate || !date || !gst) {
+      if (!gst) alert('enter gst');
+      else alert('Enter all fields');
     } else {
       dispatch(addProduct({ name, quantity, rate, uom, date }));
       setName('');
@@ -352,6 +353,39 @@ const InvoiceForm = ({ editInvoice }) => {
           />
         </div>
         <div className='form-group'>
+          <label htmlFor='date' className='form-label'>
+            Date:
+          </label>
+          <input
+            type='date'
+            placeholder={isEdit ? invoiceToEdit.date : date}
+            id='date'
+            className='form-input'
+            value={isEdit ? parseDate(invoiceToEdit.date) : date}
+            onChange={handleDateChange}
+            style={{ width: '10rem' }}
+            required
+          />
+        </div>
+        <div className='form-group'>
+          <label htmlFor='gst' className='form-label'>
+            GST
+          </label>
+          <select
+            id='gst'
+            className='form-select'
+            value={gst}
+            onChange={handleGstChange}
+            required
+          >
+            <option disabled selected>
+              select
+            </option>
+            <option value={6}>6%</option>
+            <option value={9}>9%</option>
+          </select>
+        </div>
+        <div className='form-group'>
           <label htmlFor='challanNo' className='form-label'>
             Challan No
           </label>
@@ -378,37 +412,7 @@ const InvoiceForm = ({ editInvoice }) => {
             required
           />
         </div>
-        <div className='form-group'>
-          <label htmlFor='gst' className='form-label'>
-            GST
-          </label>
-          <select
-            id='gst'
-            className='form-select'
-            value={gst}
-            onChange={handleGstChange}
-            required
-          >
-            <option disabled>select</option>
-            <option value={6}>6%</option>
-            <option value={9}>9%</option>
-          </select>
-        </div>
-        <div className='form-group'>
-          <label htmlFor='date' className='form-label'>
-            Date:
-          </label>
-          <input
-            type='date'
-            placeholder={isEdit ? invoiceToEdit.date : date}
-            id='date'
-            className='form-input'
-            value={isEdit ? parseDate(invoiceToEdit.date) : date}
-            onChange={handleDateChange}
-            style={{ width: '10rem' }}
-            required
-          />
-        </div>
+
         <div className='form-group'>
           <label htmlFor='orderNo' className='form-label'>
             OrderNo:

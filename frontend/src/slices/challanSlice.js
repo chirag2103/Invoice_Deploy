@@ -5,7 +5,7 @@ const apiUrl = process.env.REACT_APP_API_URL;
 const token = localStorage.getItem('token');
 
 const initialState = {
-  challanNo: '',
+  challanNo: 1,
   challanDate: '',
   customer: '',
   orderNo: '',
@@ -158,6 +158,7 @@ const challanSlice = createSlice({
       })
       .addCase(fetchChallanNo.fulfilled, (state, action) => {
         // console.log(action);
+
         state.challanNo = action.payload + 1;
       });
   },

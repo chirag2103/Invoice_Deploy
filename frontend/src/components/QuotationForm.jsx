@@ -21,6 +21,9 @@ const QuotationForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [specs, setSpecs] = useState(['']);
+  const [terms, setTerms] = useState(['']);
+
   const isEdit = location.state?.quotation ? true : false;
   const quotationToEdit = location.state?.quotation;
 
@@ -68,6 +71,8 @@ const QuotationForm = () => {
       totalAmount,
       grandTotal,
       invoicefor: 'Quotation',
+      specs,
+      terms,
     };
     dispatch(
       sendQuotationData({
@@ -83,6 +88,25 @@ const QuotationForm = () => {
       dispatch(clearQuotationData());
       navigate('/invoices/preview', { state: quotationData });
     });
+  };
+
+  // Update specific item
+  const handleUpdate = (index, value, type) => {
+    const list = type === 'specs' ? [...specs] : [...terms];
+    list[index] = value;
+    type === 'specs' ? setSpecs(list) : setTerms(list);
+  };
+
+  // Add new item
+  const handleAdd = (type) => {
+    type === 'specs' ? setSpecs([...specs, '']) : setTerms([...terms, '']);
+  };
+
+  // Remove item
+  const handleRemove = (index, type) => {
+    const list = type === 'specs' ? [...specs] : [...terms];
+    list.splice(index, 1);
+    type === 'specs' ? setSpecs(list) : setTerms(list);
   };
 
   return (
@@ -321,6 +345,56 @@ const QuotationForm = () => {
         <button type='button' className='add-btn' onClick={handleAddProduct}>
           Add Product
         </button>
+
+        <div className='quotation-extra'>
+          <h4>Technical Specifications:</h4>
+          {specs.map((item, index) => (
+            <div
+              key={index}
+              style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}
+            >
+              <input
+                type='text'
+                value={item}
+                onChange={(e) => handleUpdate(index, e.target.value, 'specs')}
+                style={{ flex: 1 }}
+              />
+              <button
+                type='button'
+                onClick={() => handleRemove(index, 'specs')}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+          <button type='button' onClick={() => handleAdd('specs')}>
+            Add Specification
+          </button>
+
+          <h4 style={{ marginTop: '1rem' }}>Terms and Conditions:</h4>
+          {terms.map((item, index) => (
+            <div
+              key={index}
+              style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}
+            >
+              <input
+                type='text'
+                value={item}
+                onChange={(e) => handleUpdate(index, e.target.value, 'terms')}
+                style={{ flex: 1 }}
+              />
+              <button
+                type='button'
+                onClick={() => handleRemove(index, 'terms')}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+          <button type='button' onClick={() => handleAdd('terms')}>
+            Add Term
+          </button>
+        </div>
 
         <div className='invoice-totals'>
           <p>Total Amount: ₹{totalAmount}</p>

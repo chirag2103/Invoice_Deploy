@@ -11,9 +11,9 @@ export const createPayment = async (req, res, next) => {
   });
 };
 export const getPayments = async (req, res, next) => {
-  const payments = await Payment.find({ user: req.user.id }).populate(
-    'customer'
-  );
+  const payments = await Payment.find({ user: req.user.id })
+    .populate('customer')
+    .sort({ date: -1 });
   // console.log(customers);
   res.status(200).json({
     payments,
@@ -32,12 +32,15 @@ export const getPaymentsByCustomer = catchAsyncError(async (req, res, next) => {
     const payments = await Payment.find({
       user: req.user.id,
       customer: customerId,
-    });
+    }).sort({ date: -1 });
     // const invoices = await Invoice.find({ customer: customerId }).populate(
     //   'customer',
     //   'name'
     // );
-    const customer = await Customer.findById(customerId);
+    const customer = await Customer.find({
+      _id: customerId,
+      user: req.user.id,
+    });
     const customerName = customer.name;
     // console.log(customerName);
     let total = 0;

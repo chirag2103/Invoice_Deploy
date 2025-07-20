@@ -10,6 +10,12 @@ const ChallanList = () => {
 
   const { challans, loading, error } = useSelector((state) => state.challan);
 
+  const formatDate = (inputDate) => {
+    if (!inputDate) return '';
+    const [yyyy, mm, dd] = inputDate.split('-');
+    return `${dd}-${mm}-${yyyy}`;
+  };
+
   useEffect(() => {
     dispatch(fetchChallans());
   }, [dispatch]);
@@ -76,7 +82,7 @@ const ChallanList = () => {
                       <tr key={challan._id}>
                         <td>{challan.challanNo}</td>
                         <td>{challan.customer?.name}</td>
-                        <td>{challan.challanDate.split('T')[0]}</td>
+                        <td>{formatDate(challan.challanDate.split('T')[0])}</td>
                         <td>
                           <button onClick={() => handlePrint(challan)}>
                             Print

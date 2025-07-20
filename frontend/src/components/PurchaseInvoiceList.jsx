@@ -7,6 +7,11 @@ const PurchaseInvoiceList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
+  const formatDate = (inputDate) => {
+    if (!inputDate) return '';
+    const [yyyy, mm, dd] = inputDate.split('-');
+    return `${dd}-${mm}-${yyyy}`;
+  };
 
   const fetchPurchases = async () => {
     try {
@@ -80,7 +85,7 @@ const PurchaseInvoiceList = () => {
                 {purchases.map((invoice) => (
                   <tr key={invoice._id}>
                     <td>{invoice.seller}</td>
-                    <td>{invoice.date?.split('T')[0]}</td>
+                    <td>{formatDate(invoice.date?.split('T')[0])}</td>
                     <td>{invoice.amount}</td>
                     <td>{invoice.paid}</td>
                     <td>{invoice.amount - invoice.paid}</td>

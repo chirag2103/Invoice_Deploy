@@ -10,6 +10,11 @@ const InvoiceList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { invoices, loading, error } = useSelector((state) => state.invoice);
+  const formatDate = (inputDate) => {
+    if (!inputDate) return '';
+    const [yyyy, mm, dd] = inputDate.split('-');
+    return `${dd}-${mm}-${yyyy}`;
+  };
 
   useEffect(() => {
     dispatch(fetchInvoices());
@@ -60,7 +65,7 @@ const InvoiceList = () => {
                       <tr key={invoice._id}>
                         <td>{invoice.invoiceNo}</td>
                         <td>{invoice?.customer?.name}</td>
-                        <td>{invoice.date.split('T')[0]}</td>
+                        <td>{formatDate(invoice.date.split('T')[0])}</td>
                         <td>{invoice.grandTotal}</td>
                         <td>
                           <button

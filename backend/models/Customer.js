@@ -17,6 +17,10 @@ const customerSchema = mongoose.Schema({
     type: String,
     default: 'V.U Nagar,Anand',
   },
+  openingBalance: {
+    type: Number,
+    default: 0,
+  },
 });
 
 export default mongoose.model('Customer', customerSchema);

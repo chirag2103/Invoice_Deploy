@@ -73,3 +73,13 @@
   /* padding: 8px; */
   /* text-align: center; */
 }
+
+.quotation-extra input {
+  padding: 4px 8px;
+  font-size: 14px;
+}
+.quotation-extra button {
+  padding: 4px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}

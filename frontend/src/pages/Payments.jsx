@@ -246,6 +246,7 @@ const Payments = () => {
                   value={date}
                   onChange={handleDateChange}
                   className='form-input'
+                  style={{ width: '10rem' }}
                 />
               </div>
               <div className='form-group'>
@@ -294,6 +295,7 @@ const Payments = () => {
                   value={purchaseDate}
                   onChange={(e) => setPurchaseDate(e.target.value)}
                   className='form-input'
+                  style={{ width: '10rem' }}
                 />
               </div>
               <div className='form-group'>

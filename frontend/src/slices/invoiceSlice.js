@@ -8,7 +8,7 @@ const initialState = {
   products: [],
   totalAmount: 0,
   grandTotal: 0,
-  gst: 9,
+  gst: null,
   error: null,
   loading: false,
   invoices: [],

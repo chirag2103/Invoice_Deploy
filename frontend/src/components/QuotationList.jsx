@@ -7,6 +7,11 @@ import { fetchQuotations } from '../slices/quotationSlice';
 const QuotationList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const formatDate = (inputDate) => {
+    if (!inputDate) return '';
+    const [yyyy, mm, dd] = inputDate.split('-');
+    return `${dd}-${mm}-${yyyy}`;
+  };
 
   const { quotations, loading, error } = useSelector(
     (state) => state.quotation
@@ -65,7 +70,7 @@ const QuotationList = () => {
                   <tr key={quotation._id}>
                     <td>{quotation.quoteNo}</td>
                     <td>{quotation.customer.name}</td>
-                    <td>{quotation.date.split('T')[0]}</td>
+                    <td>{formatDate(quotation.date.split('T')[0])}</td>
                     <td>₹{quotation.grandTotal}</td>
                     <td>
                       <button onClick={() => handlePrint(quotation)}>

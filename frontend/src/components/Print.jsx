@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './Print.css';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ToWords } from 'to-words';
@@ -6,6 +6,8 @@ import { useSelector } from 'react-redux';
 
 const Print = () => {
   const user = useSelector((state) => state.user.user);
+  // Update specific item
+
   // console.log(user);
 
   const navigate = useNavigate();
@@ -42,11 +44,14 @@ const Print = () => {
     challanDate,
     orderNo,
     orderDate,
+    specs,
+    terms,
   } = location.state;
   // console.log(location.state);
 
   const isQuotation = invoicefor === 'Quotation';
   const isChallan = invoicefor === 'Challan';
+  const rowsToRender = isQuotation ? products.length : 13;
 
   const prefix = user.companyDetails.name
     .split(' ')
@@ -213,7 +218,7 @@ const Print = () => {
             </tr>
           </thead>
           <tbody>
-            {[...Array(13)].map((_, index) => {
+            {[...Array(rowsToRender)].map((_, index) => {
               const product = products[index];
               return (
                 <tr key={index}>
@@ -291,6 +296,39 @@ const Print = () => {
             <td colSpan={2}>Subject to anand jurisdiction</td>
           </tr>
         </table>
+        {isQuotation && (
+          <div className='quotation-extra'>
+            <h4>{specs ? 'Technical Specifications:' : ''}</h4>
+            {specs?.map((item, index) => (
+              <div
+                key={index}
+                style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                item
+              </div>
+            ))}
+
+            <h4 style={{ marginTop: '1rem' }}>
+              {terms ? 'Terms and Conditions:' : ''}
+            </h4>
+            {terms?.map((item, index) => (
+              <div
+                key={index}
+                style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
