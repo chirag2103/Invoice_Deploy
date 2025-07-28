@@ -186,8 +186,14 @@ export const getCustomerBillingInfo = catchAsyncError(
 
       const customerBillingInfo = await Promise.all(
         customers.map(async (customer) => {
-          const invoices = await Invoice.find({ customer: customer._id });
-          const payments = await Payment.find({ customer: customer._id });
+          const invoices = await Invoice.find({
+            customer: customer._id,
+            user: req.user.id,
+          });
+          const payments = await Payment.find({
+            customer: customer._id,
+            user: req.user.id,
+          });
 
           const totalBill = invoices.reduce(
             (acc, invoice) => acc + invoice.grandTotal,
