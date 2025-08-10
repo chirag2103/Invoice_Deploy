@@ -247,6 +247,7 @@ const QuotationForm = () => {
                       <option value='Kg'>Kg</option>
                       <option value='Liters'>Liters</option>
                       <option value='Set'>Set</option>
+                      <option value='Meter'>Meter</option>
                     </select>
                   </td>
                   <td>

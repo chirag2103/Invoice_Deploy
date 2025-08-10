@@ -75,12 +75,12 @@ const Print = () => {
   //     window.removeEventListener('afterprint', handleAfterPrint);
   //   };
   // }, [navigate]);
-  useEffect(() => {
-    const handleAfterPrint = () => {
-      setTimeout(() => {
-        navigate('/invoices/all');
-      }, 1000);
-    };
+  // useEffect(() => {
+  //   const handleAfterPrint = () => {
+  //     setTimeout(() => {
+  //       navigate('/invoices/all');
+  //     }, 1000);
+  //   };
 
     window.addEventListener('afterprint', handleAfterPrint);
     const type = isQuotation ? 'Quotation' : isChallan ? 'Challan' : 'Invoice';
