@@ -82,21 +82,21 @@ const Print = () => {
   //     }, 1000);
   //   };
 
-    window.addEventListener('afterprint', handleAfterPrint);
-    const type = isQuotation ? 'Quotation' : isChallan ? 'Challan' : 'Invoice';
-    const number = `${prefix}${billNo}`;
-    document.title = `${type} - ${number}`;
+  //   window.addEventListener('afterprint', handleAfterPrint);
+  //   const type = isQuotation ? 'Quotation' : isChallan ? 'Challan' : 'Invoice';
+  //   const number = `${prefix}${billNo}`;
+  //   document.title = `${type} - ${number}`;
 
-    // Open print dialog
-    const printTimeout = setTimeout(() => {
-      // window.print();
-    }, 500);
+  //   // Open print dialog
+  //   const printTimeout = setTimeout(() => {
+  //     // window.print();
+  //   }, 500);
 
-    return () => {
-      clearTimeout(printTimeout);
-      window.removeEventListener('afterprint', handleAfterPrint);
-    };
-  }, [navigate]);
+  //   return () => {
+  //     clearTimeout(printTimeout);
+  //     window.removeEventListener('afterprint', handleAfterPrint);
+  //   };
+  // }, [navigate]);
 
   return (
     <div ref={pdfRef}>
