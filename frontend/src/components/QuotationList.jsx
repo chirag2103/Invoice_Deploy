@@ -42,6 +42,13 @@ const QuotationList = () => {
     };
     navigate('/admin/invoice/new', { state: data });
   };
+  const handleEditQuotation = (quotation) => {
+    const data = {
+      fromQuotation: true,
+      quotation: quotation,
+    };
+    navigate('/admin/quotation/edit', { state: data });
+  };
 
   return (
     <div className='admin-container'>
@@ -63,6 +70,7 @@ const QuotationList = () => {
                   <th>Grand Total</th>
                   <th>Print</th>
                   <th>Convert</th>
+                  <th>Edit</th>
                 </tr>
               </thead>
               <tbody>
@@ -80,6 +88,11 @@ const QuotationList = () => {
                     <td>
                       <button onClick={() => handleConvertToInvoice(quotation)}>
                         Convert
+                      </button>
+                    </td>
+                    <td>
+                      <button onClick={() => handleEditQuotation(quotation)}>
+                        Edit
                       </button>
                     </td>
                   </tr>

@@ -27,6 +27,7 @@ const Transaction = () => {
         console.error('Error fetching data:', error);
       }
     }
+    document.title = 'Transactions';
     fetchData();
   }, []);
   return (

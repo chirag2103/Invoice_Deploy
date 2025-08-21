@@ -97,6 +97,11 @@ const Print = () => {
   //     window.removeEventListener('afterprint', handleAfterPrint);
   //   };
   // }, [navigate]);
+  useEffect(() => {
+    const type = isQuotation ? 'Quotation' : isChallan ? 'Challan' : 'Invoice';
+    const number = `${prefix}${billNo}`;
+    document.title = `${type} - ${number}`;
+  });
 
   return (
     <div ref={pdfRef}>

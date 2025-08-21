@@ -9,6 +9,7 @@ const Statement = () => {
   const dispatch = useDispatch();
   useEffect(() => {
     // console.log('Hello World');
+    document.title = 'Statement';
     dispatch(fetchCustomers());
   }, [dispatch]);
   const { customers } = useSelector((state) => state.customers);

@@ -24,7 +24,10 @@ export const getSingleQuotation = catchAsyncError(async (req, res, next) => {
 });
 
 export const updateQuotation = catchAsyncError(async (req, res, next) => {
-  let quotation = await Quotation.findById(req.params.id);
+  let quotation = await Quotation.find({
+    _id: req.params.id,
+    user: req.user.id,
+  });
   if (!quotation) return next(new ErrorHandler('Quotation not found', 404));
   quotation = await Quotation.findByIdAndUpdate(
     req.params.id,

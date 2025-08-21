@@ -17,6 +17,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   useEffect(() => {
     // console.log('Hello World');
+    document.title = 'Dashboard';
     dispatch(fetchInvoices());
   }, [dispatch]);
   const { invoices } = useSelector((state) => state.invoice);
