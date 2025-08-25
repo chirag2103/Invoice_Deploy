@@ -307,64 +307,84 @@ export const getSellerStatement = async (req, res) => {
   try {
     const { sellerId } = req.params;
 
-    // Fetch seller info
+    // ✅ Fetch seller
     const seller = await Seller.findById(sellerId);
+    if (!seller) {
+      return res.status(404).json({ error: 'Seller not found' });
+    }
 
-    // Fetch purchases
-    const purchases = await PurchaseInvoice.find({ seller: sellerId });
-    // Fetch payments
-    const payments = await PurchasePayment.find({ seller: sellerId });
+    // ✅ Fetch purchases & payments sorted
+    const purchases = await PurchaseInvoice.find({ seller: sellerId }).sort({
+      date: 1,
+    });
+    const payments = await PurchasePayment.find({ seller: sellerId }).sort({
+      date: 1,
+    });
 
-    let balance = 0;
-    let statement = [];
+    const statement = [];
+    let totalPurchase = 0;
+    let totalPaid = 0;
+    let currentBalance = 0;
 
-    // Opening Balance if any
-    if (seller.openingBalance) {
-      balance = seller.openingBalance;
+    // ✅ Opening Balance if any
+    if (seller.openingBalance && seller.openingBalance !== 0) {
+      currentBalance = seller.openingBalance;
       statement.push({
-        date: seller.createdAt,
+        date: seller.createdAt || new Date('2024-01-01'),
         type: 'opening',
-        amount: seller.openingBalance,
-        balance,
+        detail: 'Opening Balance',
+        purchaseAmount: seller.openingBalance,
+        paymentAmount: null,
+        balance: currentBalance,
       });
     }
 
-    // Add purchases
-    purchases.forEach((p) => {
-      balance += p.amount;
-      statement.push({
+    // ✅ Merge purchases & payments
+    const entries = [
+      ...purchases.map((p) => ({
         date: p.date,
         type: 'purchase',
-        amount: p.amount,
-        balance,
-      });
-    });
-
-    // Add payments
-    payments.forEach((pay) => {
-      balance -= pay.amountPaid;
-      statement.push({
+        detail: p.invoiceNo || 'Purchase Invoice',
+        purchaseAmount: p.amount,
+        paymentAmount: null,
+      })),
+      ...payments.map((pay) => ({
         date: pay.date,
         type: 'payment',
-        amountPaid: pay.amountPaid,
-        balance,
+        detail: 'Payment',
+        purchaseAmount: null,
+        paymentAmount: pay.amountPaid,
+      })),
+    ];
+
+    // ✅ Sort by date
+    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // ✅ Process entries sequentially
+    entries.forEach((entry) => {
+      if (entry.type === 'purchase') {
+        totalPurchase += entry.purchaseAmount;
+        currentBalance += entry.purchaseAmount;
+      } else if (entry.type === 'payment') {
+        totalPaid += entry.paymentAmount;
+        currentBalance -= entry.paymentAmount;
+      }
+
+      statement.push({
+        ...entry,
+        balance: Math.round(currentBalance * 100) / 100, // ✅ 2 decimals
       });
     });
 
-    // After building statement array
-    statement.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    // Totals
-    const totalPurchase = purchases.reduce((sum, p) => sum + p.amount, 0);
-    const totalPaid = payments.reduce((sum, pay) => sum + pay.amountPaid, 0);
-
+    // ✅ Response
     res.json({
       sellerName: seller.name,
       gstNo: seller.gstNo,
-      statement,
+      openingBalance: seller.openingBalance || 0,
       totalPurchase,
       totalPaid,
-      balance,
+      balance: currentBalance,
+      statement,
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch seller statement' });

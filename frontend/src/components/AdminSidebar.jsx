@@ -90,18 +90,7 @@ const DivOne = ({ location }) => (
         Icon={AiFillFileText}
         location={location}
       />
-      <Li
-        url='/purchasedBills/all'
-        text='Purchased Bills'
-        Icon={AiFillFileText}
-        location={location}
-      />
-      <Li
-        url='/purchaseSummary/all'
-        text='Purchased Summary'
-        Icon={AiFillFileText}
-        location={location}
-      />
+
       <Li
         url='/admin/billinfo'
         text='Billing Info'
@@ -119,7 +108,7 @@ const DivOne = ({ location }) => (
 );
 const DivTwo = ({ location }) => (
   <div>
-    <h5>Due Info</h5>
+    <h5>Purchase</h5>
     <ul>
       <Li
         url='/purchase/new'
@@ -127,11 +116,23 @@ const DivTwo = ({ location }) => (
         Icon={FaChartBar}
         location={location}
       />
+      <Li
+        url='/purchase/payment/new'
+        text='Add Purchase Payment'
+        Icon={FaChartBar}
+        location={location}
+      />
       <Li url='/sellers' text='Sellers' Icon={FaChartPie} location={location} />
       <Li
-        url='/admin/chart/line'
-        text='Line'
-        Icon={FaChartLine}
+        url='/purchasedBills/all'
+        text='Purchased Bills'
+        Icon={AiFillFileText}
+        location={location}
+      />
+      <Li
+        url='/purchaseSummary/all'
+        text='Purchased Summary'
+        Icon={AiFillFileText}
         location={location}
       />
     </ul>

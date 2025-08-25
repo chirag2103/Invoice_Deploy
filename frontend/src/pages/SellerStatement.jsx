@@ -73,9 +73,11 @@ const SellerStatement = () => {
                     ? 'Opening Balance'
                     : 'Payment'}
                 </td>
-                <td>{entry.type === 'purchase' ? `₹${entry.amount}` : '-'}</td>
                 <td>
-                  {entry.type === 'payment' ? `₹${entry.amountPaid}` : '-'}
+                  {entry.type === 'purchase' ? `₹${entry.purchaseAmount}` : '-'}
+                </td>
+                <td>
+                  {entry.type === 'payment' ? `₹${entry.paymentAmount}` : '-'}
                 </td>
                 <td>₹{entry.balance}</td>
               </tr>

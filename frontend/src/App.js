@@ -27,6 +27,7 @@ import PurchaseSummary from './pages/PurchaseSummary';
 import PurchaseForm from './pages/PurchaseForm';
 import Sellers from './pages/Sellers';
 import SellerStatement from './pages/SellerStatement';
+import SellerPayments from './pages/sellerPayments';
 
 function App() {
   return (
@@ -121,6 +122,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Sellers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/purchase/payment/new'
+          element={
+            <ProtectedRoute>
+              <SellerPayments />
             </ProtectedRoute>
           }
         />
