@@ -7,6 +7,8 @@ import quotationRouter from './routes/quotationRoute.js';
 import challanRouter from './routes/challanRoute.js';
 import paymentRouter from './routes/paymentRoute.js';
 import purchaseRouter from './routes/purchaseRoute.js';
+import purchaseInvoiceRouter from './routes/purchaseInvoiceRoute.js';
+import purchasePaymentRouter from './routes/purchasePaymentRoute.js';
 import userRouter from './routes/userRoute.js';
 import cookieParser from 'cookie-parser';
 
@@ -27,8 +29,10 @@ app.use('/api', customerRouter);
 app.use('/api', invoiceRouter);
 app.use('/api', challanRouter);
 app.use('/api', quotationRouter);
-app.use('/api', paymentRouter);
+// app.use('/api', paymentRouter);
 app.use('/api', purchaseRouter);
 app.use('/api', userRouter);
+app.use('/api/purchase', purchaseInvoiceRouter);
+app.use('/api/purchase', purchasePaymentRouter);
 
 export default app;

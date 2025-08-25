@@ -3,9 +3,9 @@ import mongoose from 'mongoose';
 const purchaseInvoiceSchema = new mongoose.Schema(
   {
     seller: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Seller',
       required: true,
-      trim: true,
     },
     amount: {
       type: Number,
@@ -18,14 +18,14 @@ const purchaseInvoiceSchema = new mongoose.Schema(
     remarks: {
       type: String,
     },
-    paid: {
-      type: Number,
-      default: 0,
-    },
-    status: {
-      type: String,
-      default: 'pending',
-    },
+    // paid: {
+    //   type: Number,
+    //   default: 0,
+    // },
+    // status: {
+    //   type: String,
+    //   default: 'pending',
+    // },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User', // assuming you have a User model
@@ -39,7 +39,8 @@ const purchaseInvoiceSchema = new mongoose.Schema(
 
 const PurchaseInvoice = mongoose.model(
   'PurchaseInvoice',
-  purchaseInvoiceSchema
+  purchaseInvoiceSchema,
+  'purchaseinvoices_new'
 );
 
 export default PurchaseInvoice;

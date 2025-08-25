@@ -17,7 +17,7 @@ const PurchaseSummary = () => {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await axios.get(`${apiUrl}/api/purchaseSummary/all`, {
+        const res = await axios.get(`${apiUrl}/api/purchase/summary/all`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -47,12 +47,12 @@ const PurchaseSummary = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.map((payment, id) => {
-                    total += payment.totalAmount;
+                  {payments.map((payment) => {
+                    console.log(payment);
                     return (
                       <tr key={payment._id}>
-                        <td>{payment.seller}</td>
-                        <td>{payment.totalAmount}</td>
+                        <td>{payment.seller?.name}</td>
+                        <td>{payment.totalBills}</td>
                         <td>{payment.totalPaid}</td>
                         <td>{payment.remaining}</td>
                       </tr>
@@ -60,7 +60,11 @@ const PurchaseSummary = () => {
                   })}
                 </tbody>
               </table>
-              <h3>Total: {total}</h3>
+
+              <h3>
+                Total:{' '}
+                {payments.reduce((acc, payment) => acc + payment.totalBills, 0)}
+              </h3>
             </div>
           </div>
         </main>

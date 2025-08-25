@@ -16,19 +16,7 @@ const Payments = () => {
   }, [dispatch]);
   const { loading, error, customers } = useSelector((state) => state.customers);
 
-  const handleCustomerClick = (customerId) => {
-    navigate(`/customer/${customerId}/invoices`);
-  };
-
-  const [mode, setMode] = useState('payment'); // 'payment' or 'purchase'
-
-  const [seller, setSeller] = useState('');
-  const [purchaseAmount, setPurchaseAmount] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState('');
-  const [purchaseRemarks, setPurchaseRemarks] = useState('');
-
   const [amount, setAmount] = useState();
-  const [paid, setPaid] = useState();
   const [date, setDate] = useState();
   const [customer, setCustomer] = useState('');
   const [remarks, setRemarks] = useState('');
@@ -80,28 +68,16 @@ const Payments = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(seller, purchaseAmount, purchaseDate);
+    // console.log(seller, purchaseAmount, purchaseDate);
 
-    const url =
-      mode === 'payment'
-        ? `${apiUrl}/api/payment/new`
-        : `${apiUrl}/api/purchase/new`;
+    const url = `${apiUrl}/api/payment/new`;
 
-    const data =
-      mode === 'payment'
-        ? {
-            customer: customer._id,
-            amountPaid: amount,
-            date,
-            remarks,
-          }
-        : {
-            seller,
-            amount: purchaseAmount,
-            date: purchaseDate,
-            remarks: purchaseRemarks,
-            paid,
-          };
+    const data = {
+      customer: customer._id,
+      amountPaid: amount,
+      date,
+      remarks,
+    };
 
     axios
       .post(url, JSON.stringify(data), {
@@ -111,7 +87,7 @@ const Payments = () => {
         },
       })
       .then((res) => {
-        alert(`${mode === 'payment' ? 'Payment' : 'Purchase Invoice'} added`);
+        alert('Payment Added');
       })
       .catch((err) => {
         alert(err);
@@ -123,21 +99,6 @@ const Payments = () => {
       {/* AdminSideBar */}
       <AdminSidebar />
       <div className='customer-container'>
-        <div style={{ marginBottom: '1rem' }}>
-          <button
-            disabled={mode === 'payment'}
-            onClick={() => setMode('payment')}
-          >
-            Add Payment
-          </button>
-          <button
-            disabled={mode === 'purchase'}
-            onClick={() => setMode('purchase')}
-          >
-            Add Purchase Invoice
-          </button>
-        </div>
-
         {/* <form className='invoice-form'>
           <div className='form-group'>
             <label htmlFor='customer' className='form-label'>
@@ -210,107 +171,55 @@ const Payments = () => {
         </form> */}
 
         <form className='invoice-form'>
-          {mode === 'payment' ? (
-            <>
-              <div className='form-group'>
-                <label htmlFor='customer' className='form-label'>
-                  Customer:
-                </label>
-                <select
-                  id='customer'
-                  className='form-select'
-                  value={customer ? customer._id : ''}
-                  onChange={handleCustomerChange}
-                >
-                  <option value=''>Select</option>
-                  {customers.map((customer) => (
-                    <option key={customer._id} value={customer._id}>
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className='form-group'>
-                <label className='form-label'>Amount</label>
-                <input
-                  type='number'
-                  value={amount}
-                  onChange={handleAmountChange}
-                  className='form-input'
-                />
-              </div>
-              <div className='form-group'>
-                <label className='form-label'>Date</label>
-                <input
-                  type='date'
-                  value={date}
-                  onChange={handleDateChange}
-                  className='form-input'
-                  style={{ width: '10rem' }}
-                />
-              </div>
-              <div className='form-group'>
-                <label className='form-label'>Remarks</label>
-                <input
-                  type='text'
-                  value={remarks}
-                  onChange={handleRemarksChange}
-                  className='form-input'
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <div className='form-group'>
-                <label className='form-label'>Seller Name</label>
-                <input
-                  type='text'
-                  value={seller}
-                  onChange={(e) => setSeller(e.target.value)}
-                  className='form-input'
-                />
-              </div>
-              <div className='form-group'>
-                <label className='form-label'>Amount</label>
-                <input
-                  type='number'
-                  value={purchaseAmount}
-                  onChange={(e) => setPurchaseAmount(e.target.value)}
-                  className='form-input'
-                />
-              </div>
-              <div className='form-group'>
-                <label className='form-label'>Paid</label>
-                <input
-                  type='number'
-                  value={paid}
-                  onChange={(e) => setPaid(e.target.value)}
-                  className='form-input'
-                />
-              </div>
-              <div className='form-group'>
-                <label className='form-label'>Date</label>
-                <input
-                  type='date'
-                  value={purchaseDate}
-                  onChange={(e) => setPurchaseDate(e.target.value)}
-                  className='form-input'
-                  style={{ width: '10rem' }}
-                />
-              </div>
-              <div className='form-group'>
-                <label className='form-label'>Remarks</label>
-                <input
-                  type='text'
-                  value={purchaseRemarks}
-                  onChange={(e) => setPurchaseRemarks(e.target.value)}
-                  className='form-input'
-                />
-              </div>
-            </>
-          )}
+          <div className='form-group'>
+            <label htmlFor='customer' className='form-label'>
+              Customer:
+            </label>
+            <select
+              id='customer'
+              className='form-select'
+              value={customer ? customer._id : ''}
+              onChange={handleCustomerChange}
+            >
+              <option value=''>Select</option>
+              {customers.map((customer) => (
+                <option key={customer._id} value={customer._id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className='form-group'>
+            <label className='form-label'>Amount</label>
+            <input
+              type='number'
+              value={amount}
+              onChange={handleAmountChange}
+              className='form-input'
+            />
+          </div>
+          <div className='form-group'>
+            <label className='form-label'>Date</label>
+            <input
+              type='date'
+              value={date}
+              onChange={handleDateChange}
+              className='form-input'
+              style={{ width: '10rem' }}
+            />
+          </div>
+          <div className='form-group'>
+            <label className='form-label'>Remarks</label>
+            <input
+              type='text'
+              value={remarks}
+              onChange={handleRemarksChange}
+              className='form-input'
+            />
+          </div>
+
           <button type='submit' onClick={handleSubmit}>
-            {mode === 'payment' ? 'Add Payment' : 'Add Purchase'}
+            Add Payment
           </button>
         </form>
       </div>

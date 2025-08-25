@@ -24,6 +24,7 @@ import QuotationList from './components/QuotationList';
 import ProtectedRoute from './components/ProtectedRoute';
 import PurchaseInvoiceList from './components/PurchaseInvoiceList';
 import PurchaseSummary from './pages/PurchaseSummary';
+import PurchaseForm from './pages/PurchaseForm';
 
 function App() {
   return (
@@ -102,6 +103,14 @@ function App() {
           element={
             <ProtectedRoute>
               <InvoiceForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/purchase/new'
+          element={
+            <ProtectedRoute>
+              <PurchaseForm />
             </ProtectedRoute>
           }
         />

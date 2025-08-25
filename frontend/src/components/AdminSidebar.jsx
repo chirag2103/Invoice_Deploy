@@ -20,6 +20,7 @@ const AdminSidebar = () => {
     <aside>
       <h2>Logo.</h2>
       <DivOne location={location} />
+      <DivTwo location={location} />
       {/* <DivThree location={location} /> */}
     </aside>
   );
@@ -121,8 +122,8 @@ const DivTwo = ({ location }) => (
     <h5>Due Info</h5>
     <ul>
       <Li
-        url='/admin/billinfo'
-        text='Bar'
+        url='/purchase/new'
+        text='Add Purchase Bill'
         Icon={FaChartBar}
         location={location}
       />
