@@ -5,7 +5,7 @@ import { fetchSellers } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
 import axios from 'axios';
 
-const Customers = () => {
+const Sellers = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem('token');
   const navigate = useNavigate();
@@ -14,10 +14,10 @@ const Customers = () => {
     // console.log('Hello World');
     dispatch(fetchSellers());
   }, [dispatch]);
-  const { customers } = useSelector((state) => state.customers);
+  const { sellers } = useSelector((state) => state.customers);
 
   const handleCustomerClick = (sellerId) => {
-    navigate(`/seller/${sellerId}/purchaseBills`);
+    navigate(`/seller/${sellerId}/statement`);
   };
 
   const [name, setName] = useState('');
@@ -101,7 +101,7 @@ const Customers = () => {
         <div className='customer-list-container'>
           <h1>Select a Customer</h1>
           <div className='customr-list'>
-            {customers.map((customer) => (
+            {sellers.map((customer) => (
               <li
                 key={customer._id}
                 onClick={() => handleCustomerClick(customer._id)}
@@ -116,4 +116,4 @@ const Customers = () => {
   );
 };
 
-export default Customers;
+export default Sellers;

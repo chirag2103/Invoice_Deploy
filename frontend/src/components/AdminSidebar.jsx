@@ -127,12 +127,7 @@ const DivTwo = ({ location }) => (
         Icon={FaChartBar}
         location={location}
       />
-      <Li
-        url='/admin/chart/pie'
-        text='Pie'
-        Icon={FaChartPie}
-        location={location}
-      />
+      <Li url='/sellers' text='Sellers' Icon={FaChartPie} location={location} />
       <Li
         url='/admin/chart/line'
         text='Line'

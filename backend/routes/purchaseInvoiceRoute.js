@@ -4,6 +4,7 @@ import {
   getAllPurchases,
   getAllSellerSummary,
   getPurchaseSummaryBySeller,
+  getSellerStatement,
 } from '../controller/purchaseInvoiceController.js';
 import { isAuthenticatedUser } from '../middlewares/auth.js';
 
@@ -19,6 +20,7 @@ router.get(
   isAuthenticatedUser,
   getPurchaseSummaryBySeller
 );
+router.get('/statement/:sellerId', isAuthenticatedUser, getSellerStatement);
 
 // Get all purchases
 router.get('/get/all', isAuthenticatedUser, getAllPurchases);

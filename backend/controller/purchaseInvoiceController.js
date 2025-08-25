@@ -144,27 +144,230 @@ export const getPurchaseSummaryBySeller = async (req, res, next) => {
 };
 
 // ✅ Seller statement (invoices + payments chronologically)
-export const getSellerStatement = async (req, res, next) => {
+// export const getSellerStatement = async (req, res, next) => {
+//   try {
+//     const sellerId = req.params.sellerId;
+
+//     const invoices = await PurchaseInvoice.find({
+//       user: req.user._id,
+//       seller: sellerId,
+//     }).sort({ date: 1 });
+
+//     const payments = await PurchasePayment.find({
+//       user: req.user._id,
+//       seller: sellerId,
+//     })
+//       .populate('seller', 'name')
+//       .sort({ date: 1 });
+
+//     res.status(200).json({
+//       success: true,
+//       invoices,
+//       payments,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+// export const getSellerStatement = async (req, res) => {
+//   try {
+//     const { sellerId } = req.params;
+//     const userId = req.user.id;
+
+//     const seller = await Seller.findOne({ _id: sellerId, user: userId });
+//     if (!seller) {
+//       return res.status(404).json({ error: 'Seller not found' });
+//     }
+
+//     // fetch purchases
+//     const purchases = await PurchaseInvoice.find({
+//       seller: sellerId,
+//       user: userId,
+//     }).sort({ date: 1 });
+
+//     // fetch payments
+//     const payments = await PurchasePayment.find({
+//       seller: sellerId,
+//       user: userId,
+//     }).sort({ date: 1 });
+
+//     let statement = [];
+//     let balance = 0;
+//     let totalPurchase = 0;
+//     let totalPaid = 0;
+
+//     purchases.forEach((p) => {
+//       balance += p.amount;
+//       totalPurchase += p.amount;
+//       statement.push({
+//         date: p.date,
+//         type: 'purchase',
+//         invoiceAmount: p.amount,
+//         paymentAmount: null,
+//         balance,
+//       });
+//     });
+
+//     payments.forEach((pay) => {
+//       balance -= pay.amount;
+//       totalPaid += pay.amount;
+//       statement.push({
+//         date: pay.date,
+//         type: 'payment',
+//         invoiceAmount: null,
+//         paymentAmount: pay.amount,
+//         balance,
+//       });
+//     });
+
+//     // sort final statement by date
+//     statement.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+//     res.json({
+//       sellerName: seller.name,
+//       gstNo: seller.gstNo || '',
+//       statement,
+//       totalPurchase,
+//       totalPaid,
+//       balance,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// };
+
+// export const getSellerStatement = async (req, res, next) => {
+//   try {
+//     const { sellerId } = req.params;
+
+//     // get purchases
+//     const purchases = await PurchaseInvoice.find({
+//       seller: sellerId,
+//       user: req.user._id,
+//     })
+//       .select('date amount remarks')
+//       .lean();
+
+//     // get payments
+//     const payments = await PurchasePayment.find({
+//       seller: sellerId,
+//       user: req.user._id,
+//     })
+//       .select('date amountPaid remarks')
+//       .lean();
+
+//     // merge both
+//     let combined = [];
+
+//     purchases.forEach((p) => {
+//       combined.push({
+//         date: p.date,
+//         type: 'purchase',
+//         amount: p.amount,
+//         remarks: p.remarks,
+//       });
+//     });
+
+//     payments.forEach((p) => {
+//       combined.push({
+//         date: p.date,
+//         type: 'payment',
+//         amount: p.amountPaid,
+//         remarks: p.remarks,
+//       });
+//     });
+
+//     // sort by date
+//     combined.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+//     // calculate running balance
+//     let balance = 0;
+//     combined = combined.map((entry) => {
+//       if (entry.type === 'purchase') {
+//         balance += entry.amount;
+//       } else if (entry.type === 'payment') {
+//         balance -= entry.amount;
+//       }
+//       return { ...entry, balance };
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       statement: combined,
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
+// Example backend code (Node.js / Express)
+export const getSellerStatement = async (req, res) => {
   try {
-    const sellerId = req.params.seller;
+    const { sellerId } = req.params;
 
-    const invoices = await PurchaseInvoice.find({
-      user: req.user._id,
-      seller: sellerId,
-    }).sort({ date: 1 });
+    // Fetch seller info
+    const seller = await Seller.findById(sellerId);
 
-    const payments = await PurchasePayment.find({
-      user: req.user._id,
-      seller: sellerId,
-    }).sort({ date: 1 });
+    // Fetch purchases
+    const purchases = await PurchaseInvoice.find({ seller: sellerId });
+    // Fetch payments
+    const payments = await PurchasePayment.find({ seller: sellerId });
 
-    res.status(200).json({
-      success: true,
-      invoices,
-      payments,
+    let balance = 0;
+    let statement = [];
+
+    // Opening Balance if any
+    if (seller.openingBalance) {
+      balance = seller.openingBalance;
+      statement.push({
+        date: seller.createdAt,
+        type: 'opening',
+        amount: seller.openingBalance,
+        balance,
+      });
+    }
+
+    // Add purchases
+    purchases.forEach((p) => {
+      balance += p.amount;
+      statement.push({
+        date: p.date,
+        type: 'purchase',
+        amount: p.amount,
+        balance,
+      });
+    });
+
+    // Add payments
+    payments.forEach((pay) => {
+      balance -= pay.amountPaid;
+      statement.push({
+        date: pay.date,
+        type: 'payment',
+        amountPaid: pay.amountPaid,
+        balance,
+      });
+    });
+
+    // After building statement array
+    statement.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Totals
+    const totalPurchase = purchases.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = payments.reduce((sum, pay) => sum + pay.amountPaid, 0);
+
+    res.json({
+      sellerName: seller.name,
+      gstNo: seller.gstNo,
+      statement,
+      totalPurchase,
+      totalPaid,
+      balance,
     });
   } catch (err) {
-    next(err);
+    res.status(500).json({ error: 'Failed to fetch seller statement' });
   }
 };
 
