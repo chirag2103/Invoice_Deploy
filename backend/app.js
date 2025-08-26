@@ -29,7 +29,7 @@ app.use('/api', customerRouter);
 app.use('/api', invoiceRouter);
 app.use('/api', challanRouter);
 app.use('/api', quotationRouter);
-// app.use('/api', paymentRouter);
+app.use('/api', paymentRouter);
 app.use('/api', purchaseRouter);
 app.use('/api', userRouter);
 app.use('/api/purchase', purchaseInvoiceRouter);
