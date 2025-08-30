@@ -25,7 +25,7 @@ const PurchaseForm = () => {
     try {
       const token = localStorage.getItem('token');
       const { data } = await axios.post(
-        '/api/purchase/new',
+        `${apiUrl}/api/purchase/new`,
         {
           seller: selectedSeller,
           date: invoiceDate,
