@@ -105,39 +105,77 @@ export const deletePurchaseInvoice = async (req, res, next) => {
 export const getPurchaseSummaryBySeller = async (req, res, next) => {
   try {
     const summary = await PurchaseInvoice.aggregate([
-      {
-        $match: { user: req.user._id },
-      },
-      {
-        $lookup: {
-          from: 'purchasepayments',
-          localField: 'seller',
-          foreignField: 'seller',
-          as: 'payments',
-        },
-      },
+      // 1) Invoices for this user
+      { $match: { user: req.user._id } },
+
+      // 2) Group invoices by seller -> totalAmount
       {
         $group: {
           _id: '$seller',
           totalAmount: { $sum: '$amount' },
-          totalPaid: { $sum: { $sum: '$payments.amountPaid' } },
+        },
+      },
+
+      // 3) Lookup payments for this user & seller (once per seller)
+      {
+        $lookup: {
+          from: 'purchasepayments',
+          let: { sellerId: '$_id', userId: req.user._id },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$seller', '$$sellerId'] },
+                    { $eq: ['$user', '$$userId'] },
+                  ],
+                },
+              },
+            },
+            { $project: { amountPaid: 1 } },
+          ],
+          as: 'payments',
+        },
+      },
+
+      // 4) Sum payments array (no double counting)
+      {
+        $addFields: {
+          totalPaid: { $ifNull: [{ $sum: '$payments.amountPaid' }, 0] },
+        },
+      },
+
+      // 5) Join seller name
+      {
+        $lookup: {
+          from: 'sellers',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'sellerInfo',
         },
       },
       {
+        $unwind: {
+          path: '$sellerInfo',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // 6) Shape + remaining + sort by seller name
+      {
         $project: {
           seller: '$_id',
+          sellerName: { $ifNull: ['$sellerInfo.name', 'Unknown Seller'] },
           totalAmount: 1,
           totalPaid: 1,
           remaining: { $subtract: ['$totalAmount', '$totalPaid'] },
           _id: 0,
         },
       },
+      { $sort: { sellerName: 1 } },
     ]);
 
-    res.status(200).json({
-      success: true,
-      summary,
-    });
+    res.status(200).json({ success: true, summary });
   } catch (err) {
     next(err);
   }
@@ -463,6 +501,7 @@ export const getAllSellerSummary = async (req, res, next) => {
         };
       })
     );
+    summary.sort((a, b) => a.seller.name.localeCompare(b.seller.name));
 
     res.status(200).json({
       success: true,
