@@ -9,6 +9,7 @@ export const isAuthenticatedUser = catchAsyncError(async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
+    // console.log('Hello' + req.headers.authorization);
     token = req.headers.authorization.split(' ')[1];
   }
   if (!token) {
