@@ -8,8 +8,8 @@ export const createSeller = async (req, res, next) => {
 };
 export const getSellers = async (req, res, next) => {
   const sellers = await Seller.find({ user: req.user.id });
-  console.log(req.user.id);
-  console.log(sellers);
+  // console.log(req.user.id);
+  // console.log(sellers);
   res.status(200).json({
     sellers,
   });

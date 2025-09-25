@@ -51,7 +51,11 @@ const Print = () => {
 
   const isQuotation = invoicefor === 'Quotation';
   const isChallan = invoicefor === 'Challan';
-  const rowsToRender = isQuotation ? products.length : 13;
+  const rowsToRender = isQuotation
+    ? products.length
+    : products.length > 13
+    ? products.length
+    : 13;
 
   const prefix = user.companyDetails.name
     .split(' ')

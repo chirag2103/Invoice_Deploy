@@ -59,7 +59,7 @@ const PurchaseInvoiceList = () => {
               </thead>
               <tbody>
                 {purchases.map((invoice) => {
-                  console.log(invoice);
+                  // console.log(invoice);
                   return (
                     <tr key={invoice._id}>
                       <td>{invoice.seller?.name || 'Unknown Seller'}</td>

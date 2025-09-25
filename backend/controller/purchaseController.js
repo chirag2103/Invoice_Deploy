@@ -10,7 +10,7 @@ export const createPurchaseInvoice = async (req, res, next) => {
         new ErrorHandler('Seller, Amount, and Date are required', 400)
       );
     }
-    console.log(seller, amount, date);
+    // console.log(seller, amount, date);
 
     const newPurchase = await PurchaseInvoice.create({
       seller,

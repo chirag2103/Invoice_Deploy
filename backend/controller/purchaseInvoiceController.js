@@ -39,7 +39,7 @@ export const getAllPurchases = async (req, res, next) => {
     const purchases = await PurchaseInvoice.find({ user: req.user._id })
       .populate('seller', 'name') // show seller name
       .sort({ date: -1 });
-    console.log(purchases);
+    // console.log(purchases);
 
     res.status(200).json({
       success: true,
