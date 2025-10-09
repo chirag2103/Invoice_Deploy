@@ -2,7 +2,7 @@ import { Column } from 'react-table';
 import AdminSidebar from '../components/AdminSidebar';
 import { ReactElement, useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const PurchaseSummary = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -17,7 +17,7 @@ const PurchaseSummary = () => {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await axios.get(`${apiUrl}/api/purchase/summary/all`, {
+        const res = await api.get(`${apiUrl}/api/purchase/summary/all`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

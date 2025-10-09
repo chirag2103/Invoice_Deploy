@@ -22,6 +22,13 @@ export const getLastInvoice = catchAsyncError(async (req, res, next) => {
 
 export const createInvoice = catchAsyncError(async (req, res, next) => {
   try {
+    const exist = await Invoice.findOne({
+      user: req.user.id,
+      invoiceNo: req.body.invoiceNo,
+    });
+    if (exist) {
+      next(new ErrorHandler('Invoice Exists', 400));
+    }
     const invoice = await Invoice.create({ ...req.body, user: req.user.id });
 
     res.status(201).json({

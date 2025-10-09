@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../axiosSetup.js';
 import React, { useEffect, useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 
@@ -16,7 +16,7 @@ const PurchaseInvoiceList = () => {
 
   const fetchPurchases = async () => {
     try {
-      const { data } = await axios.get(
+      const { data } = await api.get(
         `${process.env.REACT_APP_API_URL}/api/purchase/get/all`,
         {
           headers: {

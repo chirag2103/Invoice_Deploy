@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const initialState = {
   payments: [],
@@ -21,7 +21,7 @@ export const fetchPayments = createAsyncThunk(
         url = `${apiUrl}/api/customer/${customerId}/payments`;
       }
 
-      const response = await axios.get(url, {
+      const response = await api.get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -38,7 +38,7 @@ export const addPayment = createAsyncThunk(
   async (paymentData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${apiUrl}/api/payments`, paymentData, {
+      const response = await api.post(`${apiUrl}/api/payments`, paymentData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -55,7 +55,7 @@ export const deletePayment = createAsyncThunk(
   async (id) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.delete(`${apiUrl}/api/payments/${id}`, {
+      const response = await api.delete(`${apiUrl}/api/payments/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

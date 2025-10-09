@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
@@ -7,9 +7,7 @@ export const fetchFinancialYears = createAsyncThunk(
   'analytics/fetchFinancialYears',
   async (_, { rejectWithValue }) => {
     try {
-      const { data } = await axios.get(
-        `${apiUrl}/api/analytics/financial-years`
-      );
+      const { data } = await api.get(`${apiUrl}/api/analytics/financial-years`);
       return data.years || [];
     } catch (err) {
       return rejectWithValue(err.response?.data || { message: err.message });
@@ -22,10 +20,9 @@ export const fetchFinancialYearAnalytics = createAsyncThunk(
   async (fy, { rejectWithValue }) => {
     try {
       const params = fy ? { fy } : {};
-      const { data } = await axios.get(
-        `${apiUrl}/api/analytics/financial-year`,
-        { params }
-      );
+      const { data } = await api.get(`${apiUrl}/api/analytics/financial-year`, {
+        params,
+      });
       return data;
     } catch (err) {
       return rejectWithValue(err.response?.data || { message: err.message });

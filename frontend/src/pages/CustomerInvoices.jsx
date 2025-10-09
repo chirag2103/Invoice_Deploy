@@ -1,4 +1,4 @@
-// import axios from 'axios';
+// import api from '../axiosSetup.js';
 // import { useState, useEffect, useMemo, useCallback } from 'react';
 // import { useParams } from 'react-router-dom';
 // import { useTable, useFilters, useSortBy } from 'react-table';
@@ -17,14 +17,14 @@
 //   useEffect(() => {
 //     async function fetchData() {
 //       try {
-//         const response = await axios.get(
+//         const response = await api.get(
 //           `http://localhost:4000/api/customer/${customerId}/invoices`
 //         );
 //         setInvoices(response.data.invoices);
 //         setgToal(response.data.total);
 //         setCustomerName(response.data.customerName);
 //         console.log(response.data.invoices);
-//         const res = await axios.get(
+//         const res = await api.get(
 //           `http://localhost:4000/api/customer/${customerId}/payments`
 //         );
 //         setPayments(res.data.payments);
@@ -204,7 +204,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchInvoices, deleteInvoice } from '../slices/invoiceSlice';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 import AdminSidebar from '../components/AdminSidebar';
 
 const CustomerInvoices = () => {
@@ -224,7 +224,7 @@ const CustomerInvoices = () => {
     async function fetchData() {
       try {
         // console.log('id:' + customerId);
-        const response = await axios.get(
+        const response = await api.get(
           `${apiUrl}/api/customer/${customerId}/invoices`,
           {
             headers: {
@@ -235,7 +235,7 @@ const CustomerInvoices = () => {
         setgToal(response.data.total);
         setCustomerName(response.data.customerName);
         // console.log(response.data.invoices);
-        const res = await axios.get(
+        const res = await api.get(
           `${apiUrl}/api/customer/${customerId}/payments`,
           {
             headers: {

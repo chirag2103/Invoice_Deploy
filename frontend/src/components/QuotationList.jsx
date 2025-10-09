@@ -77,7 +77,7 @@ const QuotationList = () => {
                 {quotations.map((quotation) => (
                   <tr key={quotation._id}>
                     <td>{quotation.quoteNo}</td>
-                    <td>{quotation.customer.name}</td>
+                    <td>{quotation.customer?.name}</td>
                     <td>{formatDate(quotation.date.split('T')[0])}</td>
                     <td>₹{quotation.grandTotal}</td>
                     <td>

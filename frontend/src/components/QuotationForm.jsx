@@ -21,8 +21,8 @@ const QuotationForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [specs, setSpecs] = useState(['']);
-  const [terms, setTerms] = useState(['']);
+  const [specs, setSpecs] = useState([]);
+  const [terms, setTerms] = useState([]);
 
   const isEdit = location.state?.quotation ? true : false;
   const quotationToEdit = location.state?.quotation;
@@ -60,7 +60,7 @@ const QuotationForm = () => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (!product && !quotationDate && !customer) e.preventDefault();
     const selectedCustomer = customers.find((c) => c._id === customer);
     const quotationData = {
       customer: selectedCustomer, // for printing

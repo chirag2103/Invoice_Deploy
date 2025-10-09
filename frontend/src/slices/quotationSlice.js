@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const initialState = {
   quoteNo: 1,
@@ -21,7 +21,7 @@ const token = localStorage.getItem('token');
 export const fetchQuotations = createAsyncThunk(
   'quotation/fetchQuotations',
   async () => {
-    const res = await axios.get(`${apiUrl}/api/quotations`, {
+    const res = await api.get(`${apiUrl}/api/quotations`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -33,7 +33,7 @@ export const fetchQuotations = createAsyncThunk(
 export const fetchQuoteNo = createAsyncThunk(
   'quotation/fetchQuoteNo',
   async () => {
-    const res = await axios.get(`${apiUrl}/api/lastquotation`, {
+    const res = await api.get(`${apiUrl}/api/lastquotation`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -45,7 +45,7 @@ export const fetchQuoteNo = createAsyncThunk(
 export const sendQuotationData = createAsyncThunk(
   'quotation/sendQuotationData',
   async (data) => {
-    const res = await axios.post(`${apiUrl}/api/quotation/new`, data, {
+    const res = await api.post(`${apiUrl}/api/quotation/new`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

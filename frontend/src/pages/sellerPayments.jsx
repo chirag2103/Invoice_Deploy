@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchSellers } from '../slices/customerSlice'; // ✅ make sure you have this slice
 import AdminSidebar from '../components/AdminSidebar';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const SellerPayments = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -42,7 +42,7 @@ const SellerPayments = () => {
       remarks,
     };
 
-    axios
+    api
       .post(url, JSON.stringify(data), {
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const initialState = {
   billNo: 1,
@@ -22,7 +22,7 @@ export const fetchInvoices = createAsyncThunk(
     try {
       const token = localStorage.getItem('token');
       if (id == null) {
-        const response = await axios.get(`${apiUrl}/api/invoices`, {
+        const response = await api.get(`${apiUrl}/api/invoices`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -30,7 +30,7 @@ export const fetchInvoices = createAsyncThunk(
         // console.log(response.data.invoices);
         return response.data.invoices;
       } else {
-        const response = await axios.get(
+        const response = await api.get(
           `${apiUrl}/api/customer/${id}/invoices`,
           {
             headers: {
@@ -51,7 +51,7 @@ export const deleteInvoice = createAsyncThunk(
   async (id) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await axios.delete(`${apiUrl}/api/invoices`, {
+      const response = await api.delete(`${apiUrl}/api/invoices`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -68,7 +68,7 @@ export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
   try {
     const token = localStorage.getItem('token');
 
-    const response = await axios.get(`${apiUrl}/api/lastinvoice`, {
+    const response = await api.get(`${apiUrl}/api/lastinvoice`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -85,7 +85,7 @@ export const sendInvoiceData = createAsyncThunk(
     const token = localStorage.getItem('token');
 
     try {
-      const response = await axios.post(`${apiUrl}/api/invoices`, invoiceData, {
+      const response = await api.post(`${apiUrl}/api/invoices`, invoiceData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

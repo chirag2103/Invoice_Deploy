@@ -9,9 +9,9 @@ export const createChallan = catchAsyncError(async (req, res, next) => {
 });
 
 export const getChallans = catchAsyncError(async (req, res, next) => {
-  const challans = await Challan.find({ user: req.user.id }).populate(
-    'customer'
-  );
+  const challans = await Challan.find({ user: req.user.id })
+    .populate('customer')
+    .sort({ challanNo: -1 });
   res.status(200).json({ challans });
 });
 

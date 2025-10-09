@@ -3,14 +3,23 @@ import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 
 export const createQuotation = catchAsyncError(async (req, res, next) => {
+  const exists = await Quotation.find({
+    quoteNo: req.body.quoteNo,
+    user: req.user.id,
+  });
+  if (exists) {
+    return res.status(400).json({
+      message: 'Quotationn with this Number already exists for the user.',
+    });
+  }
   const quotation = await Quotation.create({ ...req.body, user: req.user.id });
   res.status(201).json({ quotation });
 });
 
 export const getQuotations = catchAsyncError(async (req, res, next) => {
-  const quotations = await Quotation.find({ user: req.user.id }).populate(
-    'customer'
-  );
+  const quotations = await Quotation.find({ user: req.user.id })
+    .populate('customer')
+    .sort({ quoteNo: -1 });
   res.status(200).json({ quotations });
 });
 

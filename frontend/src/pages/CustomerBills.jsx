@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 import AdminSidebar from '../components/AdminSidebar';
 // import './CustomerBills.scss';
 
@@ -13,7 +13,7 @@ const CustomerBills = () => {
   useEffect(() => {
     async function fetchCustomerBillingInfo() {
       try {
-        const response = await axios.get(`${apiUrl}/api/billingInfo`, {
+        const response = await api.get(`${apiUrl}/api/billingInfo`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../axiosSetup.js';
 import React, { useCallback, useEffect, useState } from 'react';
 import TableHOC from '../components/TableHOC';
 import AdminSidebar from './AdminSidebar';

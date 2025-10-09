@@ -1,9 +1,9 @@
 import { useState, FormEvent, useEffect } from 'react';
-import axios, { AxiosError, AxiosResponse } from 'axios';
 import '../styles/signin.scss';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../slices/userSlice';
+import api from '../axiosSetup';
 
 export default function SignIn() {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -31,7 +31,7 @@ export default function SignIn() {
       password: password,
     };
     let userDataJSON = JSON.stringify(userData);
-    axios
+    api
       .post(`${apiUrl}/api/login`, userDataJSON, {
         headers: {
           'Content-Type': 'application/json',

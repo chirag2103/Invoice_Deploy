@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const initialState = {
   purchaseInvoices: [],
@@ -21,7 +21,7 @@ export const fetchPurchaseInvoices = createAsyncThunk(
         url = `${apiUrl}/api/seller/${sellerId}/purchaseinvoices`;
       }
 
-      const response = await axios.get(url, {
+      const response = await api.get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -38,7 +38,7 @@ export const addPurchaseInvoice = createAsyncThunk(
   async (purchaseInvoiceData) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(
+      const response = await api.post(
         `${apiUrl}/api/purchaseinvoices`,
         purchaseInvoiceData,
         {
@@ -59,7 +59,7 @@ export const deletePurchaseInvoice = createAsyncThunk(
   async (id) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.delete(
+      const response = await api.delete(
         `${apiUrl}/api/purchaseinvoices/${id}`,
         {
           headers: {

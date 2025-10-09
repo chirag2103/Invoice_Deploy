@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchSellers } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const Sellers = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -31,7 +31,7 @@ const Sellers = () => {
       address: address,
     };
     let userDataJSON = JSON.stringify(userData);
-    axios
+    api
       .post(`${apiUrl}/api/seller/new`, userDataJSON, {
         headers: {
           'Content-Type': 'application/json',

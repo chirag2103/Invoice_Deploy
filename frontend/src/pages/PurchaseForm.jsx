@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchSellers } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
@@ -24,7 +24,7 @@ const PurchaseForm = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const { data } = await axios.post(
+      const { data } = await api.post(
         `${apiUrl}/api/purchase/new`,
         {
           seller: selectedSeller,

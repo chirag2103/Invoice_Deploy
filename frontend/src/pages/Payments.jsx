@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { fetchCustomers } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const Payments = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -49,7 +49,7 @@ const Payments = () => {
   //     remarks: remarks,
   //   };
   //   let paymentDataJSON = JSON.stringify(paymentData);
-  //   axios
+  //   api
   //     .post(`${apiUrl}/api/payment/new`, paymentDataJSON, {
   //       headers: {
   //         'Content-Type': 'application/json',
@@ -79,7 +79,7 @@ const Payments = () => {
       remarks,
     };
 
-    axios
+    api
       .post(url, JSON.stringify(data), {
         headers: {
           'Content-Type': 'application/json',

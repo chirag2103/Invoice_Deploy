@@ -12,7 +12,7 @@ import {
 import { fetchCustomers } from '../slices/customerSlice.js';
 import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const InvoiceForm = ({ editInvoice }) => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -184,7 +184,7 @@ const InvoiceForm = ({ editInvoice }) => {
 
     if (customer && products && date) {
       try {
-        const res = await axios.post(
+        const res = await api.post(
           `${apiUrl}/api/invoice/new`,
           {
             customer: customer._id,
@@ -241,7 +241,7 @@ const InvoiceForm = ({ editInvoice }) => {
   const handleSaveInvoice = async () => {
     if (customer && products && date) {
       try {
-        const res = await axios.put(
+        const res = await api.put(
           `${apiUrl}/api/invoice/${invoiceToEdit._id}`,
           {
             customer: customer._id,

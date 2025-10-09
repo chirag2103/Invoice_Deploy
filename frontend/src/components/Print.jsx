@@ -304,7 +304,7 @@ const Print = () => {
             <td colSpan={2}>Subject to anand jurisdiction</td>
           </tr>
         </table>
-        {isQuotation && (
+        {isQuotation && (specs || terms) && (
           <div className='quotation-extra'>
             <h4>{specs ? 'Technical Specifications:' : ''}</h4>
             {specs?.map((item, index) => (

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../axiosSetup.js';
 
 const apiUrl = process.env.REACT_APP_API_URL;
 const token = localStorage.getItem('token');
@@ -23,7 +23,7 @@ const initialState = {
 export const fetchChallans = createAsyncThunk(
   'challan/fetchChallans',
   async () => {
-    const response = await axios.get(`${apiUrl}/api/challans`, {
+    const response = await api.get(`${apiUrl}/api/challans`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -35,7 +35,7 @@ export const fetchChallans = createAsyncThunk(
 export const fetchChallanNo = createAsyncThunk(
   'challan/fetchChallanNo',
   async () => {
-    const res = await axios.get(`${apiUrl}/api/lastinvoice`, {
+    const res = await api.get(`${apiUrl}/api/lastinvoice`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -48,15 +48,11 @@ export const fetchChallanNo = createAsyncThunk(
 export const sendChallanData = createAsyncThunk(
   'challan/sendChallanData',
   async (challanData) => {
-    const response = await axios.post(
-      `${apiUrl}/api/challan/new`,
-      challanData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await api.post(`${apiUrl}/api/challan/new`, challanData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return response.data;
   }
 );
@@ -64,7 +60,7 @@ export const sendChallanData = createAsyncThunk(
 export const deleteChallan = createAsyncThunk(
   'challan/deleteChallan',
   async (id) => {
-    const response = await axios.delete(`${apiUrl}/api/challan/${id}`, {
+    const response = await api.delete(`${apiUrl}/api/challan/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
