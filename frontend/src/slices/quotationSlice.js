@@ -16,11 +16,12 @@ const initialState = {
 };
 
 const apiUrl = process.env.REACT_APP_API_URL;
-const token = localStorage.getItem('token');
 
 export const fetchQuotations = createAsyncThunk(
   'quotation/fetchQuotations',
   async () => {
+    const token = localStorage.getItem('token');
+
     const res = await api.get(`${apiUrl}/api/quotations`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -33,6 +34,8 @@ export const fetchQuotations = createAsyncThunk(
 export const fetchQuoteNo = createAsyncThunk(
   'quotation/fetchQuoteNo',
   async () => {
+    const token = localStorage.getItem('token');
+
     const res = await api.get(`${apiUrl}/api/lastquotation`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -45,6 +48,8 @@ export const fetchQuoteNo = createAsyncThunk(
 export const sendQuotationData = createAsyncThunk(
   'quotation/sendQuotationData',
   async (data) => {
+    const token = localStorage.getItem('token');
+
     const res = await api.post(`${apiUrl}/api/quotation/new`, data, {
       headers: {
         Authorization: `Bearer ${token}`,
