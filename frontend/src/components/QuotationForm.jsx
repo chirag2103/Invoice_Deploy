@@ -59,7 +59,8 @@ const QuotationForm = () => {
     setProduct({ name: '', quantity: 1, rate: 0, uom: 'NOS' });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     if (!product && !quotationDate && !customer) e.preventDefault();
     const selectedCustomer = customers.find((c) => c._id === customer);
     const quotationData = {
@@ -74,7 +75,7 @@ const QuotationForm = () => {
       specs,
       terms,
     };
-    dispatch(
+    await dispatch(
       sendQuotationData({
         customer,
         quoteNo: quoteNo,

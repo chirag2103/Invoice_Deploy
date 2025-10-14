@@ -7,9 +7,9 @@ export const createQuotation = catchAsyncError(async (req, res, next) => {
     quoteNo: req.body.quoteNo,
     user: req.user.id,
   });
-  if (exists) {
+  if (exists.length > 0) {
     return res.status(400).json({
-      message: 'Quotationn with this Number already exists for the user.',
+      message: 'Quotation with this Number already exists for the user.',
     });
   }
   const quotation = await Quotation.create({ ...req.body, user: req.user.id });
