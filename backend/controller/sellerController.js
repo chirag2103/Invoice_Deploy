@@ -16,7 +16,7 @@ export const createSeller = async (req, res, next) => {
   });
 };
 export const getSellers = async (req, res, next) => {
-  const sellers = (await Seller.find({ user: req.user.id }))
+  const sellers = await Seller.find({ user: req.user.id })
     .collation({ locale: 'en', strength: 1 })
     .sort({ name: 1 });
   // console.log(req.user.id);
