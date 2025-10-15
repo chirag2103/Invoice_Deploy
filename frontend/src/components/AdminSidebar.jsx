@@ -130,6 +130,12 @@ const DivTwo = ({ location }) => (
         location={location}
       />
       <Li
+        url='/admin/purchasetransaction'
+        text='Purchase Transactions'
+        Icon={AiFillFileText}
+        location={location}
+      />
+      <Li
         url='/purchaseSummary/all'
         text='Purchased Summary'
         Icon={AiFillFileText}
