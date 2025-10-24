@@ -91,6 +91,7 @@ const PurchaseForm = () => {
               id='date'
               value={invoiceDate}
               onChange={(e) => setInvoiceDate(e.target.value)}
+              style={{ width: '10rem' }}
               required
             />
           </div>
