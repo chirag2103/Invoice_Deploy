@@ -84,7 +84,7 @@ const PurchaseOrderForm = () => {
       })
     ).then(() => {
       dispatch(clearPoData());
-      navigate('/invoices/preview', { state: poData });
+      navigate('/po/preview', { state: poData });
     });
   };
 

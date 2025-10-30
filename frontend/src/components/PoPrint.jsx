@@ -147,8 +147,11 @@ const PoPrint = () => {
                 </b>
                 <p>{seller.address ? seller.address : ''}</p>
                 <p>
-                  <b>GSTIN:</b>
-                  {seller.gstNo ? seller.gstNo : ''}
+                  {seller.gstNo && (
+                    <>
+                      <b>GSTIN:</b> {seller.gstNo}
+                    </>
+                  )}
                 </p>
               </td>
               {/* <td style={{ width: '20%' }}>
