@@ -22,7 +22,7 @@ const PurchaseSummary = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        console.log(res);
+        // console.log(res);
         setPayments(res.data.summary);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -48,7 +48,7 @@ const PurchaseSummary = () => {
                 </thead>
                 <tbody>
                   {payments.map((payment) => {
-                    console.log(payment);
+                    // console.log(payment);
                     return (
                       <tr key={payment._id}>
                         <td>{payment.seller?.name}</td>

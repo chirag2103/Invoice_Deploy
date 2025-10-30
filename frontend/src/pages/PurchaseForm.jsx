@@ -70,7 +70,7 @@ const PurchaseForm = () => {
             >
               <option value=''>-- Select Seller --</option>
               {sellers.map((seller) => {
-                console.log(seller);
+                // console.log(seller);
                 return (
                   <option key={seller._id} value={seller._id}>
                     {seller.name}

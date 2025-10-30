@@ -1,12 +1,12 @@
-import { Link, Location, useLocation } from 'react-router-dom';
+import { Link, Location, useLocation, useNavigate } from 'react-router-dom';
 import {
   RiCoupon3Fill,
   RiDashboardFill,
   RiShoppingBag3Fill,
+  RiLogoutCircleRLine,
 } from 'react-icons/ri';
 import { IoIosPeople } from 'react-icons/io';
 import { AiFillFileText } from 'react-icons/ai';
-import { IconType } from 'react-icons';
 import {
   FaChartBar,
   FaChartLine,
@@ -14,17 +14,39 @@ import {
   FaGamepad,
   FaStopwatch,
 } from 'react-icons/fa';
+import { useDispatch } from 'react-redux';
+import { logout } from '../slices/userSlice';
+
 const AdminSidebar = () => {
   const location = useLocation();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const SignOut = () => {
+    dispatch(logout());
+    navigate('/');
+  };
+
   return (
-    <aside>
-      <h2>Logo.</h2>
-      <DivOne location={location} />
-      <DivTwo location={location} />
-      {/* <DivThree location={location} /> */}
-    </aside>
+    <>
+      <aside>
+        <div className='sidebar-header'>
+          <h2>Logo.</h2>
+          <button className='logout-btn' onClick={SignOut}>
+            <RiLogoutCircleRLine />
+            Logout
+          </button>
+        </div>
+        <div className='sidebar-content'>
+          <DivOne location={location} />
+          <DivTwo location={location} />
+          {/* <DivThree location={location} /> */}
+        </div>
+      </aside>
+    </>
   );
 };
+
 const DivOne = ({ location }) => (
   <div>
     <h5>Dashboard</h5>
@@ -83,14 +105,12 @@ const DivOne = ({ location }) => (
         Icon={AiFillFileText}
         location={location}
       />
-
       <Li
         url='/admin/payment/new'
         text='Add Payment'
         Icon={AiFillFileText}
         location={location}
       />
-
       <Li
         url='/admin/billinfo'
         text='Billing Info'
@@ -106,10 +126,23 @@ const DivOne = ({ location }) => (
     </ul>
   </div>
 );
+
 const DivTwo = ({ location }) => (
   <div>
     <h5>Purchase</h5>
     <ul>
+      <Li
+        url='/po/new'
+        text='Create Purchase Order'
+        Icon={FaChartBar}
+        location={location}
+      />
+      <Li
+        url='/pos/all'
+        text='Purchase Orders'
+        Icon={FaChartBar}
+        location={location}
+      />
       <Li
         url='/purchase/new'
         text='Add Purchase Bill'
@@ -144,6 +177,7 @@ const DivTwo = ({ location }) => (
     </ul>
   </div>
 );
+
 const DivThree = ({ location }) => (
   <div>
     <h5>Logs</h5>

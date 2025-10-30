@@ -4,6 +4,7 @@ import cors from 'cors';
 import customerRouter from './routes/customerRoute.js';
 import invoiceRouter from './routes/invoiceRoute.js';
 import quotationRouter from './routes/quotationRoute.js';
+import purchaseOrderRouter from './routes/purchaseOrder.js';
 import challanRouter from './routes/challanRoute.js';
 import paymentRouter from './routes/paymentRoute.js';
 // import purchaseRouter from './routes/purchaseRoute.js';
@@ -32,6 +33,7 @@ app.use('/api', customerRouter);
 app.use('/api', invoiceRouter);
 app.use('/api', challanRouter);
 app.use('/api', quotationRouter);
+app.use('/api', purchaseOrderRouter);
 app.use('/api', paymentRouter);
 // app.use('/api', purchaseRouter);
 

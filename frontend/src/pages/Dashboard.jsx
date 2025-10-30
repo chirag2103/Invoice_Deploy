@@ -19,6 +19,7 @@ const Dashboard = () => {
   const [availableYears, setAvailableYears] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
     document.title = 'Dashboard';
@@ -72,6 +73,10 @@ const Dashboard = () => {
         );
       }
     }
+    // console.log(user);
+    // console.log(typeof user);
+    // console.log(Object.keys(user));
+    // console.log(user.companyDetails);
   }, [invoices, selectedYear]);
 
   // Calculate financial year data when year selection or data changes
@@ -89,8 +94,8 @@ const Dashboard = () => {
     const startDate = new Date(startYear, 3, 1); // April 1 of start year
     const endDate = new Date(startYear + 1, 2, 31); // March 31 of next year
 
-    console.log('Filtering data for financial year:', selectedYear);
-    console.log('Start date:', startDate, 'End date:', endDate);
+    // console.log('Filtering data for financial year:', selectedYear);
+    // console.log('Start date:', startDate, 'End date:', endDate);
 
     // Filter data for selected financial year with null checks
     const yearInvoices = invoices.filter((invoice) => {
@@ -126,10 +131,10 @@ const Dashboard = () => {
           })
         : [];
 
-    console.log('Year invoices:', yearInvoices);
-    console.log('Year payments:', yearPayments);
-    console.log('Year purchase invoices:', yearPurchaseInvoices);
-    console.log('Year purchase payments:', yearPurchasePayments);
+    // console.log('Year invoices:', yearInvoices);
+    // console.log('Year payments:', yearPayments);
+    // console.log('Year purchase invoices:', yearPurchaseInvoices);
+    // console.log('Year purchase payments:', yearPurchasePayments);
 
     // Calculate monthly breakdown
     const months = [
@@ -216,8 +221,6 @@ const Dashboard = () => {
         totalTransactions: monthInvoices.length,
       };
     });
-
-    console.log('Monthly breakdown:', monthlyBreakdown);
     setMonthlyData(monthlyBreakdown);
   };
 
@@ -264,11 +267,15 @@ const Dashboard = () => {
     <div className='admin-container'>
       <AdminSidebar />
       <main className='dashboard'>
-        <div className='bar'>
+        {/* <div className='bar'>
           <BsSearch />
           <input type='text' placeholder='Search for data,users,docs' />
-          <FaRegBell />
-          <img src={userImg} alt='User' onClick={SignOut} />
+          <button className='logout' onClick={SignOut}>
+            Log Out
+          </button>
+        </div> */}
+        <div className='financial-year-selector'>
+          <h2>Welcome {user?.companyDetails?.name}</h2>
         </div>
 
         {/* Financial Year Selector */}

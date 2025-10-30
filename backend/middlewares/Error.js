@@ -19,6 +19,7 @@ const Error = (err, req, res, next) => {
   // Wrong JWT error
   if (err.name === 'JsonWebTokenError') {
     const message = `Json Web Token is invalid, tru again`;
+    console.log(err.stack);
     err = new ErrorHandler(message, 400);
   }
   // JWT Expire error

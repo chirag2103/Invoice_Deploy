@@ -40,7 +40,7 @@ export const fetchChallanNo = createAsyncThunk(
         Authorization: `Bearer ${token}`,
       },
     });
-    console.log(res);
+    // console.log(res);
     return parseInt(res.data.invoice.invoiceNo);
   }
 );

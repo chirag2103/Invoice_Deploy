@@ -29,12 +29,16 @@ import Sellers from './pages/Sellers';
 import SellerStatement from './pages/SellerStatement';
 import SellerPayments from './pages/sellerPayments';
 import PurchaseTransaction from './pages/PurchaseTransactions';
+import PoPrint from './components/PoPrint';
+import PurchaseOrderForm from './components/PurchaseOrderForm';
+import PurchaseOrderList from './components/PurchaseOrderList';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path='/' element={<SignIn />} />
+        <Route path='/login' element={<SignIn />} />
 
         {/* Protected Routes */}
         <Route
@@ -159,6 +163,14 @@ function App() {
           }
         />
         <Route
+          path='/po/new'
+          element={
+            <ProtectedRoute>
+              <PurchaseOrderForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path='/challans/new'
           element={
             <ProtectedRoute>
@@ -191,6 +203,14 @@ function App() {
           }
         />
         <Route
+          path='/po/preview'
+          element={
+            <ProtectedRoute>
+              <PoPrint />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path='/invoices/all'
           element={
             <ProtectedRoute>
@@ -211,6 +231,14 @@ function App() {
           element={
             <ProtectedRoute>
               <QuotationList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/pos/all'
+          element={
+            <ProtectedRoute>
+              <PurchaseOrderList />
             </ProtectedRoute>
           }
         />
