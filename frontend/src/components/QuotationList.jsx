@@ -47,7 +47,7 @@ const QuotationList = () => {
       fromQuotation: true,
       quotation: quotation,
     };
-    navigate('/admin/quotation/edit', { state: data });
+    navigate(`/quotations/${quotation._id}/edit`, { state: data });
   };
 
   return (

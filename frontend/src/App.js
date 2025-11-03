@@ -274,6 +274,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path='/quotations/:quotationId/edit'
+          element={
+            <ProtectedRoute>
+              <QuotationForm />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );

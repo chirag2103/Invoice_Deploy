@@ -13,8 +13,10 @@ import {
 } from '../slices/quotationSlice';
 import { fetchCustomers } from '../slices/customerSlice';
 import { useNavigate, useLocation } from 'react-router-dom';
+import api from '../axiosSetup';
 
 const QuotationForm = () => {
+  const apiUrl = process.env.REACT_APP_API_URL;
   const parseDate = (d) => d?.split('T')[0];
 
   const dispatch = useDispatch();
@@ -40,6 +42,7 @@ const QuotationForm = () => {
   const [quotationDate, setQuotationDate] = useState(
     new Date().toISOString().split('T')[0]
   );
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     dispatch(fetchCustomers());
@@ -65,7 +68,7 @@ const QuotationForm = () => {
     const selectedCustomer = customers.find((c) => c._id === customer);
     const quotationData = {
       customer: selectedCustomer, // for printing
-      billNo: quoteNo,
+      billNo: isEdit ? quotationToEdit.quoteNo : quoteNo,
       date: quotationDate,
       products,
       gst,
@@ -75,20 +78,43 @@ const QuotationForm = () => {
       specs,
       terms,
     };
-    await dispatch(
-      sendQuotationData({
-        customer,
-        quoteNo: quoteNo,
-        quotationProducts: products,
-        gst,
-        invoiceTotal: totalAmount,
-        grandTotal,
-        date: parseDate(quotationDate),
-      })
-    ).then(() => {
-      dispatch(clearQuotationData());
-      navigate('/invoices/preview', { state: quotationData });
-    });
+    if (isEdit) {
+      const res = await api.put(
+        `${apiUrl}/api/quotation/${quotationToEdit._id}`,
+        {
+          customer,
+          quoteNo: quotationToEdit.quoteNo,
+          gst,
+          quotationProducts: products,
+          date: quotationDate,
+          grandTotal,
+          invoiceTotal: totalAmount,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (res) {
+        navigate('/invoices/preview', { state: quotationData });
+      }
+    } else {
+      await dispatch(
+        sendQuotationData({
+          customer,
+          quoteNo: quoteNo,
+          quotationProducts: products,
+          gst,
+          invoiceTotal: totalAmount,
+          grandTotal,
+          date: parseDate(quotationDate),
+        })
+      ).then(() => {
+        dispatch(clearQuotationData());
+        navigate('/invoices/preview', { state: quotationData });
+      });
+    }
   };
 
   // Update specific item
@@ -124,7 +150,9 @@ const QuotationForm = () => {
             type='text'
             id='quoteNo'
             className='form-input'
-            value={`Q-${quoteNo || 0}`}
+            value={
+              isEdit ? `Q-${quotationToEdit.quoteNo}` : `Q-${quoteNo || 0}`
+            }
             disabled
           />
         </div>
