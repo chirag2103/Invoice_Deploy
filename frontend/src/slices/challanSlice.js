@@ -35,13 +35,13 @@ export const fetchChallans = createAsyncThunk(
 export const fetchChallanNo = createAsyncThunk(
   'challan/fetchChallanNo',
   async () => {
-    const res = await api.get(`${apiUrl}/api/lastinvoice`, {
+    const res = await api.get(`${apiUrl}/api/lastchallan`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
     // console.log(res);
-    return parseInt(res.data.invoice.invoiceNo);
+    return parseInt(res.data.challan.challanNo);
   }
 );
 
