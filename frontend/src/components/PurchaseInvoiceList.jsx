@@ -1,7 +1,7 @@
 import api from '../axiosSetup.js';
 import React, { useEffect, useState } from 'react';
 import AdminSidebar from './AdminSidebar';
-
+import { formatNumberWithCommas } from '../services/helper.js';
 const PurchaseInvoiceList = () => {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +64,7 @@ const PurchaseInvoiceList = () => {
                     <tr key={invoice._id}>
                       <td>{invoice.seller?.name || 'Unknown Seller'}</td>
                       <td>{formatDate(invoice.date?.split('T')[0])}</td>
-                      <td>{invoice.amount}</td>
+                      <td>{formatNumberWithCommas(invoice.amount)}</td>
                       <td>{invoice.remarks || '-'}</td>
                     </tr>
                   );

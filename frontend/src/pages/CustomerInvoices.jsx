@@ -206,6 +206,7 @@ import { fetchInvoices, deleteInvoice } from '../slices/invoiceSlice';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../axiosSetup.js';
 import AdminSidebar from '../components/AdminSidebar';
+import { formatNumberWithCommas } from '../services/helper.js';
 
 const CustomerInvoices = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -294,7 +295,7 @@ const CustomerInvoices = () => {
                       <tr key={invoice._id}>
                         <td>{invoice.invoiceNo}</td>
                         <td>{invoice.date.split('T')[0]}</td>
-                        <td>{invoice.grandTotal}</td>
+                        <td>{formatNumberWithCommas(invoice.grandTotal)}</td>
                         <td>
                           <button
                             onClick={() => handleEdit(invoice)}
@@ -328,7 +329,7 @@ const CustomerInvoices = () => {
                         <tr key={id + 1}>
                           <td>{id + 1}</td>
                           <td>{customerName}</td>
-                          <td>{payment.amountPaid}</td>
+                          <td>{formatNumberWithCommas(payment.amountPaid)}</td>
                           <td>{payment.date.split('T')[0]}</td>
                           {/* <td>
                   <button

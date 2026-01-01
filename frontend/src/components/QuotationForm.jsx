@@ -1,37 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../styles/InvoiceForm.css';
+
 import {
   setCustomer,
   setGst,
   addProduct,
   removeProduct,
+  updateProduct,
   clearQuotationData,
   fetchQuoteNo,
   sendQuotationData,
-  updateProduct,
 } from '../slices/quotationSlice';
+
 import { fetchCustomers } from '../slices/customerSlice';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup';
 
+import { generateQuotationPDF } from '../services/pdfGeneratorService';
+
 const QuotationForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
-  const parseDate = (d) => d?.split('T')[0];
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [specs, setSpecs] = useState([]);
-  const [terms, setTerms] = useState([]);
-
-  const isEdit = location.state?.quotation ? true : false;
+  const isEdit = Boolean(location.state?.quotation);
   const quotationToEdit = location.state?.quotation;
 
   const { customers, loading, error } = useSelector((state) => state.customers);
   const { customer, products, gst, totalAmount, grandTotal, quoteNo } =
     useSelector((state) => state.quotation);
+
+  const [quotationDate, setQuotationDate] = useState(
+    new Date().toISOString().split('T')[0]
+  );
 
   const [product, setProduct] = useState({
     name: '',
@@ -39,116 +45,135 @@ const QuotationForm = () => {
     rate: 0,
     uom: 'NOS',
   });
-  const [quotationDate, setQuotationDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
-  const token = localStorage.getItem('token');
 
+  const [termsAndConditions, setTermsAndConditions] = useState('');
+  const [technicalSpecifications, setTechnicalSpecifications] = useState('');
+
+  // ---------------------------------------------------------
+  // Load Customers + Prefill for Edit
+  // ---------------------------------------------------------
   useEffect(() => {
     dispatch(fetchCustomers());
     if (!isEdit) dispatch(fetchQuoteNo());
 
-    if (isEdit) {
+    if (isEdit && quotationToEdit) {
       dispatch(setCustomer(quotationToEdit.customer._id));
       dispatch(setGst(quotationToEdit.gst));
-      setQuotationDate(parseDate(quotationToEdit.date));
       quotationToEdit.quotationProducts.forEach((p) => dispatch(addProduct(p)));
+      setQuotationDate(quotationToEdit.date?.split('T')[0]);
+      setTermsAndConditions(quotationToEdit.termsAndConditions || '');
+      setTechnicalSpecifications(quotationToEdit.technicalSpecifications || '');
     }
+    // eslint-disable-next-line
   }, [dispatch, isEdit]);
 
+  // ---------------------------------------------------------
+  // Add Product
+  // ---------------------------------------------------------
   const handleAddProduct = () => {
-    if (!product.name || product.quantity <= 0 || product.rate < 0) return;
+    if (!product.name || product.quantity <= 0 || product.rate < 0) {
+      alert('Enter valid product details.');
+      return;
+    }
     dispatch(addProduct(product));
     setProduct({ name: '', quantity: 1, rate: 0, uom: 'NOS' });
   };
 
+  // ---------------------------------------------------------
+  // Add / Remove / Update Specs & Terms
+  // ---------------------------------------------------------
+
+  // ---------------------------------------------------------
+  // Submit (Save + Generate PDF)
+  // ---------------------------------------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!product && !quotationDate && !customer) e.preventDefault();
+
+    if (!customer || products.length === 0) {
+      alert('Select customer and add at least one product.');
+      return;
+    }
+
     const selectedCustomer = customers.find((c) => c._id === customer);
-    const quotationData = {
-      customer: selectedCustomer, // for printing
-      billNo: isEdit ? quotationToEdit.quoteNo : quoteNo,
+
+    const pdfData = {
+      customer: selectedCustomer,
+      quotationNo: isEdit ? quotationToEdit.quoteNo : quoteNo,
       date: quotationDate,
       products,
-      gst,
       totalAmount,
       grandTotal,
-      invoicefor: 'Quotation',
-      specs,
-      terms,
+      gst,
+      termsAndConditions,
+      technicalSpecifications,
+      companyName: user.companyDetails?.name,
+      companyAddress: user.companyDetails?.address,
+      companyGST: user.companyDetails?.gstin,
+      companyPhone: user.companyDetails?.mobile,
+      companyBank: user.bankDetails || {},
     };
-    if (isEdit) {
-      const res = await api.put(
-        `${apiUrl}/api/quotation/${quotationToEdit._id}`,
-        {
-          customer,
-          quoteNo: quotationToEdit.quoteNo,
-          gst,
-          quotationProducts: products,
-          date: quotationDate,
-          grandTotal,
-          invoiceTotal: totalAmount,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+
+    try {
+      if (isEdit) {
+        await api.put(
+          `${apiUrl}/api/quotation/${quotationToEdit._id}`,
+          {
+            customer,
+            quoteNo: quotationToEdit.quoteNo,
+            gst,
+            quotationProducts: products,
+            date: quotationDate,
+            grandTotal,
+            invoiceTotal: totalAmount,
+            technicalSpecifications,
+            termsAndConditions,
           },
-        }
-      );
-      if (res) {
-        navigate('/invoices/preview', { state: quotationData });
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        await dispatch(
+          sendQuotationData({
+            customer,
+            quoteNo: quoteNo,
+            quotationProducts: products,
+            gst,
+            invoiceTotal: totalAmount,
+            grandTotal,
+            date: quotationDate,
+            technicalSpecifications,
+            termsAndConditions,
+          })
+        );
       }
-    } else {
-      await dispatch(
-        sendQuotationData({
-          customer,
-          quoteNo: quoteNo,
-          quotationProducts: products,
-          gst,
-          invoiceTotal: totalAmount,
-          grandTotal,
-          date: parseDate(quotationDate),
-        })
-      ).then(() => {
-        dispatch(clearQuotationData());
-        navigate('/invoices/preview', { state: quotationData });
-      });
+
+      // Generate PDF directly
+      generateQuotationPDF(pdfData);
+
+      dispatch(clearQuotationData());
+
+      // Redirect
+      navigate('/quotations/all');
+    } catch (error) {
+      console.error('Quotation save error:', error);
+      alert('Failed to save quotation.');
     }
   };
 
-  // Update specific item
-  const handleUpdate = (index, value, type) => {
-    const list = type === 'specs' ? [...specs] : [...terms];
-    list[index] = value;
-    type === 'specs' ? setSpecs(list) : setTerms(list);
-  };
-
-  // Add new item
-  const handleAdd = (type) => {
-    type === 'specs' ? setSpecs([...specs, '']) : setTerms([...terms, '']);
-  };
-
-  // Remove item
-  const handleRemove = (index, type) => {
-    const list = type === 'specs' ? [...specs] : [...terms];
-    list.splice(index, 1);
-    type === 'specs' ? setSpecs(list) : setTerms(list);
-  };
-
+  // ---------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------
   return (
     <div className='invoice-container'>
       <h2 className='invoice-header'>
         {isEdit ? 'Edit Quotation' : 'Create Quotation'}
       </h2>
+
       <form className='invoice-form' onSubmit={handleSubmit}>
+        {/* Quote No */}
         <div className='form-group'>
-          <label htmlFor='quoteNo' className='form-label'>
-            Quote No:
-          </label>
+          <label className='form-label'>Quote No:</label>
           <input
             type='text'
-            id='quoteNo'
             className='form-input'
             value={
               isEdit ? `Q-${quotationToEdit.quoteNo}` : `Q-${quoteNo || 0}`
@@ -156,13 +181,12 @@ const QuotationForm = () => {
             disabled
           />
         </div>
+
+        {/* Date */}
         <div className='form-group'>
-          <label htmlFor='quotationDate' className='form-label'>
-            Quotation Date:
-          </label>
+          <label className='form-label'>Quotation Date</label>
           <input
             type='date'
-            id='quotationDate'
             className='form-input'
             value={quotationDate}
             onChange={(e) => setQuotationDate(e.target.value)}
@@ -170,12 +194,10 @@ const QuotationForm = () => {
           />
         </div>
 
+        {/* Customer */}
         <div className='form-group'>
-          <label htmlFor='customer' className='form-label'>
-            Customer:
-          </label>
+          <label className='form-label'>Customer</label>
           <select
-            id='customer'
             className='form-select'
             value={customer || ''}
             onChange={(e) => dispatch(setCustomer(e.target.value))}
@@ -183,25 +205,23 @@ const QuotationForm = () => {
           >
             <option value=''>Select Customer</option>
             {loading ? (
-              <option value=''>Loading...</option>
+              <option>Loading...</option>
             ) : error ? (
-              <option value=''>Error</option>
+              <option>Error loading customers</option>
             ) : (
-              customers.map((cust) => (
-                <option key={cust._id} value={cust._id}>
-                  {cust.name}
+              customers.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
                 </option>
               ))
             )}
           </select>
         </div>
 
+        {/* GST */}
         <div className='form-group'>
-          <label htmlFor='gst' className='form-label'>
-            GST (%)
-          </label>
+          <label className='form-label'>GST (%)</label>
           <select
-            id='gst'
             className='form-select'
             value={gst}
             onChange={(e) => dispatch(setGst(Number(e.target.value)))}
@@ -213,19 +233,24 @@ const QuotationForm = () => {
           </select>
         </div>
 
+        {/* Products */}
         <h3 className='products-header'>Products</h3>
-        {products.length > 0 ? (
+
+        {products.length === 0 ? (
+          <p className='no-products'>No products added</p>
+        ) : (
           <table className='products-table'>
             <thead>
               <tr>
-                <th>Product Name</th>
-                <th>Quantity</th>
+                <th>Name</th>
+                <th>Qty</th>
                 <th>UOM</th>
                 <th>Rate</th>
                 <th>Amount</th>
                 <th></th>
               </tr>
             </thead>
+
             <tbody>
               {products.map((p, i) => (
                 <tr key={i}>
@@ -244,6 +269,7 @@ const QuotationForm = () => {
                       className='table-input'
                     />
                   </td>
+
                   <td>
                     <input
                       type='number'
@@ -252,13 +278,16 @@ const QuotationForm = () => {
                         dispatch(
                           updateProduct({
                             index: i,
-                            updatedFields: { quantity: Number(e.target.value) },
+                            updatedFields: {
+                              quantity: Number(e.target.value),
+                            },
                           })
                         )
                       }
                       className='table-input'
                     />
                   </td>
+
                   <td>
                     <select
                       value={p.uom}
@@ -279,6 +308,7 @@ const QuotationForm = () => {
                       <option value='Meter'>Meter</option>
                     </select>
                   </td>
+
                   <td>
                     <input
                       type='number'
@@ -294,7 +324,9 @@ const QuotationForm = () => {
                       className='table-input'
                     />
                   </td>
-                  <td>{p.quantity * p.rate}</td>
+
+                  <td>₹{(p.quantity * p.rate).toFixed(2)}</td>
+
                   <td>
                     <button
                       type='button'
@@ -308,17 +340,13 @@ const QuotationForm = () => {
               ))}
             </tbody>
           </table>
-        ) : (
-          <p className='no-products'>No products added yet.</p>
         )}
 
+        {/* Add Product Section */}
         <div className='form-group'>
-          <label htmlFor='productName' className='form-label'>
-            Product Name
-          </label>
+          <label className='form-label'>Product Name</label>
           <input
             type='text'
-            id='productName'
             className='form-input'
             value={product.name}
             onChange={(e) => setProduct({ ...product, name: e.target.value })}
@@ -326,11 +354,8 @@ const QuotationForm = () => {
         </div>
 
         <div className='form-group'>
-          <label htmlFor='uom' className='form-label'>
-            UOM
-          </label>
+          <label className='form-label'>UOM</label>
           <select
-            id='uom'
             className='form-select'
             value={product.uom}
             onChange={(e) => setProduct({ ...product, uom: e.target.value })}
@@ -343,12 +368,9 @@ const QuotationForm = () => {
         </div>
 
         <div className='form-group'>
-          <label htmlFor='quantity' className='form-label'>
-            Quantity
-          </label>
+          <label className='form-label'>Quantity</label>
           <input
             type='number'
-            id='quantity'
             className='form-input'
             value={product.quantity}
             onChange={(e) =>
@@ -358,12 +380,9 @@ const QuotationForm = () => {
         </div>
 
         <div className='form-group'>
-          <label htmlFor='rate' className='form-label'>
-            Rate
-          </label>
+          <label className='form-label'>Rate</label>
           <input
             type='number'
-            id='rate'
             className='form-input'
             value={product.rate}
             onChange={(e) =>
@@ -376,65 +395,53 @@ const QuotationForm = () => {
           Add Product
         </button>
 
-        <div className='quotation-extra'>
-          <h4>Technical Specifications:</h4>
-          {specs.map((item, index) => (
-            <div
-              key={index}
-              style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}
-            >
-              <input
-                type='text'
-                value={item}
-                onChange={(e) => handleUpdate(index, e.target.value, 'specs')}
-                style={{ flex: 1 }}
-              />
-              <button
-                type='button'
-                onClick={() => handleRemove(index, 'specs')}
-              >
-                Delete
-              </button>
-            </div>
-          ))}
-          <button type='button' onClick={() => handleAdd('specs')}>
-            Add Specification
-          </button>
+        <div className='form-section'>
+          <h3>Terms & Conditions</h3>
 
-          <h4 style={{ marginTop: '1rem' }}>Terms and Conditions:</h4>
-          {terms.map((item, index) => (
-            <div
-              key={index}
-              style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}
-            >
-              <input
-                type='text'
-                value={item}
-                onChange={(e) => handleUpdate(index, e.target.value, 'terms')}
-                style={{ flex: 1 }}
-              />
-              <button
-                type='button'
-                onClick={() => handleRemove(index, 'terms')}
-              >
-                Delete
-              </button>
-            </div>
-          ))}
-          <button type='button' onClick={() => handleAdd('terms')}>
-            Add Term
-          </button>
+          <div className='form-group'>
+            <label htmlFor='termsAndConditions' className='form-label'>
+              Terms & Conditions
+            </label>
+            <textarea
+              id='termsAndConditions'
+              name='termsAndConditions'
+              className='form-input'
+              value={termsAndConditions || ''}
+              onChange={(e) => setTermsAndConditions(e.target.value)}
+              rows='5'
+              placeholder='Enter terms and conditions...'
+            />
+          </div>
+        </div>
+        <div className='form-section'>
+          <h3>Technical Details</h3>
+
+          <div className='form-group'>
+            <label htmlFor='technicalSpecifications' className='form-label'>
+              Technical Specifications
+            </label>
+            <textarea
+              id='technicalSpecifications'
+              name='technicalSpecifications'
+              className='form-input'
+              value={technicalSpecifications || ''}
+              onChange={(e) => setTechnicalSpecifications(e.target.value)}
+              rows='5'
+              placeholder='Enter technical specifications...'
+            />
+          </div>
         </div>
 
+        {/* Totals */}
         <div className='invoice-totals'>
           <p>Total Amount: ₹{totalAmount}</p>
-
           <p>Grand Total: ₹{grandTotal}</p>
         </div>
 
+        {/* Submit */}
         <div className='form-actions'>
           <button type='submit' className='generate-btn'>
-            {isEdit ? 'Save Changes' : 'Save Quotation'}
+            {isEdit ? 'Save Changes & Generate PDF' : 'Save & Generate PDF'}
           </button>
         </div>
       </form>

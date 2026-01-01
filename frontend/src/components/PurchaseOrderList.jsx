@@ -4,6 +4,7 @@ import AdminSidebar from './AdminSidebar';
 import { useNavigate } from 'react-router-dom';
 import { fetchQuotations } from '../slices/quotationSlice';
 import { fetchPOs } from '../slices/poSlice';
+import { formatNumberWithCommas } from '../services/helper';
 
 const PurchaseOrderList = () => {
   const dispatch = useDispatch();
@@ -70,7 +71,7 @@ const PurchaseOrderList = () => {
                     <td>{po.poNo}</td>
                     <td>{po.seller?.name}</td>
                     <td>{formatDate(po.date.split('T')[0])}</td>
-                    <td>₹{po.grandTotal}</td>
+                    <td>₹{formatNumberWithCommas(po.grandTotal)}</td>
                     <td>
                       <button onClick={() => handlePrint(po)}>Print</button>
                     </td>

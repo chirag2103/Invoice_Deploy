@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import './CustomerStatement.scss'; // reuse same styling
+import { formatNumberWithCommas } from '../services/helper';
 
 const SellerStatement = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -79,7 +80,7 @@ const SellerStatement = () => {
                 <td>
                   {entry.type === 'payment' ? `₹${entry.paymentAmount}` : '-'}
                 </td>
-                <td>₹{entry.balance}</td>
+                <td>₹{formatNumberWithCommas(entry.balance)}</td>
               </tr>
             ))}
             <tr>
@@ -87,13 +88,13 @@ const SellerStatement = () => {
                 <b>Total:</b>
               </td>
               <td>
-                <b>₹{statementData.totalPurchase}</b>
+                <b>₹{formatNumberWithCommas(statementData.totalPurchase)}</b>
               </td>
               <td>
-                <b>₹{statementData.totalPaid}</b>
+                <b>₹{formatNumberWithCommas(statementData.totalPaid)}</b>
               </td>
               <td>
-                <b>₹{statementData.balance}</b>
+                <b>₹{formatNumberWithCommas(statementData.balance)}</b>
               </td>
             </tr>
           </tbody>

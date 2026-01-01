@@ -3,6 +3,7 @@ import AdminSidebar from '../components/AdminSidebar';
 import { ReactElement, useState, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../axiosSetup.js';
+import { formatNumberWithCommas } from '../services/helper.js';
 
 const PurchaseSummary = () => {
   const navigate = useNavigate();
@@ -73,9 +74,9 @@ const PurchaseSummary = () => {
                         }
                       >
                         <td>{payment.seller?.name}</td>
-                        <td>{payment.totalBills}</td>
-                        <td>{payment.totalPaid}</td>
-                        <td>{payment.remaining}</td>
+                        <td>{formatNumberWithCommas(payment.totalBills)}</td>
+                        <td>{formatNumberWithCommas(payment.totalPaid)}</td>
+                        <td>{formatNumberWithCommas(payment.remaining)}</td>
                       </tr>
                     );
                   })}
@@ -90,21 +91,27 @@ const PurchaseSummary = () => {
                   >
                     <td>Total</td>
                     <td>
-                      {payments.reduce(
-                        (acc, payment) => acc + payment.totalBills,
-                        0
+                      {formatNumberWithCommas(
+                        payments.reduce(
+                          (acc, payment) => acc + payment.totalBills,
+                          0
+                        )
                       )}
                     </td>
                     <td>
-                      {payments.reduce(
-                        (acc, payment) => acc + payment.totalPaid,
-                        0
+                      {formatNumberWithCommas(
+                        payments.reduce(
+                          (acc, payment) => acc + payment.totalPaid,
+                          0
+                        )
                       )}
                     </td>
                     <td>
-                      {payments.reduce(
-                        (acc, payment) => acc + payment.remaining,
-                        0
+                      {formatNumberWithCommas(
+                        payments.reduce(
+                          (acc, payment) => acc + payment.remaining,
+                          0
+                        )
                       )}
                     </td>
                   </tr>

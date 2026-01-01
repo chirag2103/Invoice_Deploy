@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import './CustomerStatement.scss';
+import { formatNumberWithCommas } from '../services/helper';
 
 const CustomerStatement = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -69,9 +70,17 @@ const CustomerStatement = () => {
                     ? 'Opening Balance'
                     : 'Payment'}
                 </td>
-                <td>{entry.invoiceAmount ? `₹${entry.invoiceAmount}` : '-'}</td>
-                <td>{entry.paymentAmount ? `₹${entry.paymentAmount}` : '-'}</td>
-                <td>₹{entry.balance}</td>
+                <td>
+                  {entry.invoiceAmount
+                    ? `₹${formatNumberWithCommas(entry.invoiceAmount)}`
+                    : '-'}
+                </td>
+                <td>
+                  {entry.paymentAmount
+                    ? `₹${formatNumberWithCommas(entry.paymentAmount)}`
+                    : '-'}
+                </td>
+                <td>₹{formatNumberWithCommas(entry.balance)}</td>
               </tr>
             ))}
             <tr>
@@ -80,18 +89,23 @@ const CustomerStatement = () => {
               </td>
               <td>
                 <b>
-                  ₹{statementData.totalInvoice + statementData.openingBalance}
+                  ₹
+                  {formatNumberWithCommas(
+                    statementData.totalInvoice + statementData.openingBalance
+                  )}
                 </b>
               </td>
               <td>
-                <b>₹{statementData.totalPaid}</b>
+                <b>₹{formatNumberWithCommas(statementData.totalPaid)}</b>
               </td>
               <td>
                 <b>
                   ₹
-                  {statementData.totalInvoice +
-                    statementData.openingBalance -
-                    statementData.totalPaid}
+                  {formatNumberWithCommas(
+                    statementData.totalInvoice +
+                      statementData.openingBalance -
+                      statementData.totalPaid
+                  )}
                 </b>
               </td>
             </tr>

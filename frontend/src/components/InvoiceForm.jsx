@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   setCustomer,
@@ -13,300 +13,305 @@ import { fetchCustomers } from '../slices/customerSlice.js';
 import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup.js';
+import { generateInvoicePDF } from '../services/pdfGeneratorService.js';
 
-const InvoiceForm = ({ editInvoice }) => {
+const InvoiceForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isEdit = location.state?.invoice ? true : false;
+  const isEdit = Boolean(location.state?.invoice);
   const invoiceToEdit = location.state?.invoice;
   const challanData = location.state?.fromChallan;
-
   const isFromQuotation = location.state?.fromQuotation;
   const quotationData = location.state?.quotation;
 
+  const {
+    customers,
+    loading: customersLoading,
+    error: customersError,
+  } = useSelector((state) => state.customers);
+
+  const { billNo, customer, gst, products, totalAmount, grandTotal } =
+    useSelector((state) => state.invoice);
+
+  const [date, setDate] = useState('');
+  const [challanNo, setChallanNo] = useState('');
+  const [challanDate, setChallanDate] = useState('');
+  const [orderNo, setOrderNo] = useState('');
+  const [orderDate, setOrderDate] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // product input
+  const [name, setName] = useState('');
+  const [hsn, setHsn] = useState('');
+  const [quantity, setQuantity] = useState(0);
+  const [rate, setRate] = useState(0);
+  const [uom, setUom] = useState('NOS');
+
+  // Ship To
+  const [sameAsBillTo, setSameAsBillTo] = useState(true);
+  const [shipToName, setShipToName] = useState('');
+  const [shipToAddress, setShipToAddress] = useState('');
+  const [shipToGst, setShipToGst] = useState('');
+  const [termsAndConditions, setTermsAndConditions] = useState('');
+
+  const parseDate = (d) => d?.split('T')[0];
+
+  // ---------------- INITIAL LOAD ----------------
   useEffect(() => {
     dispatch(fetchCustomers());
+    if (!isEdit) dispatch(fetchBillNo());
 
     if (isFromQuotation && quotationData) {
       dispatch(setCustomer(quotationData.customer));
       dispatch(setGst(quotationData.gst));
-      quotationData.quotationProducts.forEach((product) =>
-        dispatch(addProduct(product))
-      );
+      quotationData.quotationProducts.forEach((p) => dispatch(addProduct(p)));
+      setDate(new Date().toISOString().split('T')[0]);
     }
 
     if (!isEdit && challanData) {
       dispatch(setCustomer(challanData.customer));
-      setDate(new Date().toISOString().split('T')[0]); // default to today's date
+      setDate(new Date().toISOString().split('T')[0]);
       setChallanNo(challanData.challanNo || '');
-      setChallanDate(parseDate(challanData.challanDate) || '');
+      setChallanDate(parseDate(challanData.challanDate));
       setOrderNo(challanData.orderNo || '');
-      setOrderDate(parseDate(challanData.orderDate) || '');
+      setOrderDate(parseDate(challanData.orderDate));
 
-      challanData.products.forEach((product) => {
+      challanData.products.forEach((p) =>
         dispatch(
           addProduct({
-            name: product.name,
-            quantity: product.quantity,
-            uom: product.uom,
+            name: p.name,
+            hsn: p.hsn || '',
+            quantity: p.quantity,
             rate: 0,
+            uom: p.uom,
           })
-        );
-      });
-    }
-
-    if (!isEdit) dispatch(fetchBillNo());
-  }, [dispatch, isEdit]);
-
-  const { customers, loading, error } = useSelector((state) => state.customers);
-  const { billNo, customer, gst, products, totalAmount, grandTotal } =
-    useSelector((state) => state.invoice);
-
-  const [name, setName] = useState('');
-  const [date, setDate] = useState(isEdit ? invoiceToEdit.date : '');
-  const [challanNo, setChallanNo] = useState(
-    isEdit ? invoiceToEdit.challanNo : ''
-  );
-  const [challanDate, setChallanDate] = useState(
-    isEdit ? invoiceToEdit?.challanDate : ''
-  );
-  const [uom, setUom] = useState('NOS');
-  const [quantity, setQuantity] = useState(0);
-  const [rate, setRate] = useState(0);
-  const [orderNo, setOrderNo] = useState(isEdit ? invoiceToEdit?.orderNo : '');
-  const [orderDate, setOrderDate] = useState(
-    isEdit ? invoiceToEdit?.orderDate : ''
-  );
-
-  useEffect(() => {
-    if (isEdit) {
-      dispatch(setCustomer(invoiceToEdit.customer));
-      dispatch(setGst(invoiceToEdit.gst));
-      invoiceToEdit.invoiceProducts.forEach((product) =>
-        dispatch(addProduct(product))
+        )
       );
     }
+  }, [dispatch, isEdit, isFromQuotation, quotationData, challanData]);
+
+  // ---------------- EDIT MODE ----------------
+  useEffect(() => {
+    if (isEdit && invoiceToEdit) {
+      dispatch(setCustomer(invoiceToEdit.customer));
+      dispatch(setGst(invoiceToEdit.gst));
+      invoiceToEdit.invoiceProducts.forEach((p) => dispatch(addProduct(p)));
+
+      setDate(parseDate(invoiceToEdit.date));
+      setChallanNo(invoiceToEdit.challanNo || '');
+      setChallanDate(parseDate(invoiceToEdit.challanDate));
+      setOrderNo(invoiceToEdit.orderNo || '');
+      setOrderDate(parseDate(invoiceToEdit.orderDate));
+      setTermsAndConditions(invoiceToEdit.termsAndConditions || '');
+
+      if (invoiceToEdit.shipTo) {
+        setSameAsBillTo(false);
+        setShipToName(invoiceToEdit.shipTo.name || '');
+        setShipToAddress(invoiceToEdit.shipTo.address || '');
+        setShipToGst(invoiceToEdit.shipTo.gstNo || '');
+      }
+    }
   }, [dispatch, isEdit, invoiceToEdit]);
+
+  // ---------------- CLEANUP ----------------
   useEffect(() => {
-    return () => {
-      dispatch(clearAllData()); // on component unmount
-    };
-  }, []);
+    return () => dispatch(clearAllData());
+  }, [dispatch]);
+
+  // ---------------- SHIP TO SYNC ----------------
   useEffect(() => {
-    document.getElementById('productName')?.focus();
-  }, []);
+    if (sameAsBillTo && customer) {
+      setShipToName(customer.name || '');
+      setShipToAddress(customer.address || '');
+      setShipToGst(customer.gstNo || '');
+    }
+  }, [sameAsBillTo, customer]);
 
-  const parseDate = (d) => d?.split('T')[0];
-
-  const handleCustomerChange = async (event) => {
-    const selectedCustomerId = event.target.value;
-    const selectedCustomerObject = await customers.find(
-      (customer) => customer._id === selectedCustomerId
-    );
-    dispatch(setCustomer(selectedCustomerObject));
-  };
-
-  const handleDateChange = (event) => {
-    setDate(event.target.value);
-  };
-  const handleOrderNo = (event) => {
-    setOrderNo(event.target.value);
-  };
-  const handleOrderDate = (event) => {
-    setOrderDate(event.target.value);
-  };
-
-  const handleChallanDateChange = (event) => {
-    setChallanDate(event.target.value);
-  };
-
-  const handleProductNameChange = (event) => {
-    setName(event.target.value);
-  };
-
-  const handleGstChange = (event) => {
-    dispatch(setGst(event.target.value));
-  };
-
-  const handleChallanNoChange = (event) => {
-    setChallanNo(event.target.value);
-  };
-
-  const handleQuantityChange = (event) => {
-    setQuantity(Number(event.target.value));
-  };
-
-  const handleRateChange = (event) => {
-    setRate(Number(event.target.value));
-  };
-
-  const handleUomChange = (event) => {
-    setUom(event.target.value);
+  // ---------------- HANDLERS ----------------
+  const handleCustomerChange = (e) => {
+    const selected = customers.find((c) => c._id === e.target.value);
+    dispatch(setCustomer(selected));
   };
 
   const handleAddProduct = () => {
-    if (!name || !quantity || !rate || !date || !gst) {
-      if (!gst) alert('enter gst');
-      else alert('Enter all fields');
-    } else {
-      dispatch(addProduct({ name, quantity, rate, uom, date }));
-      setName('');
-      setUom('NOS');
-      setQuantity(0);
-      setRate(0);
+    if (!name || quantity <= 0 || rate < 0) {
+      alert('Enter valid product details');
+      return;
     }
+    dispatch(addProduct({ name, hsn, quantity, rate, uom }));
+    setName('');
+    setHsn('');
+    setQuantity(0);
+    setRate(0);
+    setUom('NOS');
   };
 
   const handleRemoveProduct = (index) => {
     dispatch(removeProduct(index));
   };
 
-  const handleGeneratePdf = async () => {
-    let invoicefor = 'Original Copy';
-    const dataRecipient = {
+  // ---------------- SAVE ----------------
+  const handleGenerateInvoice = async () => {
+    if (!customer || products.length === 0 || !date) {
+      alert('Incomplete invoice data');
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        customer: customer._id,
+        invoiceNo: billNo,
+        gst,
+        invoiceProducts: products,
+        invoiceTotal: totalAmount,
+        grandTotal,
+        date,
+        challanNo,
+        challanDate,
+        orderNo,
+        orderDate,
+        termsAndConditions,
+        shipTo: sameAsBillTo
+          ? null
+          : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
+      };
+
+      await api.post(`${apiUrl}/api/invoice/new`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      generateInvoicePDF({
+        customer,
+        shipTo: payload.shipTo,
+        billNo,
+        products,
+        gst,
+        totalAmount,
+        grandTotal,
+        date,
+        challanNo,
+        challanDate,
+        orderNo,
+        orderDate,
+        termsAndConditions,
+        companyName: user.companyDetails?.name,
+        companyAddress: user.companyDetails?.address,
+        companyGST: user.companyDetails?.gstin,
+        companyPhone: user.companyDetails?.mobile,
+        companyBank: user.bankDetails || {},
+      });
+
+      navigate('/invoices/all');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveInvoice = async () => {
+    if (!isEdit || !invoiceToEdit) {
+      alert('Nothing to save');
+      return;
+    }
+    if (!customer || products.length === 0 || !date) {
+      alert('Incomplete invoice data');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        customer: customer._id,
+        gst,
+        invoiceProducts: products,
+        invoiceTotal: totalAmount,
+        grandTotal,
+        date,
+        challanNo,
+        challanDate,
+        orderNo,
+        orderDate,
+        termsAndConditions,
+        shipTo: sameAsBillTo
+          ? null
+          : {
+              name: shipToName,
+              address: shipToAddress,
+              gstNo: shipToGst,
+            },
+      };
+
+      await api.put(`${apiUrl}/api/invoice/${invoiceToEdit._id}`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      generateInvoicePDF({
+        customer,
+        shipTo: payload.shipTo,
+        billNo: invoiceToEdit.invoiceNo,
+        products,
+        gst,
+        totalAmount,
+        grandTotal,
+        date,
+        challanNo,
+        challanDate,
+        orderNo,
+        orderDate,
+        termsAndConditions,
+        companyName: user.companyDetails?.name,
+        companyAddress: user.companyDetails?.address,
+        companyGST: user.companyDetails?.gstin,
+        companyPhone: user.companyDetails?.mobile,
+        companyBank: user.bankDetails || {},
+      });
+
+      navigate('/invoices/all');
+    } catch (err) {
+      console.error('Update invoice failed', err);
+      alert('Failed to update invoice');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGenerateDuplicate = () => {
+    if (!customer || products.length === 0 || !date) {
+      alert('Incomplete invoice data');
+      return;
+    }
+
+    generateInvoicePDF({
       customer,
+      shipTo: sameAsBillTo
+        ? null
+        : {
+            name: shipToName,
+            address: shipToAddress,
+            gstNo: shipToGst,
+          },
       billNo,
-      gst,
       products,
-      date,
-      grandTotal,
+      gst,
       totalAmount,
-      invoicefor,
+      grandTotal,
+      date,
       challanNo,
       challanDate,
       orderNo,
       orderDate,
-    };
-
-    if (customer && products && date) {
-      try {
-        const res = await api.post(
-          `${apiUrl}/api/invoice/new`,
-          {
-            customer: customer._id,
-            invoiceNo: billNo,
-            gst,
-            invoiceProducts: products,
-            date,
-            grandTotal,
-            invoiceTotal: totalAmount,
-            challanNo: challanNo ? challanNo : '',
-            orderNo: orderNo ? orderNo : '',
-            orderDate: orderDate ? orderDate : '',
-            challanDate: challanDate ? challanDate : '',
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        // console.log('Response: ' + res);
-      } catch (error) {
-        // console.log(error);
-      }
-
-      navigate('/invoices/preview', { state: dataRecipient });
-    } else alert('Select Customer or products');
-  };
-
-  const handleGeneratePdfVendor = () => {
-    let invoicefor = 'Duplicate Copy';
-    let date1 = date.toString().split('T')[0];
-    let date2 = challanDate?.toString().split('T')[0];
-    const dataVendor = {
-      customer,
-      billNo: isEdit ? invoiceToEdit.invoiceNo : billNo,
-      gst,
-      products,
-      date: date1,
-      grandTotal,
-      totalAmount,
-      invoicefor,
-      challanNo,
-      challanDate: date2,
-      orderNo: isEdit ? invoiceToEdit?.orderNo : orderNo,
-      orderDate: isEdit ? invoiceToEdit?.orderDate : orderDate,
-    };
-
-    if (customer && products && date) {
-      navigate('/invoices/preview', { state: dataVendor });
-    } else alert('Select Customer or products');
-  };
-
-  const handleSaveInvoice = async () => {
-    if (customer && products && date) {
-      try {
-        const res = await api.put(
-          `${apiUrl}/api/invoice/${invoiceToEdit._id}`,
-          {
-            customer: customer._id,
-            gst,
-            invoiceProducts: products,
-            date,
-            grandTotal,
-            invoiceTotal: totalAmount,
-            challanNo: challanNo ? challanNo : '',
-            challanDate: challanDate ? challanDate : null,
-            orderNo: orderNo ? orderNo : null,
-            orderDate: orderDate ? orderDate : null,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        // console.log('Response: ' + res);
-      } catch (error) {
-        // console.log(error);
-      }
-      let invoicefor = 'Original Copy';
-      let date1 = date.toString().split('T')[0];
-      let date2 = challanDate?.toString().split('T')[0];
-      // console.log('date1:' + date1);
-      const dataRecipient = {
-        customer,
-        billNo: invoiceToEdit.invoiceNo,
-        gst,
-        products,
-        date: date1,
-        grandTotal,
-        totalAmount,
-        invoicefor,
-        challanNo,
-        challanDate: date2,
-        orderNo: orderNo,
-        orderDate: orderDate,
-      };
-      navigate('/invoices/preview', { state: dataRecipient });
-    } else alert('Select Customer or products');
-  };
-  const handlePrintOnly = async () => {
-    if (customer && products && date) {
-      let invoicefor = 'Original Copy';
-      let date1 = date.split('T')[0];
-      let date2 = challanDate?.split('T')[0];
-      const dataRecipient = {
-        customer,
-        billNo: invoiceToEdit.invoiceNo,
-        gst,
-        products,
-        date: date1,
-        grandTotal,
-        totalAmount,
-        invoicefor,
-        challanNo,
-        date2,
-        orderNo,
-        orderDate,
-      };
-      navigate('/invoices/preview', { state: dataRecipient });
-    } else alert('Select Customer or products');
+      termsAndConditions,
+      companyName: user.companyDetails?.name,
+      companyAddress: user.companyDetails?.address,
+      companyGST: user.companyDetails?.gstin,
+      companyPhone: user.companyDetails?.mobile,
+      companyBank: user.bankDetails || {},
+    });
   };
 
   return (
@@ -314,142 +319,160 @@ const InvoiceForm = ({ editInvoice }) => {
       <h2 className='invoice-header'>
         {isEdit ? 'Edit Invoice' : 'Create Invoice'}
       </h2>
-      <form className='invoice-form'>
+
+      <form className='invoice-form' onSubmit={(e) => e.preventDefault()}>
+        {/* Customer */}
         <div className='form-group'>
-          <label htmlFor='customer' className='form-label'>
-            Customer:
-          </label>
+          <label className='form-label'>Customer:</label>
           <select
-            id='customer'
             className='form-select'
-            value={customer ? customer._id : ''}
+            value={customer?._id || ''}
             onChange={handleCustomerChange}
-            aria-required
           >
-            <option value=''>select</option>
-            {loading ? (
-              <option value=''>Loading...</option>
-            ) : error ? (
-              <option value=''>Error: {error}</option>
+            <option value=''>Select</option>
+            {customersLoading ? (
+              <option>Loading...</option>
+            ) : customersError ? (
+              <option>Error</option>
             ) : (
-              customers.map((customer) => (
-                <option key={customer._id} value={customer._id}>
-                  {customer.name}
+              customers.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
                 </option>
               ))
             )}
           </select>
         </div>
-        <div className='form-group'>
-          <label htmlFor='billNo' className='form-label'>
-            Bill No
+        {/* Ship To Same as Bill To */}
+        <div className='form-group checkbox-group'>
+          <label className='checkbox-label'>
+            <input
+              type='checkbox'
+              checked={sameAsBillTo}
+              onChange={(e) => setSameAsBillTo(e.target.checked)}
+            />
+            Ship To same as Bill To
           </label>
+        </div>
+        {!sameAsBillTo && (
+          <>
+            <h3 className='products-header'>Ship To (Optional)</h3>
+
+            <div className='form-group'>
+              <label className='form-label'>Ship To Name</label>
+              <input
+                type='text'
+                className='form-input'
+                value={shipToName}
+                onChange={(e) => setShipToName(e.target.value)}
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>Ship To Address</label>
+              <textarea
+                className='form-input'
+                value={shipToAddress}
+                onChange={(e) => setShipToAddress(e.target.value)}
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>Ship To GST No</label>
+              <input
+                type='text'
+                className='form-input'
+                value={shipToGst}
+                onChange={(e) => setShipToGst(e.target.value)}
+              />
+            </div>
+          </>
+        )}
+        {/* Bill No */}
+        <div className='form-group'>
+          <label className='form-label'>Bill No</label>
           <input
             type='text'
-            id='billNo'
             className='form-input'
             value={isEdit ? invoiceToEdit.invoiceNo : billNo}
             disabled
           />
         </div>
+        {/* Date */}
         <div className='form-group'>
-          <label htmlFor='date' className='form-label'>
-            Date:
-          </label>
+          <label className='form-label'>Date:</label>
           <input
             type='date'
-            placeholder={isEdit ? invoiceToEdit.date : date}
-            id='date'
             className='form-input'
-            value={isEdit ? parseDate(invoiceToEdit.date) : date}
-            onChange={handleDateChange}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
             style={{ width: '10rem' }}
-            required
           />
         </div>
+        {/* GST */}
         <div className='form-group'>
-          <label htmlFor='gst' className='form-label'>
-            GST
-          </label>
+          <label className='form-label'>GST</label>
           <select
-            id='gst'
             className='form-select'
             value={gst}
-            onChange={handleGstChange}
-            required
+            onChange={(e) => dispatch(setGst(Number(e.target.value)))}
           >
-            <option disabled selected>
-              select
-            </option>
+            <option value=''>Select</option>
             <option value={6}>6%</option>
             <option value={9}>9%</option>
           </select>
         </div>
+        {/* Challan No */}
         <div className='form-group'>
-          <label htmlFor='challanNo' className='form-label'>
-            Challan No
-          </label>
+          <label className='form-label'>Challan No</label>
           <input
             type='text'
-            id='challanNO'
             className='form-input'
             value={challanNo}
-            onChange={handleChallanNoChange}
+            onChange={(e) => setChallanNo(e.target.value)}
           />
         </div>
+        {/* Challan Date */}
         <div className='form-group'>
-          <label htmlFor='challanDate' className='form-label'>
-            Challan Date
-          </label>
+          <label className='form-label'>Challan Date</label>
           <input
             type='date'
-            placeholder={isEdit ? invoiceToEdit?.challanDate : challanDate}
-            id='challanDate'
             className='form-input'
-            value={isEdit ? parseDate(invoiceToEdit?.challanDate) : challanDate}
-            onChange={handleChallanDateChange}
+            value={challanDate}
+            onChange={(e) => setChallanDate(e.target.value)}
             style={{ width: '10rem' }}
-            required
           />
         </div>
-
+        {/* Order No */}
         <div className='form-group'>
-          <label htmlFor='orderNo' className='form-label'>
-            OrderNo:
-          </label>
+          <label className='form-label'>Order No:</label>
           <input
             type='text'
-            placeholder={isEdit ? invoiceToEdit?.orderNo : orderNo}
-            id='orderNo'
             className='form-input'
-            value={isEdit ? invoiceToEdit?.orderNo : orderNo}
-            onChange={handleOrderNo}
-            style={{ width: '10rem' }}
-            required
+            value={orderNo}
+            onChange={(e) => setOrderNo(e.target.value)}
           />
         </div>
+        {/* Order Date */}
         <div className='form-group'>
-          <label htmlFor='orderDate' className='form-label'>
-            OrderDate:
-          </label>
+          <label className='form-label'>Order Date:</label>
           <input
             type='date'
-            placeholder={isEdit ? invoiceToEdit?.orderDate : orderDate}
-            id='orderDate'
             className='form-input'
-            value={isEdit ? parseDate(invoiceToEdit?.orderDate) : orderDate}
-            onChange={handleOrderDate}
+            value={orderDate}
+            onChange={(e) => setOrderDate(e.target.value)}
             style={{ width: '10rem' }}
-            required
           />
         </div>
+        {/* Products */}
         <h3 className='products-header'>Products</h3>
         {products.length > 0 ? (
           <table className='products-table'>
             <thead>
               <tr>
-                <th>Product Name</th>
-                <th>Quantity</th>
+                <th>Name</th>
+                <th>HSN</th>
+                <th>Qty</th>
                 <th>UOM</th>
                 <th>Rate</th>
                 <th>Amount</th>
@@ -474,6 +497,23 @@ const InvoiceForm = ({ editInvoice }) => {
                       className='table-input'
                     />
                   </td>
+
+                  <td>
+                    <input
+                      type='text'
+                      value={product.hsn || ''}
+                      onChange={(e) =>
+                        dispatch(
+                          updateProduct({
+                            index,
+                            updatedFields: { hsn: e.target.value },
+                          })
+                        )
+                      }
+                      className='table-input'
+                    />
+                  </td>
+
                   <td>
                     <input
                       type='number'
@@ -489,6 +529,7 @@ const InvoiceForm = ({ editInvoice }) => {
                       className='table-input'
                     />
                   </td>
+
                   <td>
                     <select
                       value={product.uom}
@@ -508,6 +549,7 @@ const InvoiceForm = ({ editInvoice }) => {
                       <option value='Set'>Set</option>
                     </select>
                   </td>
+
                   <td>
                     <input
                       type='number'
@@ -523,7 +565,9 @@ const InvoiceForm = ({ editInvoice }) => {
                       className='table-input'
                     />
                   </td>
-                  <td>{product.quantity * product.rate}</td>
+
+                  <td>₹{(product.quantity * product.rate).toFixed(2)}</td>
+
                   <td>
                     <button
                       type='button'
@@ -538,29 +582,52 @@ const InvoiceForm = ({ editInvoice }) => {
             </tbody>
           </table>
         ) : (
-          <p className='no-products'>No products added yet.</p>
+          <p>No products added yet.</p>
         )}
+        {/* Add product fields */}
         <div className='form-group'>
-          <label htmlFor='productName' className='form-label'>
-            Product Name:
-          </label>
+          <label className='form-label'>Product Name:</label>
           <input
             type='text'
             id='productName'
             className='form-input'
             value={name}
-            onChange={handleProductNameChange}
+            onChange={(e) => setName(e.target.value)}
           />
         </div>
         <div className='form-group'>
-          <label htmlFor='uom' className='form-label'>
-            UOM
-          </label>
+          <label className='form-label'>HSN Code</label>
+          <input
+            type='text'
+            className='form-input'
+            value={hsn}
+            onChange={(e) => setHsn(e.target.value)}
+          />
+        </div>
+        <div className='form-group'>
+          <label className='form-label'>Quantity:</label>
+          <input
+            type='number'
+            className='form-input'
+            value={quantity}
+            onChange={(e) => setQuantity(Number(e.target.value))}
+          />
+        </div>
+        <div className='form-group'>
+          <label className='form-label'>Rate:</label>
+          <input
+            type='number'
+            className='form-input'
+            value={rate}
+            onChange={(e) => setRate(Number(e.target.value))}
+          />
+        </div>
+        <div className='form-group'>
+          <label className='form-label'>UOM</label>
           <select
-            id='uom'
             className='form-select'
             value={uom}
-            onChange={handleUomChange}
+            onChange={(e) => setUom(e.target.value)}
           >
             <option value='NOS'>NOS</option>
             <option value='Kg'>Kg</option>
@@ -568,77 +635,66 @@ const InvoiceForm = ({ editInvoice }) => {
             <option value='Set'>Set</option>
           </select>
         </div>
-        <div className='form-group'>
-          <label htmlFor='quantity' className='form-label'>
-            Quantity:
-          </label>
-          <input
-            type='number'
-            id='quantity'
-            className='form-input'
-            value={quantity}
-            onChange={handleQuantityChange}
-          />
-        </div>
-        <div className='form-group'>
-          <label htmlFor='rate' className='form-label'>
-            Rate:
-          </label>
-          <input
-            type='number'
-            id='rate'
-            className='form-input'
-            value={rate}
-            onChange={handleRateChange}
-          />
-        </div>
         <button type='button' className='add-btn' onClick={handleAddProduct}>
           Add Product
         </button>
-      </form>
-      <div className='invoice-totals'>
-        <p>
-          Total Amount: <span>{totalAmount}</span>
-        </p>
-        <p>
-          Grand Total: <span>{grandTotal}</span>
-        </p>
-      </div>
-      <div className='form-actions'>
-        {isEdit ? (
-          <>
+        {/* Totals */}
+        <div className='invoice-totals'>
+          <p>
+            Total Amount:{' '}
+            <span>₹{totalAmount?.toFixed?.(2) || totalAmount}</span>
+          </p>
+          <p>
+            Grand Total: <span>₹{grandTotal?.toFixed?.(2) || grandTotal}</span>
+          </p>
+        </div>
+        <div className='form-section'>
+          <div className='form-group'>
+            <label htmlFor='termsAndConditions' className='form-label'>
+              Terms & Conditions
+            </label>
+            <textarea
+              id='termsAndConditions'
+              name='termsAndConditions'
+              className='form-input'
+              value={termsAndConditions || ''}
+              onChange={(e) => setTermsAndConditions(e.target.value)}
+              rows='5'
+              placeholder='Enter terms and conditions...'
+            />
+          </div>
+        </div>
+        {/* Actions */}
+        <div className='form-actions'>
+          {!isEdit ? (
             <button
-              type='button'
-              className='save-btn'
-              onClick={handleSaveInvoice}
+              className='generate-btn'
+              onClick={handleGenerateInvoice}
+              disabled={saving}
             >
-              Save Invoice
+              {saving ? 'Saving...' : 'Generate Invoice & Save'}
             </button>
-            <button
-              type='button'
-              className='save-btn'
-              onClick={handlePrintOnly}
-            >
-              Print Only
-            </button>
-          </>
-        ) : (
+          ) : (
+            <>
+              <button
+                className='save-btn'
+                onClick={handleSaveInvoice}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save & Generate PDF'}
+              </button>
+            </>
+          )}
+
           <button
+            className='generate-vendor-btn'
             type='button'
-            className='generate-btn'
-            onClick={handleGeneratePdf}
+            onClick={handleGenerateDuplicate}
           >
-            Generate Pdf
+            Generate Duplicate (No Save)
           </button>
-        )}
-        <button
-          type='button'
-          className='generate-vendor-btn'
-          onClick={handleGeneratePdfVendor}
-        >
-          Generate Pdf Vendor
-        </button>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };

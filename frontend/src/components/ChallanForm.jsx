@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import '../styles/InvoiceForm.css';
+
 import {
   setChallanCustomer,
   setChallanDate,
@@ -8,57 +10,107 @@ import {
   setOrderDate,
   addChallanProduct,
   removeChallanProduct,
+  updateProductField as updateChallanProduct,
   fetchChallanNo,
+  sendChallanData,
 } from '../slices/challanSlice';
+
 import { fetchCustomers } from '../slices/customerSlice';
-import '../styles/InvoiceForm.css';
 import { useNavigate } from 'react-router-dom';
-import { sendChallanData } from '../slices/challanSlice';
+
+import { generateChallanPDF } from '../services/pdfGeneratorService';
 
 const ChallanForm = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const customers = useSelector((state) => state.customers.customers);
   const challan = useSelector((state) => state.challan);
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  // -----------------------------
+  // Ship To State
+  // -----------------------------
+  const [sameAsBillTo, setSameAsBillTo] = useState(true);
+  const [shipToName, setShipToName] = useState('');
+  const [shipToAddress, setShipToAddress] = useState('');
+  const [shipToGst, setShipToGst] = useState('');
+
+  // -----------------------------
+  // New Product State (with HSN)
+  // -----------------------------
   const [newProduct, setNewProduct] = useState({
     name: '',
+    hsn: '',
     quantity: '',
     uom: 'NOS',
   });
 
+  // -----------------------------
+  // Initial Load
+  // -----------------------------
   useEffect(() => {
     dispatch(fetchCustomers());
     dispatch(fetchChallanNo());
   }, [dispatch]);
 
-  const handleAddProduct = () => {
-    if (newProduct.name && newProduct.quantity && newProduct.uom) {
-      dispatch(addChallanProduct(newProduct));
-      setNewProduct({ name: '', quantity: '', uom: 'NOS' });
+  // -----------------------------
+  // Auto-fill Ship To
+  // -----------------------------
+  useEffect(() => {
+    if (sameAsBillTo && challan.customer) {
+      const cust = customers.find((c) => c._id === challan.customer);
+      if (cust) {
+        setShipToName(cust.name || '');
+        setShipToAddress(cust.address || '');
+        setShipToGst(cust.gstNo || '');
+      }
     }
+  }, [sameAsBillTo, challan.customer, customers]);
+
+  // -----------------------------
+  // Handlers
+  // -----------------------------
+  const handleAddProduct = () => {
+    if (!newProduct.name || !newProduct.quantity) {
+      alert('Enter product name and quantity.');
+      return;
+    }
+
+    dispatch(addChallanProduct(newProduct));
+    setNewProduct({ name: '', hsn: '', quantity: '', uom: 'NOS' });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'challanNo') dispatch(setChallanNo(value));
-    else if (name === 'challanDate') dispatch(setChallanDate(value));
-    else if (name === 'orderNo') dispatch(setOrderNo(value));
-    else if (name === 'orderDate') dispatch(setOrderDate(value));
+
+    switch (name) {
+      case 'challanDate':
+        dispatch(setChallanDate(value));
+        break;
+      case 'orderNo':
+        dispatch(setOrderNo(value));
+        break;
+      case 'orderDate':
+        dispatch(setOrderDate(value));
+        break;
+      default:
+        break;
+    }
   };
 
-  const navigate = useNavigate();
+  // -----------------------------
+  // Submit
+  // -----------------------------
+  const handleSubmit = async () => {
+    if (!challan.customer || challan.products.length === 0) {
+      alert('Select customer and add at least one product.');
+      return;
+    }
 
-  const handleSubmit = () => {
     const selectedCustomer = customers.find((c) => c._id === challan.customer);
-    const challanData = {
-      customer: selectedCustomer, // for printing
-      billNo: challan.challanNo,
-      date: challan.challanDate,
-      orderNo: challan.orderNo,
-      orderDate: challan.orderDate,
-      products: challan.products,
-      invoicefor: 'Challan',
-    };
+
     const challanDataSave = {
       customer: challan.customer,
       challanNo: challan.challanNo,
@@ -66,17 +118,50 @@ const ChallanForm = () => {
       orderNo: challan.orderNo,
       orderDate: challan.orderDate,
       challanProducts: challan.products,
+      shipTo: sameAsBillTo
+        ? null
+        : {
+            name: shipToName,
+            address: shipToAddress,
+            gstNo: shipToGst,
+          },
     };
 
-    dispatch(sendChallanData(challanDataSave)).then(() => {
-      navigate('/invoices/preview', { state: challanData });
-    });
+    await dispatch(sendChallanData(challanDataSave));
+
+    const pdfData = {
+      customer: selectedCustomer,
+      challanNo: challan.challanNo,
+      date: challan.challanDate,
+      orderNo: challan.orderNo,
+      orderDate: challan.orderDate,
+      products: challan.products,
+      shipTo: sameAsBillTo
+        ? null
+        : {
+            name: shipToName,
+            address: shipToAddress,
+            gstNo: shipToGst,
+          },
+      companyName: user.companyDetails?.name,
+      companyAddress: user.companyDetails?.address,
+      companyGST: user.companyDetails?.gstin,
+      companyPhone: user.companyDetails?.mobile,
+    };
+
+    generateChallanPDF(pdfData);
+    navigate('/challans/all');
   };
 
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <div className='invoice-container'>
-      <h2 className='invoice-header'>Challan Form</h2>
+      <h2 className='invoice-header'>Delivery Challan</h2>
+
       <div className='invoice-form'>
+        {/* Customer */}
         <div className='form-group'>
           <label className='form-label'>Customer</label>
           <select
@@ -84,7 +169,7 @@ const ChallanForm = () => {
             value={challan.customer}
             onChange={(e) => dispatch(setChallanCustomer(e.target.value))}
           >
-            <option value=''>Select Customer</option>
+            <option value=''>Select</option>
             {customers.map((c) => (
               <option key={c._id} value={c._id}>
                 {c.name}
@@ -93,17 +178,56 @@ const ChallanForm = () => {
           </select>
         </div>
 
-        <div className='form-group'>
-          <label className='form-label'>Challan Number</label>
-          <input
-            type='text'
-            className='form-input'
-            name='challanNo'
-            value={challan.challanNo}
-            disabled
-          />
+        {/* Ship To Same */}
+        <div className='form-group checkbox-group'>
+          <label>
+            <input
+              type='checkbox'
+              checked={sameAsBillTo}
+              onChange={(e) => setSameAsBillTo(e.target.checked)}
+            />
+            Ship To same as Bill To
+          </label>
         </div>
 
+        {!sameAsBillTo && (
+          <>
+            <div className='form-group'>
+              <label className='form-label'>Ship To Name</label>
+              <input
+                className='form-input'
+                value={shipToName}
+                onChange={(e) => setShipToName(e.target.value)}
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>Ship To Address</label>
+              <textarea
+                className='form-input'
+                value={shipToAddress}
+                onChange={(e) => setShipToAddress(e.target.value)}
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>Ship To GST No</label>
+              <input
+                className='form-input'
+                value={shipToGst}
+                onChange={(e) => setShipToGst(e.target.value)}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Challan No */}
+        <div className='form-group'>
+          <label className='form-label'>Challan No</label>
+          <input className='form-input' value={challan.challanNo} disabled />
+        </div>
+
+        {/* Challan Date */}
         <div className='form-group'>
           <label className='form-label'>Challan Date</label>
           <input
@@ -115,10 +239,10 @@ const ChallanForm = () => {
           />
         </div>
 
+        {/* Order No */}
         <div className='form-group'>
-          <label className='form-label'>Order Number</label>
+          <label className='form-label'>Order No</label>
           <input
-            type='text'
             className='form-input'
             name='orderNo'
             value={challan.orderNo}
@@ -126,6 +250,7 @@ const ChallanForm = () => {
           />
         </div>
 
+        {/* Order Date */}
         <div className='form-group'>
           <label className='form-label'>Order Date</label>
           <input
@@ -138,48 +263,102 @@ const ChallanForm = () => {
         </div>
       </div>
 
+      {/* Products */}
       <h3 className='products-header'>Products</h3>
+
       <table className='products-table'>
         <thead>
           <tr>
-            <th>Product Name</th>
-            <th>Quantity</th>
+            <th>Name</th>
+            <th>HSN</th>
+            <th>Qty</th>
             <th>UOM</th>
-            <th>Action</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          {challan.products.length === 0 ? (
-            <tr>
-              <td colSpan='4' className='no-products'>
-                No products added
+          {challan.products.map((p, i) => (
+            <tr key={i}>
+              <td>
+                <input
+                  className='table-input'
+                  value={p.name}
+                  onChange={(e) =>
+                    dispatch(
+                      updateChallanProduct({
+                        index: i,
+                        updatedFields: { name: e.target.value },
+                      })
+                    )
+                  }
+                />
+              </td>
+              <td>
+                <input
+                  className='table-input'
+                  value={p.hsn || ''}
+                  onChange={(e) =>
+                    dispatch(
+                      updateChallanProduct({
+                        index: i,
+                        updatedFields: { hsn: e.target.value },
+                      })
+                    )
+                  }
+                />
+              </td>
+              <td>
+                <input
+                  type='number'
+                  className='table-input'
+                  value={p.quantity}
+                  onChange={(e) =>
+                    dispatch(
+                      updateChallanProduct({
+                        index: i,
+                        updatedFields: { quantity: e.target.value },
+                      })
+                    )
+                  }
+                />
+              </td>
+              <td>
+                <select
+                  className='table-select'
+                  value={p.uom}
+                  onChange={(e) =>
+                    dispatch(
+                      updateChallanProduct({
+                        index: i,
+                        updatedFields: { uom: e.target.value },
+                      })
+                    )
+                  }
+                >
+                  <option value='NOS'>NOS</option>
+                  <option value='PCS'>PCS</option>
+                  <option value='KG'>KG</option>
+                  <option value='MTR'>MTR</option>
+                </select>
+              </td>
+              <td>
+                <button
+                  className='remove-btn'
+                  onClick={() => dispatch(removeChallanProduct(i))}
+                >
+                  Remove
+                </button>
               </td>
             </tr>
-          ) : (
-            challan.products.map((p, i) => (
-              <tr key={i}>
-                <td>{p.name}</td>
-                <td>{p.quantity}</td>
-                <td>{p.uom}</td>
-                <td>
-                  <button
-                    className='remove-btn'
-                    onClick={() => dispatch(removeChallanProduct(i))}
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
+          ))}
         </tbody>
       </table>
 
+      {/* Add Product */}
       <div className='product-input-group'>
         <div className='form-group'>
           <label className='form-label'>Product Name</label>
           <input
-            type='text'
             className='form-input'
             placeholder='Product Name'
             value={newProduct.name}
@@ -188,20 +367,29 @@ const ChallanForm = () => {
             }
           />
         </div>
-
+        <div className='form-group'>
+          <label className='form-label'>HSN Code</label>
+          <input
+            className='form-input'
+            placeholder='HSN'
+            value={newProduct.hsn}
+            onChange={(e) =>
+              setNewProduct({ ...newProduct, hsn: e.target.value })
+            }
+          />
+        </div>
         <div className='form-group'>
           <label className='form-label'>Quantity</label>
           <input
             type='number'
             className='form-input'
-            placeholder='Quantity'
+            placeholder='Qty'
             value={newProduct.quantity}
             onChange={(e) =>
               setNewProduct({ ...newProduct, quantity: e.target.value })
             }
           />
         </div>
-
         <div className='form-group'>
           <label className='form-label'>UOM</label>
           <select
@@ -213,21 +401,18 @@ const ChallanForm = () => {
           >
             <option value='NOS'>NOS</option>
             <option value='PCS'>PCS</option>
-            <option value='BOX'>BOX</option>
-            <option value='MTR'>MTR</option>
             <option value='KG'>KG</option>
+            <option value='MTR'>MTR</option>
           </select>
         </div>
-
-        <div className='form-group' style={{ marginTop: '28px' }}>
-          <button className='add-btn' onClick={handleAddProduct}>
-            Add Product
-          </button>
-        </div>
+        <button className='add-btn' onClick={handleAddProduct}>
+          Add
+        </button>
       </div>
+
       <div className='form-actions'>
-        <button type='button' className='save-challan' onClick={handleSubmit}>
-          ADD CHALLAN
+        <button className='save-challan' onClick={handleSubmit}>
+          SAVE & GENERATE PDF
         </button>
       </div>
     </div>

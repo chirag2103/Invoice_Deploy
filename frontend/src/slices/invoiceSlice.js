@@ -1,11 +1,13 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
 
+const apiUrl = process.env.REACT_APP_API_URL;
+
 const initialState = {
   billNo: 1,
   customer: '',
   date: '',
-  products: [],
+  products: [], // { name, hsn, quantity, rate, uom }
   totalAmount: 0,
   grandTotal: 0,
   gst: 9,
@@ -14,88 +16,50 @@ const initialState = {
   invoices: [],
   message: '',
 };
-const apiUrl = process.env.REACT_APP_API_URL;
+
+// -------------------- Async Thunks --------------------
 
 export const fetchInvoices = createAsyncThunk(
   'invoice/fetchInvoices',
   async (id = null) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (id == null) {
-        const response = await api.get(`${apiUrl}/api/invoices`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        // console.log(response.data.invoices);
-        return response.data.invoices;
-      } else {
-        const response = await api.get(
-          `${apiUrl}/api/customer/${id}/invoices`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        return response.data.invoices;
-      }
-    } catch (error) {
-      throw error;
-    }
-  }
-);
-
-export const deleteInvoice = createAsyncThunk(
-  'invoice/deleteInvoice',
-  async (id) => {
     const token = localStorage.getItem('token');
-    try {
-      const response = await api.delete(`${apiUrl}/api/invoices`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+
+    if (id == null) {
+      const res = await api.get(`${apiUrl}/api/invoices`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      // console.log(response.data.invoices);
-      return response.data.message;
-    } catch (error) {
-      throw error;
+      return res.data.invoices;
+    } else {
+      const res = await api.get(`${apiUrl}/api/customer/${id}/invoices`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data.invoices;
     }
   }
 );
 
 export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
-  try {
-    const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token');
+  const res = await api.get(`${apiUrl}/api/lastinvoice`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return parseInt(res.data.invoice.invoiceNo);
+});
 
-    const response = await api.get(`${apiUrl}/api/lastinvoice`, {
+export const deleteInvoice = createAsyncThunk(
+  'invoice/deleteInvoice',
+  async (id) => {
+    const token = localStorage.getItem('token');
+    const res = await api.delete(`${apiUrl}/api/invoice/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    return parseInt(response.data.invoice.invoiceNo);
-  } catch (error) {
-    throw error;
-  }
-});
-
-export const sendInvoiceData = createAsyncThunk(
-  'invoice/sendInvoiceData',
-  async (invoiceData) => {
-    const token = localStorage.getItem('token');
-
-    try {
-      const response = await api.post(`${apiUrl}/api/invoices`, invoiceData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    return res.data.message;
   }
 );
+
+// -------------------- Slice --------------------
 
 const invoiceSlice = createSlice({
   name: 'invoice',
@@ -104,44 +68,70 @@ const invoiceSlice = createSlice({
     setCustomer(state, action) {
       state.customer = action.payload;
     },
+
     setGst(state, action) {
       state.gst = action.payload;
-    },
-    addProduct(state, action) {
-      state.products.push(action.payload);
-      state.totalAmount += action.payload.quantity * action.payload.rate;
-      // console.log(state.gst + 'gst');
+      // recalc when GST changes
       state.grandTotal = Math.round(
         state.totalAmount + (state.totalAmount * state.gst * 2) / 100
       );
     },
-    removeProduct(state, action) {
-      const removedProduct = state.products.splice(action.payload, 1)[0];
-      state.totalAmount -= removedProduct.quantity * removedProduct.rate;
-      state.grandTotal =
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100;
-    },
-    updateProduct: (state, action) => {
-      const { index, updatedFields } = action.payload;
-      const product = state.products[index];
 
-      if (!product) return;
+    // ✅ ADD PRODUCT (HSN supported)
+    addProduct(state, action) {
+      state.products.push({
+        name: action.payload.name,
+        hsn: action.payload.hsn || '',
+        quantity: action.payload.quantity,
+        rate: action.payload.rate,
+        uom: action.payload.uom || 'NOS',
+      });
 
-      const updatedProduct = { ...product, ...updatedFields };
-      state.products[index] = updatedProduct;
-
-      // Recalculate totals
       state.totalAmount = state.products.reduce(
-        (sum, prod) => sum + prod.quantity * prod.rate,
+        (sum, p) => sum + p.quantity * p.rate,
         0
       );
+
       state.grandTotal = Math.round(
         state.totalAmount + (state.totalAmount * state.gst * 2) / 100
       );
     },
 
-    storeInvoice(state, action) {},
-    clearAllData(state) {
+    // ✅ REMOVE PRODUCT
+    removeProduct(state, action) {
+      state.products.splice(action.payload, 1);
+
+      state.totalAmount = state.products.reduce(
+        (sum, p) => sum + p.quantity * p.rate,
+        0
+      );
+
+      state.grandTotal = Math.round(
+        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      );
+    },
+
+    // ✅ UPDATE PRODUCT (HSN INCLUDED)
+    updateProduct(state, action) {
+      const { index, updatedFields } = action.payload;
+      if (!state.products[index]) return;
+
+      state.products[index] = {
+        ...state.products[index],
+        ...updatedFields,
+      };
+
+      state.totalAmount = state.products.reduce(
+        (sum, p) => sum + p.quantity * p.rate,
+        0
+      );
+
+      state.grandTotal = Math.round(
+        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      );
+    },
+
+    clearAllData() {
       return initialState;
     },
   },
@@ -155,49 +145,13 @@ const invoiceSlice = createSlice({
       .addCase(fetchInvoices.fulfilled, (state, action) => {
         state.loading = false;
         state.invoices = action.payload;
-        // console.log('slice');
-        // console.log(state.invoices);
       })
       .addCase(fetchInvoices.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       })
-      .addCase(fetchBillNo.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(fetchBillNo.fulfilled, (state, action) => {
-        state.loading = false;
-        // console.log('last bill' + action.payload);
         state.billNo = action.payload + 1;
-      })
-      .addCase(fetchBillNo.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(deleteInvoice.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(deleteInvoice.fulfilled, (state, action) => {
-        state.loading = false;
-        // console.log('last bill' + action.payload);
-        state.message = action.payload;
-      })
-      .addCase(deleteInvoice.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(sendInvoiceData.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(sendInvoiceData.fulfilled, (state, action) => {
-        state.loading = false;
-      })
-      .addCase(sendInvoiceData.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
       });
   },
 });
@@ -210,4 +164,5 @@ export const {
   updateProduct,
   clearAllData,
 } = invoiceSlice.actions;
+
 export default invoiceSlice.reducer;

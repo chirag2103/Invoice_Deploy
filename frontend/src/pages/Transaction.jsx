@@ -3,6 +3,7 @@ import AdminSidebar from '../components/AdminSidebar';
 import { ReactElement, useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../axiosSetup.js';
+import { formatNumberWithCommas } from '../services/helper.js';
 
 const Transaction = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -54,13 +55,13 @@ const Transaction = () => {
                         <td>{id + 1}</td>
                         <td>{payment.customer.name}</td>
                         <td>{formatDate(payment.date.split('T')[0])}</td>
-                        <td>{payment.amountPaid}</td>
+                        <td>{formatNumberWithCommas(payment.amountPaid)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-              <h3>Total: {total}</h3>
+              <h3>Total: {formatNumberWithCommas(total)}</h3>
             </div>
           </div>
         </main>

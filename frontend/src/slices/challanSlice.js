@@ -10,23 +10,20 @@ const initialState = {
   customer: '',
   orderNo: '',
   orderDate: '',
-  products: [],
-  totalAmount: 0,
-  gst: 0,
-  grandTotal: 0,
+  products: [], // { name, hsn, quantity, uom }
   loading: false,
   error: null,
   challans: [],
   message: '',
 };
 
+// -------------------- Async Thunks --------------------
+
 export const fetchChallans = createAsyncThunk(
   'challan/fetchChallans',
   async () => {
     const response = await api.get(`${apiUrl}/api/challans`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data.challans;
   }
@@ -36,11 +33,8 @@ export const fetchChallanNo = createAsyncThunk(
   'challan/fetchChallanNo',
   async () => {
     const res = await api.get(`${apiUrl}/api/lastchallan`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
-    // console.log(res);
     return parseInt(res.data.challan.challanNo);
   }
 );
@@ -49,9 +43,7 @@ export const sendChallanData = createAsyncThunk(
   'challan/sendChallanData',
   async (challanData) => {
     const response = await api.post(`${apiUrl}/api/challan/new`, challanData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   }
@@ -61,13 +53,13 @@ export const deleteChallan = createAsyncThunk(
   'challan/deleteChallan',
   async (id) => {
     const response = await api.delete(`${apiUrl}/api/challan/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data.message;
   }
 );
+
+// -------------------- Slice --------------------
 
 const challanSlice = createSlice({
   name: 'challan',
@@ -88,34 +80,36 @@ const challanSlice = createSlice({
     setOrderDate(state, action) {
       state.orderDate = action.payload;
     },
+
+    // ✅ ADD PRODUCT (HSN supported)
     addChallanProduct(state, action) {
-      state.products.push(action.payload);
+      state.products.push({
+        name: action.payload.name,
+        hsn: action.payload.hsn || '',
+        quantity: action.payload.quantity,
+        uom: action.payload.uom || 'NOS',
+      });
     },
-    removeChallanProduct(state, action) {
-      state.products.splice(action.payload, 1);
-    },
+
+    // ✅ EDIT PRODUCT FIELD (USED BY FORM)
     updateProductField(state, action) {
       const { index, field, value } = action.payload;
       if (state.products[index]) {
         state.products[index][field] = value;
       }
     },
-    calculateTotal(state) {
-      state.totalAmount = state.products.reduce(
-        (acc, p) => acc + p.quantity * p.rate,
-        0
-      );
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
-      );
+
+    // ✅ REMOVE PRODUCT
+    removeChallanProduct(state, action) {
+      state.products.splice(action.payload, 1);
     },
-    setGst(state, action) {
-      state.gst = action.payload;
-    },
+
+    // ✅ RESET
     clearChallanData() {
       return initialState;
     },
   },
+
   extraReducers: (builder) => {
     builder
       .addCase(fetchChallans.pending, (state) => {
@@ -132,30 +126,18 @@ const challanSlice = createSlice({
       })
       .addCase(sendChallanData.pending, (state) => {
         state.loading = true;
-        state.error = null;
       })
-      .addCase(sendChallanData.fulfilled, (state, action) => {
+      .addCase(sendChallanData.fulfilled, (state) => {
         state.loading = false;
       })
       .addCase(sendChallanData.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       })
-      .addCase(deleteChallan.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(deleteChallan.fulfilled, (state, action) => {
-        state.loading = false;
         state.message = action.payload;
       })
-      .addCase(deleteChallan.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
       .addCase(fetchChallanNo.fulfilled, (state, action) => {
-        // console.log(action);
-
         state.challanNo = action.payload + 1;
       });
   },
@@ -168,10 +150,8 @@ export const {
   setOrderNo,
   setOrderDate,
   addChallanProduct,
-  removeChallanProduct,
   updateProductField,
-  calculateTotal,
-  setGst,
+  removeChallanProduct,
   clearChallanData,
 } = challanSlice.actions;
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../axiosSetup.js';
 import AdminSidebar from '../components/AdminSidebar';
 // import './CustomerBills.scss';
+import { formatNumberWithCommas } from '../services/helper.js';
 
 const CustomerBills = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -64,16 +65,16 @@ const CustomerBills = () => {
               {customers.map((customer, index) => (
                 <tr key={index}>
                   <td>{customer.customerName}</td>
-                  <td>{customer.totalBill}</td>
-                  <td>{customer.totalPaid}</td>
-                  <td>{customer.remainingAmount}</td>
+                  <td>{formatNumberWithCommas(customer.totalBill)}</td>
+                  <td>{formatNumberWithCommas(customer.totalPaid)}</td>
+                  <td>{formatNumberWithCommas(customer.remainingAmount)}</td>
                 </tr>
               ))}
               <tr className='totalRow'>
                 <td>Total</td>
-                <td>{totalBill}</td>
-                <td>{totalPaid}</td>
-                <td>{totalRemaining}</td>
+                <td>{formatNumberWithCommas(totalBill)}</td>
+                <td>{formatNumberWithCommas(totalPaid)}</td>
+                <td>{formatNumberWithCommas(totalRemaining)}</td>
               </tr>
             </tbody>
           </table>

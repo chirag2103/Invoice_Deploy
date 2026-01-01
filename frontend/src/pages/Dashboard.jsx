@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchPayments } from '../slices/paymentSlice';
 import { fetchPurchaseInvoices } from '../slices/purchaseInvoiceSlice';
 import { fetchPurchasePayments } from '../slices/purchasePaymentSlice';
+import { formatNumberWithCommas } from '../services/helper';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -297,28 +298,28 @@ const Dashboard = () => {
           <WidgetItem
             percent={0}
             amount={true}
-            value={getFinancialYearTotal()}
+            value={formatNumberWithCommas(getFinancialYearTotal())}
             heading='Total Revenue'
             color='rgb(0,115,255)'
           />
           <WidgetItem
             percent={0}
             amount={true}
-            value={getTotalPayments()}
+            value={formatNumberWithCommas(getTotalPayments())}
             heading='Payments Received'
             color='rgb(0,198,202)'
           />
           <WidgetItem
             percent={0}
             amount={true}
-            value={getTotalSellerBills()}
+            value={formatNumberWithCommas(getTotalSellerBills())}
             heading='Seller Bills'
             color='rgb(255 196 0)'
           />
           <WidgetItem
             percent={0}
             amount={true}
-            value={getTotalSellerPayments()}
+            value={formatNumberWithCommas(getTotalSellerPayments())}
             heading='Seller Payments'
             color='rgb(76 0 255)'
           />

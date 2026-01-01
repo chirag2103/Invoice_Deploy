@@ -4,6 +4,10 @@ const challanProductSchema = mongoose.Schema({
   name: { type: String, required: true },
   quantity: { type: Number, required: true },
   uom: { type: String, default: 'NOS' },
+  hsn: {
+    type: String,
+    trim: true,
+  },
 });
 
 const challanSchema = mongoose.Schema({
@@ -17,6 +21,11 @@ const challanSchema = mongoose.Schema({
     ref: 'Customer',
     required: true,
   },
+  shipTo: {
+    name: { type: String },
+    address: { type: String },
+    gstNo: { type: String },
+  }, // 👉 SHIP TO (OPTIONAL)
   challanNo: {
     type: String,
     required: true,

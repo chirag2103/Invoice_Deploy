@@ -5,6 +5,10 @@ const productSchema = new mongoose.Schema({
   quantity: { type: Number, required: true },
   rate: { type: Number, required: true },
   uom: { type: String, default: 'NOS' },
+  hsn: {
+    type: String,
+    trim: true,
+  },
 });
 
 const quotationSchema = new mongoose.Schema({
@@ -27,6 +31,8 @@ const quotationSchema = new mongoose.Schema({
   gst: { type: Number, default: 9 },
   invoiceTotal: Number,
   grandTotal: Number,
+  termsAndConditions: { type: String, default: '' },
+  technicalSpecifications: { type: String, default: '' },
 });
 
 export default mongoose.model('Quotation', quotationSchema);

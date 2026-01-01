@@ -5,6 +5,10 @@ const productSchema = mongoose.Schema({
   quantity: { type: Number, required: true },
   rate: { type: Number, required: true },
   uom: { type: String, default: 'NOS' },
+  hsn: {
+    type: String,
+    trim: true,
+  },
 });
 
 const invoiceSchema = mongoose.Schema({
@@ -18,6 +22,11 @@ const invoiceSchema = mongoose.Schema({
     ref: 'Customer',
     required: true,
   },
+  shipTo: {
+    name: { type: String },
+    address: { type: String },
+    gstNo: { type: String },
+  }, // 👉 SHIP TO (OPTIONAL)
   invoiceNo: {
     type: String,
     required: true,
@@ -29,19 +38,18 @@ const invoiceSchema = mongoose.Schema({
   orderDate: Date,
   invoiceProducts: [productSchema],
   invoiceTotal: Number,
-  paidAmount: Number,
-  remainingAmount: Number,
   grandTotal: Number,
   date: {
     type: Date,
     required: true,
   },
+  termsAndConditions: { type: String, default: '' },
 });
 
-invoiceSchema.pre('save', function (next) {
-  this.remainingAmount = this.invoiceTotal - this.paidAmount;
+// invoiceSchema.pre('save', function (next) {
+//   this.remainingAmount = this.invoiceTotal - this.paidAmount;
 
-  next();
-});
+//   next();
+// });
 
 export default mongoose.model('Invoice', invoiceSchema);
