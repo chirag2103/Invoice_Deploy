@@ -65,7 +65,7 @@ const CustomerStatement = () => {
                 <td>{formatDate(entry.date.split('T')[0])}</td>
                 <td>
                   {entry.type === 'invoice'
-                    ? 'Invoice'
+                    ? `Invoice - ${entry.detail}`
                     : entry.type === 'opening'
                     ? 'Opening Balance'
                     : 'Payment'}
