@@ -189,42 +189,72 @@ export const deleteInvoice = catchAsyncError(async (req, res, next) => {
 export const getCustomerBillingInfo = catchAsyncError(
   async (req, res, next) => {
     try {
-      const customers = await Customer.find({ user: req.user.id });
+      const userId = req.user._id;
 
-      const customerBillingInfo = await Promise.all(
-        customers.map(async (customer) => {
-          const invoices = await Invoice.find({
-            customer: customer._id,
-            user: req.user.id,
-          });
-          const payments = await Payment.find({
-            customer: customer._id,
-            user: req.user.id,
-          });
+      // 1️⃣ Aggregate invoices per customer
+      const invoiceAgg = await Invoice.aggregate([
+        { $match: { user: userId } },
+        {
+          $group: {
+            _id: '$customer',
+            totalBill: { $sum: '$grandTotal' },
+          },
+        },
+      ]);
 
-          const totalBill = invoices.reduce(
-            (acc, invoice) => acc + invoice.grandTotal,
-            0
-          );
-          const totalPaid = payments.reduce(
-            (acc, payment) => acc + payment.amountPaid,
-            0
-          );
-          const remainingAmount =
-            (customer.openingBalance || 0) + totalBill - totalPaid;
+      // 2️⃣ Aggregate payments per customer
+      const paymentAgg = await Payment.aggregate([
+        { $match: { user: userId } },
+        {
+          $group: {
+            _id: '$customer',
+            totalPaid: { $sum: '$amountPaid' },
+          },
+        },
+      ]);
+
+      // 3️⃣ Fetch customers (only required fields)
+      const customers = await Customer.find({ user: userId }).select(
+        'name openingBalance'
+      );
+
+      // 4️⃣ Convert aggregates to maps for O(1) lookup
+      const invoiceMap = new Map(
+        invoiceAgg.map((i) => [i._id.toString(), i.totalBill])
+      );
+
+      const paymentMap = new Map(
+        paymentAgg.map((p) => [p._id.toString(), p.totalPaid])
+      );
+
+      // 5️⃣ Build final result
+      const result = customers
+        .map((customer) => {
+          const customerId = customer._id.toString();
+          const totalBill = invoiceMap.get(customerId) || 0;
+          const totalPaid = paymentMap.get(customerId) || 0;
+
+          // 🚫 Exclude customers with no activity
+          if (totalBill === 0 && totalPaid === 0) return null;
 
           return {
             customerName: customer.name,
             totalBill,
             totalPaid,
-            remainingAmount,
+            remainingAmount:
+              (customer.openingBalance || 0) + totalBill - totalPaid,
           };
         })
-      );
+        .filter(Boolean) // remove nulls
+        .sort((a, b) =>
+          a.customerName
+            .toLowerCase()
+            .localeCompare(b.customerName.toLowerCase())
+        );
 
       res.status(200).json({
         success: true,
-        data: customerBillingInfo,
+        data: result,
       });
     } catch (error) {
       next(new ErrorHandler('Error fetching customer billing info', 500));

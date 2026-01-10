@@ -7,7 +7,7 @@ import ErrorHandler from '../utils/errorHandler.js';
 // ✅ Create purchase invoice
 export const createPurchaseInvoice = async (req, res, next) => {
   try {
-    const { seller, amount, date, remarks } = req.body;
+    const { seller, invoiceNo, amount, date, remarks } = req.body;
 
     if (!seller || !amount || !date) {
       return next(
@@ -17,6 +17,7 @@ export const createPurchaseInvoice = async (req, res, next) => {
 
     const newPurchase = await PurchaseInvoice.create({
       seller,
+      invoiceNo,
       amount,
       date,
       remarks,
@@ -382,7 +383,8 @@ export const getSellerStatement = async (req, res) => {
       ...purchases.map((p) => ({
         date: p.date,
         type: 'purchase',
-        detail: p.invoiceNo || 'Purchase Invoice',
+        invoiceNo: p.invoiceNo,
+        detail: 'Purchase Invoice',
         purchaseAmount: p.amount,
         paymentAmount: null,
       })),

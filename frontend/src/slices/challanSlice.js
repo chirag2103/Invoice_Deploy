@@ -1,12 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
+import { getTodayDate } from '../services/helper.js';
 
 const apiUrl = process.env.REACT_APP_API_URL;
 const token = localStorage.getItem('token');
 
 const initialState = {
   challanNo: 1,
-  challanDate: '',
+  challanDate: getTodayDate(),
   customer: '',
   orderNo: '',
   orderDate: '',

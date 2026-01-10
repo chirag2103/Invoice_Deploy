@@ -14,6 +14,7 @@ import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup.js';
 import { generateInvoicePDF } from '../services/pdfGeneratorService.js';
+import { getTodayDate } from '../services/helper.js';
 
 const InvoiceForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -39,7 +40,7 @@ const InvoiceForm = () => {
   const { billNo, customer, gst, products, totalAmount, grandTotal } =
     useSelector((state) => state.invoice);
 
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(getTodayDate());
   const [challanNo, setChallanNo] = useState('');
   const [challanDate, setChallanDate] = useState('');
   const [orderNo, setOrderNo] = useState('');

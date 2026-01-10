@@ -7,6 +7,10 @@ const purchaseInvoiceSchema = new mongoose.Schema(
       ref: 'Seller',
       required: true,
     },
+    invoiceNo: {
+      type: String,
+      required: true,
+    },
     amount: {
       type: Number,
       required: true,

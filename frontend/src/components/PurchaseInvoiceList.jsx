@@ -52,6 +52,7 @@ const PurchaseInvoiceList = () => {
               <thead>
                 <tr>
                   <th>Seller</th>
+                  <th>Invoice No</th>
                   <th>Date</th>
                   <th>Total Amount</th>
                   <th>Remarks</th>
@@ -63,6 +64,7 @@ const PurchaseInvoiceList = () => {
                   return (
                     <tr key={invoice._id}>
                       <td>{invoice.seller?.name || 'Unknown Seller'}</td>
+                      <td>{invoice?.invoiceNo || '-'}</td>
                       <td>{formatDate(invoice.date?.split('T')[0])}</td>
                       <td>{formatNumberWithCommas(invoice.amount)}</td>
                       <td>{invoice.remarks || '-'}</td>

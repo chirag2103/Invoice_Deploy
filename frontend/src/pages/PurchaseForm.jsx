@@ -3,13 +3,15 @@ import api from '../axiosSetup.js';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchSellers } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
+import { getTodayDate } from '../services/helper.js';
 
 const PurchaseForm = () => {
   //   const [sellers, setSellers] = useState([]);
   const [selectedSeller, setSelectedSeller] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState('');
+  const [invoiceDate, setInvoiceDate] = useState(getTodayDate);
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
+  const [invoiceNO, setInvoiceNO] = useState('');
   const apiUrl = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem('token');
 
@@ -30,6 +32,7 @@ const PurchaseForm = () => {
           seller: selectedSeller,
           date: invoiceDate,
           amount: Number(amount),
+          invoiceNo: invoiceNO,
         },
         {
           headers: {
@@ -38,7 +41,7 @@ const PurchaseForm = () => {
         }
       );
 
-      setMessage('Purchase invoice created successfully!');
+      setMessage('Purchase invoice added successfully!');
       setSelectedSeller('');
       setInvoiceDate('');
       setAmount('');
@@ -80,6 +83,21 @@ const PurchaseForm = () => {
             </select>
           </div>
 
+          {/* Invoice Number */}
+          <div className='form-group'>
+            <label className='form-label' htmlFor='invoiceNo'>
+              Invoice Number
+            </label>
+            <input
+              type='text'
+              className='form-input'
+              id='invoiceNo'
+              value={invoiceNO}
+              onChange={(e) => setInvoiceNO(e.target.value)}
+              required
+            />
+          </div>
+
           {/* Invoice Date */}
           <div className='form-group'>
             <label className='form-label' htmlFor='date'>
@@ -111,7 +129,7 @@ const PurchaseForm = () => {
             />
           </div>
 
-          <button type='submit'>Create Invoice</button>
+          <button type='submit'>Add Purchase Invoice</button>
         </form>
       </div>
     </div>

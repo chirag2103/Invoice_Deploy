@@ -18,6 +18,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup';
 
 import { generateQuotationPDF } from '../services/pdfGeneratorService';
+import { getTodayDate } from '../services/helper';
 
 const QuotationForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -35,9 +36,7 @@ const QuotationForm = () => {
   const { customer, products, gst, totalAmount, grandTotal, quoteNo } =
     useSelector((state) => state.quotation);
 
-  const [quotationDate, setQuotationDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
+  const [quotationDate, setQuotationDate] = useState(getTodayDate());
 
   const [product, setProduct] = useState({
     name: '',
