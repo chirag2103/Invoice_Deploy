@@ -59,7 +59,9 @@ const ChallanList = () => {
       challanDate: challan.challanDate,
       orderNo: challan.orderNo,
       orderDate: challan.orderDate,
-      customer: challan.customer._id,
+      customerId: challan.customer._id,
+      customer: challan.customer,
+
       products: challan.challanProducts.map((p) => ({
         name: p.name,
         quantity: p.quantity,
