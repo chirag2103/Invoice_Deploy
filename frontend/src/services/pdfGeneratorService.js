@@ -586,7 +586,7 @@ export const generateInvoicePDF = (data) => {
                               ? [
                                   {
                                     ul: formatTextAsBulletPoints(
-                                      termsAndConditions
+                                      termsAndConditions,
                                     ),
                                     margin: [0, 0, 0, 0],
                                   },
@@ -620,7 +620,12 @@ export const generateInvoicePDF = (data) => {
     ],
   };
 
-  pdfMake.createPdf(docDefinition).download(`Invoice-${billNo || ''}.pdf`);
+  pdfMake.createPdf(docDefinition).download(
+    `Invoice-${companyName
+      .split(' ')
+      .map((word) => word[0].toUpperCase())
+      .join('')}-${billNo || ''}.pdf`,
+  );
 };
 
 /* ================= QUOTATION ================= */
@@ -993,7 +998,7 @@ export const generateQuotationPDF = (data) => {
                               ? [
                                   {
                                     ul: formatTextAsBulletPoints(
-                                      termsAndConditions
+                                      termsAndConditions,
                                     ),
                                     margin: [0, 0, 0, 0],
                                   },

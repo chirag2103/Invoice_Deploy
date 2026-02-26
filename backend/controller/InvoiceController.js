@@ -42,12 +42,23 @@ export const createInvoice = catchAsyncError(async (req, res, next) => {
 export const getInvoices = catchAsyncError(async (req, res, next) => {
   // console.log(req.user);
   try {
-    const invoices = await Invoice.find({ user: req.user.id })
-      .populate('customer')
-      .sort({
-        invoiceNo: -1,
-      });
-    // console.log(invoices);
+    const invoices = await Invoice.aggregate([
+      {
+        $match: { user: new mongoose.Types.ObjectId(req.user.id) },
+      },
+      {
+        $addFields: {
+          invoiceNoNumber: { $toLong: '$invoiceNo' }, // convert string → number
+        },
+      },
+      {
+        $sort: { invoiceNoNumber: -1 }, // numeric sort
+      },
+    ]);
+
+    // Populate customer manually after aggregation
+    await Invoice.populate(invoices, { path: 'customer' });
+
     res.status(200).json({
       invoices,
     });
@@ -158,7 +169,7 @@ export const updateInvoice = catchAsyncError(async (req, res, next) => {
         new: true,
         runValidators: true,
         useFindAndModify: false,
-      }
+      },
     );
 
     res.status(200).json({
@@ -215,16 +226,16 @@ export const getCustomerBillingInfo = catchAsyncError(
 
       // 3️⃣ Fetch customers (only required fields)
       const customers = await Customer.find({ user: userId }).select(
-        'name openingBalance'
+        'name openingBalance',
       );
 
       // 4️⃣ Convert aggregates to maps for O(1) lookup
       const invoiceMap = new Map(
-        invoiceAgg.map((i) => [i._id.toString(), i.totalBill])
+        invoiceAgg.map((i) => [i._id.toString(), i.totalBill]),
       );
 
       const paymentMap = new Map(
-        paymentAgg.map((p) => [p._id.toString(), p.totalPaid])
+        paymentAgg.map((p) => [p._id.toString(), p.totalPaid]),
       );
 
       // 5️⃣ Build final result
@@ -249,7 +260,7 @@ export const getCustomerBillingInfo = catchAsyncError(
         .sort((a, b) =>
           a.customerName
             .toLowerCase()
-            .localeCompare(b.customerName.toLowerCase())
+            .localeCompare(b.customerName.toLowerCase()),
         );
 
       res.status(200).json({
@@ -259,7 +270,7 @@ export const getCustomerBillingInfo = catchAsyncError(
     } catch (error) {
       next(new ErrorHandler('Error fetching customer billing info', 500));
     }
-  }
+  },
 );
 
 // export const getStatementByCustomer = catchAsyncError(
@@ -437,5 +448,5 @@ export const getStatementByCustomer = catchAsyncError(
     } catch (error) {
       next(new ErrorHandler('Error fetching customer billing info', 500));
     }
-  }
+  },
 );
