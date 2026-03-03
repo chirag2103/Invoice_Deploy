@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../styles/InvoiceForm.css';
 
@@ -47,6 +47,25 @@ const QuotationForm = () => {
 
   const [termsAndConditions, setTermsAndConditions] = useState('');
   const [technicalSpecifications, setTechnicalSpecifications] = useState('');
+
+  const nameTextareaRef = useRef(null);
+
+  const handleProductNameKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = e.target;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentVal = product.name;
+      const newValue =
+        currentVal.substring(0, start) + '    ' + currentVal.substring(end);
+      setProduct({ ...product, name: newValue });
+      requestAnimationFrame(() => {
+        textarea.selectionStart = start + 4;
+        textarea.selectionEnd = start + 4;
+      });
+    }
+  };
 
   // ---------------------------------------------------------
   // Load Customers + Prefill for Edit
@@ -127,7 +146,7 @@ const QuotationForm = () => {
             technicalSpecifications,
             termsAndConditions,
           },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
       } else {
         await dispatch(
@@ -141,7 +160,7 @@ const QuotationForm = () => {
             date: quotationDate,
             technicalSpecifications,
             termsAndConditions,
-          })
+          }),
         );
       }
 
@@ -167,7 +186,15 @@ const QuotationForm = () => {
         {isEdit ? 'Edit Quotation' : 'Create Quotation'}
       </h2>
 
-      <form className='invoice-form' onSubmit={handleSubmit}>
+      <form
+        className='invoice-form'
+        onSubmit={handleSubmit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+          }
+        }}
+      >
         {/* Quote No */}
         <div className='form-group'>
           <label className='form-label'>Quote No:</label>
@@ -254,18 +281,39 @@ const QuotationForm = () => {
               {products.map((p, i) => (
                 <tr key={i}>
                   <td>
-                    <input
-                      type='text'
+                    <textarea
                       value={p.name}
                       onChange={(e) =>
                         dispatch(
                           updateProduct({
                             index: i,
                             updatedFields: { name: e.target.value },
-                          })
+                          }),
                         )
                       }
-                      className='table-input'
+                      onKeyDown={(e) => {
+                        if (e.key === 'Tab') {
+                          e.preventDefault();
+                          const start = e.target.selectionStart;
+                          const end = e.target.selectionEnd;
+                          const newValue =
+                            p.name.substring(0, start) +
+                            '    ' +
+                            p.name.substring(end);
+                          dispatch(
+                            updateProduct({
+                              index: i,
+                              updatedFields: { name: newValue },
+                            }),
+                          );
+                          requestAnimationFrame(() => {
+                            e.target.selectionStart = start + 4;
+                            e.target.selectionEnd = start + 4;
+                          });
+                        }
+                      }}
+                      className='table-input table-textarea'
+                      rows={3}
                     />
                   </td>
 
@@ -280,7 +328,7 @@ const QuotationForm = () => {
                             updatedFields: {
                               quantity: Number(e.target.value),
                             },
-                          })
+                          }),
                         )
                       }
                       className='table-input'
@@ -295,7 +343,7 @@ const QuotationForm = () => {
                           updateProduct({
                             index: i,
                             updatedFields: { uom: e.target.value },
-                          })
+                          }),
                         )
                       }
                       className='table-select'
@@ -317,7 +365,7 @@ const QuotationForm = () => {
                           updateProduct({
                             index: i,
                             updatedFields: { rate: Number(e.target.value) },
-                          })
+                          }),
                         )
                       }
                       className='table-input'
@@ -344,11 +392,16 @@ const QuotationForm = () => {
         {/* Add Product Section */}
         <div className='form-group'>
           <label className='form-label'>Product Name</label>
-          <input
-            type='text'
-            className='form-input'
+          <textarea
+            ref={nameTextareaRef}
+            className='form-input product-name-textarea'
             value={product.name}
             onChange={(e) => setProduct({ ...product, name: e.target.value })}
+            onKeyDown={handleProductNameKeyDown}
+            rows={4}
+            placeholder={
+              'Line 1: Product name\n    Tab to indent sub-details\n    e.g. Capacity - 5 Ton'
+            }
           />
         </div>
 

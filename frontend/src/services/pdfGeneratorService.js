@@ -21,6 +21,7 @@ const FONT = {
 // Helper function - add at top of pdfGeneratorService.js
 
 function formatTextAsBulletPoints(text) {
+  if (typeof text !== 'string') return [];
   if (!text) return [];
   const lines = text
     .split('\n')
@@ -34,6 +35,24 @@ function formatTextAsBulletPoints(text) {
     ...FONT.small,
     margin: [0, 0, 0, 2],
   }));
+}
+
+function formatProductName(text) {
+  if (!text) return { text: '', ...FONT.small };
+  const lines = text.split('\n').filter((line) => line.trimEnd() !== '');
+  if (lines.length <= 1) return { text: text || '', ...FONT.small };
+
+  return {
+    stack: lines.map((line, idx) => {
+      const isIndented = line.startsWith('    ') || line.startsWith('\t');
+      return {
+        text: line.trimStart(),
+        ...FONT.small,
+        ...(idx === 0 ? { bold: true } : {}),
+        margin: isIndented ? [10, 0, 0, 1] : [0, 0, 0, 1],
+      };
+    }),
+  };
 }
 
 function formatDate(date) {
@@ -189,7 +208,7 @@ export const generateInvoicePDF = (data) => {
 
     return [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
-      { text: p.name || '', ...FONT.small },
+      formatProductName(p.name),
       { text: p.hsn || '', ...FONT.small, alignment: 'center' },
       { text: String(qty), ...FONT.small, alignment: 'center' },
       { text: p.uom || '', ...FONT.small, alignment: 'center' },
@@ -622,7 +641,7 @@ export const generateInvoicePDF = (data) => {
 
   pdfMake.createPdf(docDefinition).download(
     `Invoice-${companyName
-      .split(' ')
+      ?.split(' ')
       .map((word) => word[0].toUpperCase())
       .join('')}-${billNo || ''}.pdf`,
   );
@@ -658,7 +677,7 @@ export const generateQuotationPDF = (data) => {
 
     return [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
-      { text: p.name || '', ...FONT.small },
+      formatProductName(p.name),
       { text: p.hsn || '', ...FONT.small, alignment: 'center' },
       { text: String(qty), ...FONT.small, alignment: 'center' },
       { text: p.uom || '', ...FONT.small, alignment: 'center' },
@@ -1060,7 +1079,7 @@ export const generateChallanPDF = (data) => {
     const qty = Number(p.quantity || 0);
     return [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
-      { text: p.name || '', ...FONT.small },
+      formatProductName(p.name),
       { text: p.hsn || '', ...FONT.small, alignment: 'center' },
       { text: String(qty), ...FONT.small, alignment: 'center' },
       { text: p.uom || '', ...FONT.small, alignment: 'center' },

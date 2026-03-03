@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   setCustomer,
@@ -24,6 +24,24 @@ const InvoiceForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // product name textarea ref for tab handling
+  const nameTextareaRef = useRef(null);
+
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = e.target;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newValue = name.substring(0, start) + '    ' + name.substring(end);
+      setName(newValue);
+      requestAnimationFrame(() => {
+        textarea.selectionStart = start + 4;
+        textarea.selectionEnd = start + 4;
+      });
+    }
+  };
 
   const isEdit = Boolean(location.state?.invoice);
   const invoiceToEdit = location.state?.invoice;
@@ -91,8 +109,8 @@ const InvoiceForm = () => {
             quantity: p.quantity,
             rate: 0,
             uom: p.uom,
-          })
-        )
+          }),
+        ),
       );
     }
   }, [dispatch, isEdit, isFromQuotation, quotationData, challanData]);
@@ -321,7 +339,18 @@ const InvoiceForm = () => {
         {isEdit ? 'Edit Invoice' : 'Create Invoice'}
       </h2>
 
-      <form className='invoice-form' onSubmit={(e) => e.preventDefault()}>
+      <form
+        className='invoice-form'
+        onSubmit={(e) => e.preventDefault()}
+        onKeyDown={(e) => {
+          if (
+            e.key === 'Enter' &&
+            e.target.tagName !== 'TEXTAREA' // allow Enter in textareas
+          ) {
+            e.preventDefault();
+          }
+        }}
+      >
         {/* Customer */}
         <div className='form-group'>
           <label className='form-label'>Customer:</label>
@@ -484,18 +513,40 @@ const InvoiceForm = () => {
               {products.map((product, index) => (
                 <tr key={index}>
                   <td>
-                    <input
-                      type='text'
+                    <textarea
                       value={product.name}
                       onChange={(e) =>
                         dispatch(
                           updateProduct({
                             index,
                             updatedFields: { name: e.target.value },
-                          })
+                          }),
                         )
                       }
-                      className='table-input'
+                      onKeyDown={(e) => {
+                        if (e.key === 'Tab') {
+                          e.preventDefault();
+                          const start = e.target.selectionStart;
+                          const end = e.target.selectionEnd;
+                          const currentVal = product.name;
+                          const newValue =
+                            currentVal.substring(0, start) +
+                            '    ' +
+                            currentVal.substring(end);
+                          dispatch(
+                            updateProduct({
+                              index,
+                              updatedFields: { name: newValue },
+                            }),
+                          );
+                          requestAnimationFrame(() => {
+                            e.target.selectionStart = start + 4;
+                            e.target.selectionEnd = start + 4;
+                          });
+                        }
+                      }}
+                      className='table-input table-textarea'
+                      rows={3}
                     />
                   </td>
 
@@ -508,7 +559,7 @@ const InvoiceForm = () => {
                           updateProduct({
                             index,
                             updatedFields: { hsn: e.target.value },
-                          })
+                          }),
                         )
                       }
                       className='table-input'
@@ -524,7 +575,7 @@ const InvoiceForm = () => {
                           updateProduct({
                             index,
                             updatedFields: { quantity: Number(e.target.value) },
-                          })
+                          }),
                         )
                       }
                       className='table-input'
@@ -539,7 +590,7 @@ const InvoiceForm = () => {
                           updateProduct({
                             index,
                             updatedFields: { uom: e.target.value },
-                          })
+                          }),
                         )
                       }
                       className='table-select'
@@ -560,7 +611,7 @@ const InvoiceForm = () => {
                           updateProduct({
                             index,
                             updatedFields: { rate: Number(e.target.value) },
-                          })
+                          }),
                         )
                       }
                       className='table-input'
@@ -587,15 +638,19 @@ const InvoiceForm = () => {
         )}
         {/* Add product fields */}
         <div className='form-group'>
-          <label className='form-label'>Product Name:</label>
-          <input
-            type='text'
+          <label className='form-label'>Product Name</label>
+          <textarea
+            ref={nameTextareaRef}
             id='productName'
-            className='form-input'
+            className='form-input product-name-textarea'
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleNameKeyDown}
+            rows={4}
+            placeholder={'Product Details (use Tab for indentation)'}
           />
         </div>
+
         <div className='form-group'>
           <label className='form-label'>HSN Code</label>
           <input
