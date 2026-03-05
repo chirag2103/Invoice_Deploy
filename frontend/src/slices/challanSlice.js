@@ -27,7 +27,7 @@ export const fetchChallans = createAsyncThunk(
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data.challans;
-  }
+  },
 );
 
 export const fetchChallanNo = createAsyncThunk(
@@ -37,7 +37,7 @@ export const fetchChallanNo = createAsyncThunk(
       headers: { Authorization: `Bearer ${token}` },
     });
     return parseInt(res.data.challan.challanNo);
-  }
+  },
 );
 
 export const sendChallanData = createAsyncThunk(
@@ -47,7 +47,7 @@ export const sendChallanData = createAsyncThunk(
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
-  }
+  },
 );
 
 export const deleteChallan = createAsyncThunk(
@@ -57,7 +57,7 @@ export const deleteChallan = createAsyncThunk(
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data.message;
-  }
+  },
 );
 
 // -------------------- Slice --------------------
@@ -94,8 +94,17 @@ const challanSlice = createSlice({
 
     // ✅ EDIT PRODUCT FIELD (USED BY FORM)
     updateProductField(state, action) {
-      const { index, field, value } = action.payload;
-      if (state.products[index]) {
+      const { index, updatedFields, field, value } = action.payload;
+      if (!state.products[index]) return;
+
+      if (updatedFields) {
+        // object style: { index, updatedFields: { name: 'x' } }
+        state.products[index] = {
+          ...state.products[index],
+          ...updatedFields,
+        };
+      } else if (field !== undefined) {
+        // field style: { index, field: 'name', value: 'x' }
         state.products[index][field] = value;
       }
     },

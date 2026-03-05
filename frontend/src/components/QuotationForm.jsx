@@ -16,6 +16,7 @@ import {
 import { fetchCustomers } from '../slices/customerSlice';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup';
+import { uomList } from '../services/helper';
 
 import { generateQuotationPDF } from '../services/pdfGeneratorService';
 import { getTodayDate } from '../services/helper';
@@ -348,11 +349,11 @@ const QuotationForm = () => {
                       }
                       className='table-select'
                     >
-                      <option value='NOS'>NOS</option>
-                      <option value='Kg'>Kg</option>
-                      <option value='Liters'>Liters</option>
-                      <option value='Set'>Set</option>
-                      <option value='Meter'>Meter</option>
+                      {uomList.map((uom) => (
+                        <option key={uom} value={uom}>
+                          {uom}
+                        </option>
+                      ))}
                     </select>
                   </td>
 
@@ -412,10 +413,11 @@ const QuotationForm = () => {
             value={product.uom}
             onChange={(e) => setProduct({ ...product, uom: e.target.value })}
           >
-            <option value='NOS'>NOS</option>
-            <option value='Kg'>Kg</option>
-            <option value='Liters'>Liters</option>
-            <option value='Set'>Set</option>
+            {uomList.map((uom) => (
+              <option key={uom} value={uom}>
+                {uom}
+              </option>
+            ))}
           </select>
         </div>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../styles/InvoiceForm.css';
 
@@ -17,8 +17,8 @@ import {
 
 import { fetchCustomers } from '../slices/customerSlice';
 import { useNavigate } from 'react-router-dom';
-
 import { generateChallanPDF } from '../services/pdfGeneratorService';
+import { uomList } from '../services/helper';
 
 const ChallanForm = () => {
   const dispatch = useDispatch();
@@ -38,7 +38,7 @@ const ChallanForm = () => {
   const [shipToGst, setShipToGst] = useState('');
 
   // -----------------------------
-  // New Product State (with HSN)
+  // New Product State
   // -----------------------------
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -46,6 +46,30 @@ const ChallanForm = () => {
     quantity: '',
     uom: 'NOS',
   });
+
+  // ref for the add-product textarea
+  const nameTextareaRef = useRef(null);
+
+  // -----------------------------
+  // Tab handler for add-product textarea
+  // -----------------------------
+  const handleNewProductNameKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = e.target;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newValue =
+        newProduct.name.substring(0, start) +
+        '    ' +
+        newProduct.name.substring(end);
+      setNewProduct({ ...newProduct, name: newValue });
+      requestAnimationFrame(() => {
+        textarea.selectionStart = start + 4;
+        textarea.selectionEnd = start + 4;
+      });
+    }
+  };
 
   // -----------------------------
   // Initial Load
@@ -77,14 +101,12 @@ const ChallanForm = () => {
       alert('Enter product name and quantity.');
       return;
     }
-
     dispatch(addChallanProduct(newProduct));
     setNewProduct({ name: '', hsn: '', quantity: '', uom: 'NOS' });
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     switch (name) {
       case 'challanDate':
         dispatch(setChallanDate(value));
@@ -120,11 +142,7 @@ const ChallanForm = () => {
       challanProducts: challan.products,
       shipTo: sameAsBillTo
         ? null
-        : {
-            name: shipToName,
-            address: shipToAddress,
-            gstNo: shipToGst,
-          },
+        : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
     };
 
     await dispatch(sendChallanData(challanDataSave));
@@ -138,11 +156,7 @@ const ChallanForm = () => {
       products: challan.products,
       shipTo: sameAsBillTo
         ? null
-        : {
-            name: shipToName,
-            address: shipToAddress,
-            gstNo: shipToGst,
-          },
+        : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
       companyName: user.companyDetails?.name,
       companyAddress: user.companyDetails?.address,
       companyGST: user.companyDetails?.gstin,
@@ -160,7 +174,15 @@ const ChallanForm = () => {
     <div className='invoice-container'>
       <h2 className='invoice-header'>Delivery Challan</h2>
 
-      <div className='invoice-form'>
+      {/* NOTE: using div not form since submit is manual via button */}
+      <div
+        className='invoice-form'
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+          }
+        }}
+      >
         {/* Customer */}
         <div className='form-group'>
           <label className='form-label'>Customer</label>
@@ -200,7 +222,6 @@ const ChallanForm = () => {
                 onChange={(e) => setShipToName(e.target.value)}
               />
             </div>
-
             <div className='form-group'>
               <label className='form-label'>Ship To Address</label>
               <textarea
@@ -209,7 +230,6 @@ const ChallanForm = () => {
                 onChange={(e) => setShipToAddress(e.target.value)}
               />
             </div>
-
             <div className='form-group'>
               <label className='form-label'>Ship To GST No</label>
               <input
@@ -263,7 +283,7 @@ const ChallanForm = () => {
         </div>
       </div>
 
-      {/* Products */}
+      {/* Products Table */}
       <h3 className='products-header'>Products</h3>
 
       <table className='products-table'>
@@ -279,20 +299,44 @@ const ChallanForm = () => {
         <tbody>
           {challan.products.map((p, i) => (
             <tr key={i}>
+              {/* ✅ textarea with Tab support */}
               <td>
-                <input
-                  className='table-input'
+                <textarea
+                  className='table-input table-textarea'
                   value={p.name}
+                  rows={3}
                   onChange={(e) =>
                     dispatch(
                       updateChallanProduct({
                         index: i,
                         updatedFields: { name: e.target.value },
-                      })
+                      }),
                     )
                   }
+                  onKeyDown={(e) => {
+                    if (e.key === 'Tab') {
+                      e.preventDefault();
+                      const start = e.target.selectionStart;
+                      const end = e.target.selectionEnd;
+                      const newValue =
+                        p.name.substring(0, start) +
+                        '    ' +
+                        p.name.substring(end);
+                      dispatch(
+                        updateChallanProduct({
+                          index: i,
+                          updatedFields: { name: newValue },
+                        }),
+                      );
+                      requestAnimationFrame(() => {
+                        e.target.selectionStart = start + 4;
+                        e.target.selectionEnd = start + 4;
+                      });
+                    }
+                  }}
                 />
               </td>
+
               <td>
                 <input
                   className='table-input'
@@ -302,11 +346,12 @@ const ChallanForm = () => {
                       updateChallanProduct({
                         index: i,
                         updatedFields: { hsn: e.target.value },
-                      })
+                      }),
                     )
                   }
                 />
               </td>
+
               <td>
                 <input
                   type='number'
@@ -317,11 +362,12 @@ const ChallanForm = () => {
                       updateChallanProduct({
                         index: i,
                         updatedFields: { quantity: e.target.value },
-                      })
+                      }),
                     )
                   }
                 />
               </td>
+
               <td>
                 <select
                   className='table-select'
@@ -331,16 +377,18 @@ const ChallanForm = () => {
                       updateChallanProduct({
                         index: i,
                         updatedFields: { uom: e.target.value },
-                      })
+                      }),
                     )
                   }
                 >
-                  <option value='NOS'>NOS</option>
-                  <option value='PCS'>PCS</option>
-                  <option value='KG'>KG</option>
-                  <option value='MTR'>MTR</option>
+                  {uomList.map((uom) => (
+                    <option key={uom} value={uom}>
+                      {uom}
+                    </option>
+                  ))}
                 </select>
               </td>
+
               <td>
                 <button
                   className='remove-btn'
@@ -356,17 +404,22 @@ const ChallanForm = () => {
 
       {/* Add Product */}
       <div className='product-input-group'>
+        {/* ✅ textarea with Tab support */}
         <div className='form-group'>
           <label className='form-label'>Product Name</label>
-          <input
-            className='form-input'
-            placeholder='Product Name'
+          <textarea
+            ref={nameTextareaRef}
+            className='form-input product-name-textarea'
+            placeholder={'Product name\n    Tab to indent details'}
             value={newProduct.name}
+            rows={4}
             onChange={(e) =>
               setNewProduct({ ...newProduct, name: e.target.value })
             }
+            onKeyDown={handleNewProductNameKeyDown}
           />
         </div>
+
         <div className='form-group'>
           <label className='form-label'>HSN Code</label>
           <input
@@ -378,6 +431,7 @@ const ChallanForm = () => {
             }
           />
         </div>
+
         <div className='form-group'>
           <label className='form-label'>Quantity</label>
           <input
@@ -390,6 +444,7 @@ const ChallanForm = () => {
             }
           />
         </div>
+
         <div className='form-group'>
           <label className='form-label'>UOM</label>
           <select
@@ -399,19 +454,23 @@ const ChallanForm = () => {
               setNewProduct({ ...newProduct, uom: e.target.value })
             }
           >
-            <option value='NOS'>NOS</option>
-            <option value='PCS'>PCS</option>
-            <option value='KG'>KG</option>
-            <option value='MTR'>MTR</option>
+            {uomList.map((uom) => (
+              <option key={uom} value={uom}>
+                {uom}
+              </option>
+            ))}
           </select>
         </div>
-        <button className='add-btn' onClick={handleAddProduct}>
+
+        {/* ✅ type="button" prevents accidental submit */}
+        <button type='button' className='add-btn' onClick={handleAddProduct}>
           Add
         </button>
       </div>
 
       <div className='form-actions'>
-        <button className='save-challan' onClick={handleSubmit}>
+        {/* ✅ type="button" since submit is handled manually */}
+        <button type='button' className='save-challan' onClick={handleSubmit}>
           SAVE & GENERATE PDF
         </button>
       </div>

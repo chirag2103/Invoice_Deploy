@@ -15,6 +15,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup.js';
 import { generateInvoicePDF } from '../services/pdfGeneratorService.js';
 import { getTodayDate } from '../services/helper.js';
+import { uomList } from '../services/helper';
 
 const InvoiceForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -595,10 +596,11 @@ const InvoiceForm = () => {
                       }
                       className='table-select'
                     >
-                      <option value='NOS'>NOS</option>
-                      <option value='Kg'>Kg</option>
-                      <option value='Liters'>Liters</option>
-                      <option value='Set'>Set</option>
+                      {uomList.map((uom) => (
+                        <option key={uom} value={uom}>
+                          {uom}
+                        </option>
+                      ))}
                     </select>
                   </td>
 
@@ -685,10 +687,11 @@ const InvoiceForm = () => {
             value={uom}
             onChange={(e) => setUom(e.target.value)}
           >
-            <option value='NOS'>NOS</option>
-            <option value='Kg'>Kg</option>
-            <option value='Liters'>Liters</option>
-            <option value='Set'>Set</option>
+            {uomList.map((uom) => (
+              <option key={uom} value={uom}>
+                {uom}
+              </option>
+            ))}
           </select>
         </div>
         <button type='button' className='add-btn' onClick={handleAddProduct}>
