@@ -81,8 +81,19 @@ export default function Register() {
   return (
     <div className='main-container'>
       <div className='container auth-container'>
-        <form className='form signin' onSubmit={handleRegister}>
-          <h2>Register</h2>
+        <div className='auth-panel auth-panel--brand'>
+          <p className='auth-eyebrow'>Start Your Workspace</p>
+          <h1>Set up your billing workspace with company and bank details.</h1>
+          <p className='auth-copy'>
+            Create your account once, then generate invoices, quotations,
+            challans, and statements from the same system.
+          </p>
+        </div>
+        <form className='form signin auth-panel auth-panel--form' onSubmit={handleRegister}>
+          <div className='auth-heading'>
+            <h2>Register</h2>
+            <p>Create your account and configure the basics for invoicing.</p>
+          </div>
           <div className='auth-grid'>
             <div className='inputFields'>
               <input
@@ -182,7 +193,7 @@ export default function Register() {
           <div className='inputFields submit-field'>
             <input type='submit' value='Create Account' />
           </div>
-          <p>
+          <p className='auth-switch'>
             Already have an account? <Link to='/login'>Sign In</Link>
           </p>
         </form>
