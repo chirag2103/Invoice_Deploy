@@ -12,13 +12,14 @@ import purchaseInvoiceRouter from './routes/purchaseInvoiceRoute.js';
 import purchasePaymentRouter from './routes/purchasePaymentRoute.js';
 import userRouter from './routes/userRoute.js';
 import cookieParser from 'cookie-parser';
+import errorMiddleware from './middlewares/Error.js';
 
 const app = express();
 
 app.use(
   cors({
     origin: '*', // or your frontend domain
-  })
+  }),
 );
 
 app.use(cookieParser());
@@ -36,5 +37,9 @@ app.use('/api', quotationRouter);
 app.use('/api', purchaseOrderRouter);
 app.use('/api', paymentRouter);
 // app.use('/api', purchaseRouter);
+
+// Add this to app.js, AFTER all your routes
+
+app.use(errorMiddleware);
 
 export default app;

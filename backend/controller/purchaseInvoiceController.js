@@ -11,7 +11,7 @@ export const createPurchaseInvoice = async (req, res, next) => {
 
     if (!seller || !amount || !date) {
       return next(
-        new ErrorHandler('Seller, Amount, and Date are required', 400)
+        new ErrorHandler('Seller, Amount, and Date are required', 400),
       );
     }
 
@@ -57,7 +57,7 @@ export const updatePurchaseInvoice = async (req, res, next) => {
     const purchase = await PurchaseInvoice.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
       { $set: req.body },
-      { new: true }
+      { new: true },
     );
 
     if (!purchase) {
@@ -347,16 +347,18 @@ export const getSellerStatement = async (req, res) => {
     const { sellerId } = req.params;
 
     // ✅ Fetch seller
-    const seller = await Seller.findById(sellerId);
-    if (!seller) {
-      return res.status(404).json({ error: 'Seller not found' });
-    }
-
-    // ✅ Fetch purchases & payments sorted
-    const purchases = await PurchaseInvoice.find({ seller: sellerId }).sort({
+    const seller = await Seller.findOne({ _id: sellerId, user: req.user._id });
+    if (!seller) return res.status(404).json({ error: 'Seller not found' });
+    const purchases = await PurchaseInvoice.find({
+      seller: sellerId,
+      user: req.user._id,
+    }).sort({
       date: 1,
     });
-    const payments = await PurchasePayment.find({ seller: sellerId }).sort({
+    const payments = await PurchasePayment.find({
+      seller: sellerId,
+      user: req.user._id,
+    }).sort({
       date: 1,
     });
 
@@ -501,7 +503,7 @@ export const getAllSellerSummary = async (req, res, next) => {
           totalPaid,
           remaining: inv.totalBills - totalPaid,
         };
-      })
+      }),
     );
     summary.sort((a, b) => a.seller.name.localeCompare(b.seller.name));
 

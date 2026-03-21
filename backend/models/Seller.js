@@ -10,15 +10,15 @@ const sellerSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true, // prevent duplicates
       trim: true,
     },
     address: String,
     gstNumber: String,
     contact: String,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
-
+// In Seller.js — replace unique: true on name with:
+sellerSchema.index({ user: 1, name: 1 }, { unique: true });
 const Seller = mongoose.model('Seller', sellerSchema);
 export default Seller;
