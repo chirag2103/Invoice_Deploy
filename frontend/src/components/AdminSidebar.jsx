@@ -1,19 +1,12 @@
-import { Link, Location, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  RiCoupon3Fill,
   RiDashboardFill,
   RiShoppingBag3Fill,
   RiLogoutCircleRLine,
 } from 'react-icons/ri';
 import { IoIosPeople } from 'react-icons/io';
 import { AiFillFileText } from 'react-icons/ai';
-import {
-  FaChartBar,
-  FaChartLine,
-  FaChartPie,
-  FaGamepad,
-  FaStopwatch,
-} from 'react-icons/fa';
+import { FaChartBar, FaChartPie, FaStopwatch } from 'react-icons/fa';
 import { useDispatch } from 'react-redux';
 import { logout } from '../slices/userSlice';
 
@@ -178,46 +171,9 @@ const DivTwo = ({ location }) => (
   </div>
 );
 
-const DivThree = ({ location }) => (
-  <div>
-    <h5>Logs</h5>
-    <ul>
-      <Li
-        url='/admin/billinfo'
-        text='Activity Log'
-        Icon={FaStopwatch}
-        location={location}
-      />
-      <Li
-        url='/admin/coupon'
-        text='Anomaly Log'
-        Icon={RiCoupon3Fill}
-        location={location}
-      />
-      <Li
-        url='/admin/toss'
-        text='Fault Log'
-        Icon={FaGamepad}
-        location={location}
-      />
-    </ul>
-  </div>
-);
-
 const Li = ({ url, text, location, Icon }) => (
-  <li
-    style={{
-      backgroundColor: location.pathname.includes(url)
-        ? 'rgba(0,115,255,0.1)'
-        : 'white',
-    }}
-  >
-    <Link
-      to={url}
-      style={{
-        color: location.pathname.includes(url) ? 'rgb(0,115,255)' : 'black',
-      }}
-    >
+  <li className={location.pathname.includes(url) ? 'active' : ''}>
+    <Link to={url}>
       <Icon />
       {text}
     </Link>
