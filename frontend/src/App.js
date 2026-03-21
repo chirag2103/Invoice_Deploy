@@ -11,6 +11,7 @@ import Customers from './pages/Customers';
 import CreateInvoice from './pages/CreateInvoice';
 import Payments from './pages/Payments';
 import SignIn from './pages/SignIn';
+import Register from './pages/Register';
 import CustomerBills from './pages/CustomerBills';
 import Statement from './pages/Statement';
 import CustomerStatement from './pages/CustomerStatement';
@@ -39,6 +40,7 @@ function App() {
       <Routes>
         <Route path='/' element={<SignIn />} />
         <Route path='/login' element={<SignIn />} />
+        <Route path='/register' element={<Register />} />
 
         {/* Protected Routes */}
         <Route

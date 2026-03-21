@@ -5,14 +5,30 @@ import { sendToken } from '../utils/jwtToken.js';
 import { sendEmail } from '../utils/sendEmail.js';
 import crypto from 'crypto';
 export const registerUser = catchAsyncError(async (req, res, next) => {
-  const { name, email, password } = req.body;
+  const {
+    name,
+    email,
+    password,
+    companyDetails,
+    bankDetails,
+    avatar,
+  } = req.body;
+
+  const existingUser = await User.findOne({ email });
+
+  if (existingUser) {
+    return next(new ErrorHandler('User already exists with this email', 400));
+  }
+
   const user = await User.create({
     name,
     email,
     password,
+    companyDetails,
+    bankDetails,
     avatar: {
-      public_id: 'this is temp id',
-      url: 'temp url',
+      public_id: avatar?.public_id || 'default_avatar_id',
+      url: avatar?.url || 'default_avatar_url',
     },
   });
   sendToken(user, 201, res);

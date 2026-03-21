@@ -31,6 +31,10 @@
   gap: 25px;
 }
 
+.container.auth-container {
+  width: min(90vw, 760px);
+}
+
 .container .form h2 {
   color: #fff;
   font-weight: 500;
@@ -40,6 +44,17 @@
 .container .form .inputFields {
   position: relative;
   width: 300px;
+}
+
+.container .form .auth-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.container .form .submit-field {
+  width: min(100%, 540px);
 }
 
 .container .form .inputFields input {
@@ -108,4 +123,16 @@
   border-radius: 10px;
   padding: 0 8px;
   letter-spacing: 0.1em;
+}
+
+@media screen and (max-width: 768px) {
+  .container {
+    width: calc(100vw - 32px);
+    padding: 24px;
+  }
+
+  .container .form .inputFields,
+  .container .form .submit-field {
+    width: 100%;
+  }
 }

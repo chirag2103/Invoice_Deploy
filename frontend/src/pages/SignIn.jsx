@@ -1,6 +1,6 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import '../styles/signin.scss';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../slices/userSlice';
 import api from '../axiosSetup';
@@ -10,19 +10,14 @@ export default function SignIn() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Check if the user has a valid token
     const token = localStorage.getItem('token');
-    // console.log(localStorage);
     if (token) {
-      setIsLoggedIn(true);
       navigate('/admin/dashboard');
     }
-  }, []);
+  }, [navigate]);
 
   const handleLogin = (event) => {
     event.preventDefault();
@@ -82,6 +77,9 @@ export default function SignIn() {
             <div className='inputFields'>
               <input type='submit' />
             </div>
+            <p>
+              New here? <Link to='/register'>Create an account</Link>
+            </p>
           </form>
         </div>
       </div>

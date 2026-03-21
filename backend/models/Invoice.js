@@ -28,7 +28,7 @@ const invoiceSchema = mongoose.Schema({
     gstNo: { type: String },
   }, // 👉 SHIP TO (OPTIONAL)
   invoiceNo: {
-    type: String,
+    type: Number,
     required: true,
   },
   orderNo: String,
