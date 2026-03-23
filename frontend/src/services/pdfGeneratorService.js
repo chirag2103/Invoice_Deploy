@@ -246,7 +246,7 @@ export const generateInvoicePDF = (data) => {
       font: 'Roboto',
       fontSize: 10.5,
       color: COLORS.text,
-      lineHeight: 1.15,
+      lineHeight: 1,
     },
 
     content: [
@@ -724,7 +724,7 @@ export const generateQuotationPDF = (data) => {
       font: 'Roboto',
       fontSize: 10.5,
       color: COLORS.text,
-      lineHeight: 1.15,
+      lineHeight: 1,
     },
 
     content: [
@@ -1131,7 +1131,7 @@ export const generateChallanPDF = (data) => {
       font: 'Roboto',
       fontSize: 10.5,
       color: COLORS.text,
-      lineHeight: 1.15,
+      lineHeight: 1,
     },
 
     content: [
