@@ -12,11 +12,19 @@ const COLORS = {
 };
 
 const FONT = {
-  normal: { fontSize: 9, color: COLORS.text },
-  small: { fontSize: 8, color: COLORS.text },
-  label: { fontSize: 9, bold: true, color: COLORS.text },
-  title: { fontSize: 14, bold: true, color: COLORS.text },
+  normal: { fontSize: 10.5, color: COLORS.text, lineHeight: 1.15 },
+  small: { fontSize: 9.5, color: COLORS.text, lineHeight: 1.15 },
+  label: { fontSize: 10, bold: true, color: COLORS.text, lineHeight: 1.1 },
+  title: { fontSize: 16, bold: true, color: COLORS.text, lineHeight: 1.1 },
 };
+
+function getBankName(companyBank = {}) {
+  return companyBank?.bankName || companyBank?.name || '';
+}
+
+function getBankIfsc(companyBank = {}) {
+  return companyBank?.ifsc || companyBank?.ifscCode || '';
+}
 
 // Helper function - add at top of pdfGeneratorService.js
 
@@ -234,6 +242,12 @@ export const generateInvoicePDF = (data) => {
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [20, 20, 20, 25],
+    defaultStyle: {
+      font: 'Roboto',
+      fontSize: 10.5,
+      color: COLORS.text,
+      lineHeight: 1.15,
+    },
 
     content: [
       {
@@ -258,7 +272,7 @@ export const generateInvoicePDF = (data) => {
                 stack: [
                   {
                     text: companyName,
-                    fontSize: 12,
+                    fontSize: 14,
                     bold: true,
                     color: COLORS.text,
                   },
@@ -277,7 +291,13 @@ export const generateInvoicePDF = (data) => {
                 rowSpan: 4,
               },
               { text: 'Invoice No.', ...FONT.label },
-              { text: billNo || '', ...FONT.normal },
+              {
+                text: `${companyName
+                  ?.split(' ')
+                  .map((word) => word[0].toUpperCase())
+                  .join('')}-${billNo || ''}`,
+                ...FONT.normal,
+              },
             ],
             [
               {},
@@ -391,7 +411,7 @@ export const generateInvoicePDF = (data) => {
 
       {
         table: {
-          widths: ['16%', '17%', '16%', '17%', '17%', '17%'],
+          widths: ['16%', '15%', '20%', '17%', '16%', '16%'],
           body: [
             [
               { text: "Buyer's Order No.", ...FONT.small },
@@ -531,7 +551,7 @@ export const generateInvoicePDF = (data) => {
                   { text: 'Bank Details', ...FONT.label, margin: [0, 0, 0, 2] },
                   { text: companyName || '', ...FONT.small },
                   {
-                    text: `Bank Name: ${companyBank?.name || ''}`,
+                    text: `Bank Name: ${getBankName(companyBank)}`,
                     ...FONT.small,
                     margin: [0, 1, 0, 0],
                   },
@@ -541,7 +561,7 @@ export const generateInvoicePDF = (data) => {
                     margin: [0, 1, 0, 0],
                   },
                   {
-                    text: `IFSC: ${companyBank?.ifscCode || ''}`,
+                    text: `IFSC: ${getBankIfsc(companyBank)}`,
                     ...FONT.small,
                     margin: [0, 1, 0, 0],
                   },
@@ -591,7 +611,7 @@ export const generateInvoicePDF = (data) => {
                 {
                   text: 'TERMS & CONDITIONS',
                   ...FONT.label,
-                  fontSize: 10,
+                  fontSize: 11,
                   margin: [0, 8, 0, 4],
                 },
                 {
@@ -658,7 +678,6 @@ export const generateQuotationPDF = (data) => {
     quotationNo,
     date,
     customer,
-    shipTo,
     products = [],
     totalAmount,
     gst,
@@ -667,8 +686,6 @@ export const generateQuotationPDF = (data) => {
     termsAndConditions,
     technicalSpecifications,
   } = data;
-
-  const shipToData = shipTo || customer;
 
   const rows = products.map((p, i) => {
     const qty = Number(p.quantity || 0);
@@ -703,6 +720,12 @@ export const generateQuotationPDF = (data) => {
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [20, 20, 20, 25],
+    defaultStyle: {
+      font: 'Roboto',
+      fontSize: 10.5,
+      color: COLORS.text,
+      lineHeight: 1.15,
+    },
 
     content: [
       {
@@ -721,7 +744,7 @@ export const generateQuotationPDF = (data) => {
                 stack: [
                   {
                     text: companyName,
-                    fontSize: 12,
+                    fontSize: 14,
                     bold: true,
                     color: COLORS.text,
                   },
@@ -909,7 +932,7 @@ export const generateQuotationPDF = (data) => {
                   { text: 'Bank Details', ...FONT.label, margin: [0, 0, 0, 2] },
                   { text: companyName || '', ...FONT.small },
                   {
-                    text: `Bank Name: ${companyBank?.name || ''}`,
+                    text: `Bank Name: ${getBankName(companyBank)}`,
                     ...FONT.small,
                     margin: [0, 1, 0, 0],
                   },
@@ -919,7 +942,7 @@ export const generateQuotationPDF = (data) => {
                     margin: [0, 1, 0, 0],
                   },
                   {
-                    text: `IFSC: ${companyBank?.ifscCode || ''}`,
+                    text: `IFSC: ${getBankIfsc(companyBank)}`,
                     ...FONT.small,
                     margin: [0, 1, 0, 0],
                   },
@@ -967,7 +990,7 @@ export const generateQuotationPDF = (data) => {
                 {
                   text: 'TECHNICAL SPECIFICATIONS',
                   ...FONT.label,
-                  fontSize: 10,
+                  fontSize: 11,
                   margin: [0, 8, 0, 4],
                 },
                 {
@@ -1003,7 +1026,7 @@ export const generateQuotationPDF = (data) => {
                 {
                   text: 'TERMS & CONDITIONS',
                   ...FONT.label,
-                  fontSize: 10,
+                  fontSize: 11,
                   margin: [0, 8, 0, 4],
                 },
                 {
@@ -1051,9 +1074,12 @@ export const generateQuotationPDF = (data) => {
     ],
   };
 
-  pdfMake
-    .createPdf(docDefinition)
-    .download(`Quotation-${quotationNo || ''}.pdf`);
+  pdfMake.createPdf(docDefinition).download(
+    `Quotation-${companyName
+      ?.split(' ')
+      .map((word) => word[0].toUpperCase())
+      .join('')}-${quotationNo || ''}.pdf`,
+  );
 };
 
 /* ================= CHALLAN ================= */
@@ -1101,6 +1127,12 @@ export const generateChallanPDF = (data) => {
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [20, 20, 20, 25],
+    defaultStyle: {
+      font: 'Roboto',
+      fontSize: 10.5,
+      color: COLORS.text,
+      lineHeight: 1.15,
+    },
 
     content: [
       {
@@ -1119,7 +1151,7 @@ export const generateChallanPDF = (data) => {
                 stack: [
                   {
                     text: companyName,
-                    fontSize: 12,
+                    fontSize: 14,
                     bold: true,
                     color: COLORS.text,
                   },
@@ -1341,5 +1373,10 @@ export const generateChallanPDF = (data) => {
     ],
   };
 
-  pdfMake.createPdf(docDefinition).download(`Challan-${challanNo || ''}.pdf`);
+  pdfMake.createPdf(docDefinition).download(
+    `Invoice-${companyName
+      ?.split(' ')
+      .map((word) => word[0].toUpperCase())
+      .join('')}-${challanNo || ''}.pdf`,
+  );
 };
