@@ -259,9 +259,9 @@ const PoPrint = () => {
           </tr>
           <tr>
             <td>
-              <p>Bank Name: {user.bankDetails.name}</p>
+              <p>Bank Name: {user.bankDetails.bankName}</p>
               <p>A/C No: {user.bankDetails.accountNumber}</p>
-              <p>IFSC: {user.bankDetails.ifscCode}</p>
+              <p>IFSC: {user.bankDetails.ifsc}</p>
             </td>
           </tr>
           <tr>

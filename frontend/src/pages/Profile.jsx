@@ -49,7 +49,7 @@ const Profile = () => {
         loginSuccess({
           user: data.user,
           token: localStorage.getItem('token'),
-        })
+        }),
       );
       alert('Profile updated successfully');
     } catch (error) {
@@ -136,7 +136,7 @@ const Profile = () => {
                     handleChange(
                       'bankDetails',
                       'accountNumber',
-                      event.target.value
+                      event.target.value,
                     )
                   }
                 />
@@ -171,7 +171,7 @@ const Profile = () => {
                     handleChange(
                       'companyDetails',
                       'address',
-                      event.target.value
+                      event.target.value,
                     )
                   }
                 />

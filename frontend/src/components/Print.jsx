@@ -54,8 +54,8 @@ const Print = () => {
   const rowsToRender = isQuotation
     ? products.length
     : products.length > 13
-    ? products.length
-    : 13;
+      ? products.length
+      : 13;
 
   const prefix = user.companyDetails.name
     .split(' ')
@@ -140,8 +140,8 @@ const Print = () => {
                   {isQuotation
                     ? 'Quotation No.'
                     : isChallan
-                    ? 'Challan No.'
-                    : 'Invoice No.'}
+                      ? 'Challan No.'
+                      : 'Invoice No.'}
                 </p>
                 <b>
                   {prefix}
@@ -295,9 +295,9 @@ const Print = () => {
           </tr>
           <tr>
             <td>
-              <p>Bank Name: {user.bankDetails.name}</p>
+              <p>Bank Name: {user.bankDetails.bankName}</p>
               <p>A/C No: {user.bankDetails.accountNumber}</p>
-              <p>IFSC: {user.bankDetails.ifscCode}</p>
+              <p>IFSC: {user.bankDetails.ifsc}</p>
             </td>
           </tr>
           <tr>
