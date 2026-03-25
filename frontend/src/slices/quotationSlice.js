@@ -1,6 +1,16 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
 
+const initialPagination = {
+  page: 1,
+  limit: 10,
+  totalItems: 0,
+  totalPages: 1,
+  hasPrevPage: false,
+  hasNextPage: false,
+  search: '',
+};
+
 const initialState = {
   quoteNo: 1,
   customer: '',
@@ -12,34 +22,38 @@ const initialState = {
   error: null,
   loading: false,
   quotations: [],
+  pagination: initialPagination,
   message: '',
 };
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
+
 export const fetchQuotations = createAsyncThunk(
   'quotation/fetchQuotations',
-  async () => {
-    const token = localStorage.getItem('token');
-
-    const res = await api.get(`${apiUrl}/api/quotations`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return res.data.quotations;
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`${apiUrl}/api/quotations`, {
+        params,
+        headers: getAuthHeaders(),
+      });
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch quotations'
+      );
+    }
   }
 );
 
 export const fetchQuoteNo = createAsyncThunk(
   'quotation/fetchQuoteNo',
   async () => {
-    const token = localStorage.getItem('token');
-
     const res = await api.get(`${apiUrl}/api/lastquotation`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
     return parseInt(res.data.quotation.quoteNo);
   }
@@ -48,12 +62,8 @@ export const fetchQuoteNo = createAsyncThunk(
 export const sendQuotationData = createAsyncThunk(
   'quotation/sendQuotationData',
   async (data) => {
-    const token = localStorage.getItem('token');
-
     const res = await api.post(`${apiUrl}/api/quotation/new`, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
     return res.data;
   }
@@ -92,7 +102,6 @@ const quotationSlice = createSlice({
       const updatedProduct = { ...product, ...updatedFields };
       state.products[index] = updatedProduct;
 
-      // Recalculate totals
       state.totalAmount = state.products.reduce(
         (sum, prod) => sum + prod.quantity * prod.rate,
         0
@@ -108,13 +117,23 @@ const quotationSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchQuotations.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(fetchQuotations.fulfilled, (state, action) => {
-        state.quotations = action.payload;
+        state.loading = false;
+        state.quotations = action.payload.quotations || [];
+        state.pagination = action.payload.pagination || initialPagination;
+      })
+      .addCase(fetchQuotations.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
       })
       .addCase(fetchQuoteNo.fulfilled, (state, action) => {
         state.quoteNo = action.payload + 1;
       })
-      .addCase(sendQuotationData.fulfilled, (state, action) => {
+      .addCase(sendQuotationData.fulfilled, (state) => {
         state.message = 'Quotation saved successfully';
       });
   },

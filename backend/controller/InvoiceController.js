@@ -4,6 +4,7 @@ import ErrorHandler from '../utils/errorHandler.js';
 import Customer from '../models/Customer.js';
 import Payment from '../models/Payment.js';
 import mongoose from 'mongoose';
+import { filterAndPaginate } from '../utils/listResponse.js';
 
 export const getLastInvoice = catchAsyncError(async (req, res, next) => {
   try {
@@ -58,9 +59,17 @@ export const getInvoices = catchAsyncError(async (req, res, next) => {
 
     // Populate customer manually after aggregation
     await Invoice.populate(invoices, { path: 'customer' });
+    const { results, pagination } = filterAndPaginate(invoices, req.query, [
+      'invoiceNo',
+      'customer.name',
+      'grandTotal',
+      'date',
+      'placeOfSupply',
+    ]);
 
     res.status(200).json({
-      invoices,
+      invoices: results,
+      pagination,
     });
   } catch (error) {
     next(new ErrorHandler('Error fetching invoices', 500));
@@ -126,7 +135,7 @@ export const getInvoicesByCustomer = catchAsyncError(async (req, res, next) => {
 
     // const invoices = await Invoice.find().populate('customer');
 
-    const invoices = await Invoice.find({
+    const allInvoices = await Invoice.find({
       customer: customerId,
       user: req.user.id,
     }).populate('customer');
@@ -136,15 +145,23 @@ export const getInvoicesByCustomer = catchAsyncError(async (req, res, next) => {
     const customerName = customer.name;
 
     let total = 0;
-    invoices.map((invoice) => {
+    allInvoices.map((invoice) => {
       // console.log(invoice.invoiceProducts);
       total += invoice.grandTotal;
     });
+    const { results, pagination } = filterAndPaginate(allInvoices, req.query, [
+      'invoiceNo',
+      'customer.name',
+      'grandTotal',
+      'date',
+      'placeOfSupply',
+    ]);
 
     res.status(200).json({
-      invoices,
+      invoices: results,
       total,
       customerName,
+      pagination,
     });
   } catch (error) {
     // console.log(error);
@@ -262,10 +279,17 @@ export const getCustomerBillingInfo = catchAsyncError(
             .toLowerCase()
             .localeCompare(b.customerName.toLowerCase()),
         );
+      const { results, pagination } = filterAndPaginate(result, req.query, [
+        'customerName',
+        'totalBill',
+        'totalPaid',
+        'remainingAmount',
+      ]);
 
       res.status(200).json({
         success: true,
-        data: result,
+        data: results,
+        pagination,
       });
     } catch (error) {
       next(new ErrorHandler('Error fetching customer billing info', 500));

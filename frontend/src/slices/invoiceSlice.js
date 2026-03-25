@@ -3,63 +3,83 @@ import api from '../axiosSetup.js';
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
+const initialPagination = {
+  page: 1,
+  limit: 10,
+  totalItems: 0,
+  totalPages: 1,
+  hasPrevPage: false,
+  hasNextPage: false,
+  search: '',
+};
+
 const initialState = {
   billNo: 1,
   customer: '',
   date: '',
-  products: [], // { name, hsn, quantity, rate, uom }
+  products: [],
   totalAmount: 0,
   grandTotal: 0,
   gst: 9,
   error: null,
   loading: false,
   invoices: [],
+  pagination: initialPagination,
+  customerTotal: 0,
+  customerName: '',
   message: '',
 };
 
-// -------------------- Async Thunks --------------------
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
 
 export const fetchInvoices = createAsyncThunk(
   'invoice/fetchInvoices',
-  async (id = null) => {
-    const token = localStorage.getItem('token');
+  async (payload = {}, { rejectWithValue }) => {
+    try {
+      const params =
+        typeof payload === 'string' ? { customerId: payload } : payload;
+      const { customerId, ...query } = params || {};
+      const url = customerId
+        ? `${apiUrl}/api/customer/${customerId}/invoices`
+        : `${apiUrl}/api/invoices`;
 
-    if (id == null) {
-      const res = await api.get(`${apiUrl}/api/invoices`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await api.get(url, {
+        params: query,
+        headers: getAuthHeaders(),
       });
-      return res.data.invoices;
-    } else {
-      const res = await api.get(`${apiUrl}/api/customer/${id}/invoices`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.data.invoices;
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch invoices'
+      );
     }
   }
 );
 
 export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
-  const token = localStorage.getItem('token');
   const res = await api.get(`${apiUrl}/api/lastinvoice`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: getAuthHeaders(),
   });
   return parseInt(res.data.invoice.invoiceNo);
 });
 
 export const deleteInvoice = createAsyncThunk(
   'invoice/deleteInvoice',
-  async (id) => {
-    const token = localStorage.getItem('token');
-    const res = await api.delete(`${apiUrl}/api/invoice/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return res.data.message;
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await api.delete(`${apiUrl}/api/invoice/${id}`, {
+        headers: getAuthHeaders(),
+      });
+      return { id, message: res.data.message };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to delete invoice'
+      );
+    }
   }
 );
-
-// -------------------- Slice --------------------
 
 const invoiceSlice = createSlice({
   name: 'invoice',
@@ -71,13 +91,11 @@ const invoiceSlice = createSlice({
 
     setGst(state, action) {
       state.gst = action.payload;
-      // recalc when GST changes
       state.grandTotal = Math.round(
         state.totalAmount + (state.totalAmount * state.gst * 2) / 100
       );
     },
 
-    // ✅ ADD PRODUCT (HSN supported)
     addProduct(state, action) {
       state.products.push({
         name: action.payload.name,
@@ -97,7 +115,6 @@ const invoiceSlice = createSlice({
       );
     },
 
-    // ✅ REMOVE PRODUCT
     removeProduct(state, action) {
       state.products.splice(action.payload, 1);
 
@@ -111,7 +128,6 @@ const invoiceSlice = createSlice({
       );
     },
 
-    // ✅ UPDATE PRODUCT (HSN INCLUDED)
     updateProduct(state, action) {
       const { index, updatedFields } = action.payload;
       if (!state.products[index]) return;
@@ -144,14 +160,23 @@ const invoiceSlice = createSlice({
       })
       .addCase(fetchInvoices.fulfilled, (state, action) => {
         state.loading = false;
-        state.invoices = action.payload;
+        state.invoices = action.payload.invoices || [];
+        state.pagination = action.payload.pagination || initialPagination;
+        state.customerTotal = action.payload.total || 0;
+        state.customerName = action.payload.customerName || '';
       })
       .addCase(fetchInvoices.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       })
       .addCase(fetchBillNo.fulfilled, (state, action) => {
         state.billNo = action.payload + 1;
+      })
+      .addCase(deleteInvoice.fulfilled, (state, action) => {
+        state.invoices = state.invoices.filter(
+          (invoice) => invoice._id !== action.payload.id
+        );
+        state.message = action.payload.message;
       });
   },
 });

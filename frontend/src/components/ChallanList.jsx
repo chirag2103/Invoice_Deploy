@@ -1,18 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchChallans } from '../slices/challanSlice';
 import AdminSidebar from './AdminSidebar';
 import { useNavigate } from 'react-router-dom';
 import { generateChallanPDF } from '../services/pdfGeneratorService';
+import { ListToolbar, PaginationControls } from './ListControls';
 
 const ChallanList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { challans, loading, error } = useSelector((state) => state.challan);
-  const sortedChallans = [...challans].sort(
-    (a, b) => Number(b.challanNo) - Number(a.challanNo)
+  const { challans, pagination, loading, error } = useSelector(
+    (state) => state.challan
   );
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -24,8 +27,8 @@ const ChallanList = () => {
 
   // Fetch all challans
   useEffect(() => {
-    dispatch(fetchChallans());
-  }, [dispatch]);
+    dispatch(fetchChallans({ page, limit, search }));
+  }, [dispatch, page, limit, search]);
 
   // ---------------------------------------------------------
   // Print challan → Generate PDF directly
@@ -95,6 +98,14 @@ const ChallanList = () => {
           <main className='invoice-list'>
             <div className='invoice-container'>
               <h2>Challan List</h2>
+              <ListToolbar
+                search={search}
+                onSearchChange={(value) => {
+                  setSearch(value);
+                  setPage(1);
+                }}
+                searchPlaceholder='Search challan number, customer, date'
+              />
 
               <table>
                 <thead>
@@ -109,7 +120,7 @@ const ChallanList = () => {
                 </thead>
 
                 <tbody>
-                  {sortedChallans.map((challan) => (
+                  {challans.map((challan) => (
                     <tr key={challan._id}>
                       <td>{challan.challanNo}</td>
                       <td>{challan.customer?.name}</td>
@@ -130,6 +141,14 @@ const ChallanList = () => {
                   ))}
                 </tbody>
               </table>
+              <PaginationControls
+                pagination={pagination}
+                onPageChange={setPage}
+                onLimitChange={(value) => {
+                  setLimit(value);
+                  setPage(1);
+                }}
+              />
             </div>
           </main>
         </div>

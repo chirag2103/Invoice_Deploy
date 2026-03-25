@@ -1,191 +1,212 @@
-// import { BsSearch } from 'react-icons/bs';
-// import AdminSidebar from '../components/AdminSidebar';
-// import { BarChart1, LineChart, PieChart } from '../components/Charts';
-// import { FaRegBell } from 'react-icons/fa';
-// import userImg from '../assets/userpic.png';
-// const Customers = () => {
-//   const months = [
-//     'January',
-//     'February',
-//     'March',
-//     'April',
-//     'May',
-//     'June',
-//     'July',
-//     'Aug',
-//     'Sept',
-//     'Oct',
-//     'Nov',
-//     'Dec',
-//   ];
-//   return (
-//     <div className='admin-container'>
-//       <AdminSidebar />
-//       <section className='customer'>
-//         <div className='bar'>
-//           <BsSearch />
-//           <input type='text' placeholder='Search for data,users,docs' />
-//           <FaRegBell />
-//           <img src={userImg} alt='User' />
-//         </div>
-//         <div className='pie-container'>
-//           <div className='pie-chart'>
-//             <h2>Ports (Open/Closed)</h2>
-//             <PieChart
-//               labels={['Open Ports', 'Closed Ports']}
-//               label={'No of Ports'}
-//               data={[12, 19]}
-//               backgroundColor={[
-//                 'rgba(255, 99, 132, 0.2)',
-//                 'rgba(54, 162, 235, 0.2)',
-//               ]}
-//               borderColor={['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)']}
-//               borderWidth={1}
-//             />
-//           </div>
-//           <div className='bar1-chart'>
-//             <h2>Events & Count</h2>
-//             <BarChart1
-//               data_1={[200, 444, 343, 556, 778, 455, 990]}
-//               title_1='Events'
-//               bgColor_1='rgb(0,115,255)'
-//             />
-//             {/* Graph */}
-//           </div>
-//         </div>
-//         <div className='line-container'>
-//           <div className='line-chart'>
-//             <h2>No. of IP Address</h2>
-//             <LineChart
-//               data={[
-//                 200, 444, 444, 556, 778, 455, 990, 1444, 256, 447, 1000, 1200,
-//               ]}
-//               label='Users'
-//               borderColor='rgb(53, 162, 255)'
-//               backgroundColor='rgba(53, 162, 255,0.5)'
-//               labels={months}
-//             />
-//           </div>
-//         </div>
-//       </section>
-//     </div>
-//   );
-// };
-
-// export default Customers;
-
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { fetchCustomers } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
+import { ListToolbar, PaginationControls } from '../components/ListControls';
+import { fetchCustomers } from '../slices/customerSlice';
 import api from '../axiosSetup.js';
+
+const initialForm = {
+  name: '',
+  gstNo: '',
+  address: '',
+  openingBalance: '',
+};
 
 const Customers = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
-  const token = localStorage.getItem('token');
-  const navigate = useNavigate();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { customers, customerPagination, loading, error } = useSelector(
+    (state) => state.customers
+  );
+
+  const [formData, setFormData] = useState(initialForm);
+  const [editingId, setEditingId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
   useEffect(() => {
-    // console.log('Hello World');
-    dispatch(fetchCustomers());
-  }, [dispatch]);
-  const { customers } = useSelector((state) => state.customers);
+    dispatch(fetchCustomers({ page, limit, search }));
+  }, [dispatch, page, limit, search]);
 
-  const handleCustomerClick = (customerId) => {
-    navigate(`/customer/${customerId}/invoices`);
+  const resetForm = () => {
+    setFormData(initialForm);
+    setEditingId(null);
   };
 
-  const [name, setName] = useState('');
-  const [gstNo, setgstNo] = useState('');
-  const [address, setAddress] = useState('');
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    let userData = {
-      name: name,
-      gstNo: gstNo,
-      address: address,
-    };
-    let userDataJSON = JSON.stringify(userData);
-    api
-      .post(`${apiUrl}/api/customer/new`, userDataJSON, {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((res) => {
-        // console.log(res);
-        alert(res.status + 'Customer added');
-      })
-      .catch((err) => {
-        alert(err);
-      });
+    try {
+      const payload = {
+        ...formData,
+        openingBalance: Number(formData.openingBalance || 0),
+      };
+
+      if (editingId) {
+        await api.put(`${apiUrl}/api/customer/${editingId}`, payload);
+      } else {
+        await api.post(`${apiUrl}/api/customer/new`, payload);
+      }
+
+      resetForm();
+      dispatch(fetchCustomers({ page, limit, search }));
+    } catch (requestError) {
+      alert(
+        requestError.response?.data?.message || 'Unable to save customer'
+      );
+    }
   };
+
+  const handleEdit = (customer) => {
+    setEditingId(customer._id);
+    setFormData({
+      name: customer.name || '',
+      gstNo: customer.gstNo || '',
+      address: customer.address || '',
+      openingBalance: customer.openingBalance || 0,
+    });
+  };
+
+  const handleDelete = async (customerId) => {
+    if (!window.confirm('Delete this customer?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`${apiUrl}/api/customer/${customerId}`);
+      dispatch(fetchCustomers({ page, limit, search }));
+    } catch (requestError) {
+      alert(
+        requestError.response?.data?.message || 'Unable to delete customer'
+      );
+    }
+  };
+
   return (
     <div className='admin-container'>
-      {/* AdminSideBar */}
       <AdminSidebar />
       <div className='customer-container'>
         <div className='add-customer'>
-          <p>Create Customer</p>
-          <form onSubmit={handleSubmit} method='post' className='invoice-form'>
-            <label htmlFor='name' className='form-label'>
-              Name
-            </label>
+          <p>{editingId ? 'Update Customer' : 'Create Customer'}</p>
+          <form onSubmit={handleSubmit} className='invoice-form'>
+            <label className='form-label'>Name</label>
             <input
               type='text'
-              value={name}
               className='form-input'
-              onChange={(event) => {
-                setName(event.target.value);
-              }}
-              name='customer'
-              id='customer'
+              value={formData.name}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, name: event.target.value }))
+              }
+              required
             />
-            <label htmlFor='gstin' className='form-label'>
-              GSTIN:
-            </label>
-
+            <label className='form-label'>GSTIN</label>
             <input
               type='text'
-              name='gstin'
               className='form-input'
-              value={gstNo}
-              onChange={(event) => {
-                setgstNo(event.target.value);
-              }}
-              id='customer'
+              value={formData.gstNo}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, gstNo: event.target.value }))
+              }
             />
-            <label htmlFor='adddress' className='form-label'>
-              Address:
-            </label>
+            <label className='form-label'>Address</label>
+            <textarea
+              className='form-input'
+              rows='4'
+              value={formData.address}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, address: event.target.value }))
+              }
+            />
+            <label className='form-label'>Opening Balance</label>
             <input
-              type='text'
-              name='address'
+              type='number'
               className='form-input'
-              value={address}
-              onChange={(event) => {
-                setAddress(event.target.value);
-              }}
-              id='customer'
+              value={formData.openingBalance}
+              onChange={(event) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  openingBalance: event.target.value,
+                }))
+              }
             />
-            <input type='submit' className='add-btn' value='Add' />
+            <div className='form-actions'>
+              <button type='submit'>{editingId ? 'Update' : 'Add'}</button>
+              {editingId ? (
+                <button type='button' className='delete-btn' onClick={resetForm}>
+                  Cancel
+                </button>
+              ) : null}
+            </div>
           </form>
         </div>
         <div className='customer-list-container'>
-          <h1>Select a Customer</h1>
-          <div className='customr-list'>
-            {customers.map((customer) => (
-              <li
-                key={customer._id}
-                onClick={() => handleCustomerClick(customer._id)}
-              >
-                {customer.name}
-              </li>
-            ))}
+          <ListToolbar
+            title='Customers'
+            subtitle='Search, edit, delete, and open invoice history.'
+            search={search}
+            onSearchChange={(value) => {
+              setSearch(value);
+              setPage(1);
+            }}
+            searchPlaceholder='Search customers by name, GST, address'
+          />
+          {loading ? <p>Loading...</p> : null}
+          {error ? <p>Error: {error}</p> : null}
+          <div className='table-wrapper'>
+            <table className='table'>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>GST</th>
+                  <th>Address</th>
+                  <th>Opening</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.map((customer) => (
+                  <tr key={customer._id}>
+                    <td>{customer.name}</td>
+                    <td>{customer.gstNo || '-'}</td>
+                    <td>{customer.address || '-'}</td>
+                    <td>{customer.openingBalance || 0}</td>
+                    <td className='row-actions'>
+                      <button
+                        type='button'
+                        onClick={() => navigate(`/customer/${customer._id}/invoices`)}
+                      >
+                        View
+                      </button>
+                      <button
+                        type='button'
+                        className='edit-btn'
+                        onClick={() => handleEdit(customer)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type='button'
+                        className='delete-btn'
+                        onClick={() => handleDelete(customer._id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+          <PaginationControls
+            pagination={customerPagination}
+            onPageChange={setPage}
+            onLimitChange={(value) => {
+              setLimit(value);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
     </div>

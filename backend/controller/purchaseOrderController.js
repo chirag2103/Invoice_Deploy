@@ -1,6 +1,7 @@
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import PurchaseOrder from '../models/PurchaseOrder.js';
+import { filterAndPaginate } from '../utils/listResponse.js';
 
 export const createPO = catchAsyncError(async (req, res, next) => {
   const exists = await PurchaseOrder.find({
@@ -17,10 +18,16 @@ export const createPO = catchAsyncError(async (req, res, next) => {
 });
 
 export const getPO = catchAsyncError(async (req, res, next) => {
-  const po = await PurchaseOrder.find({ user: req.user.id })
+  const allPo = await PurchaseOrder.find({ user: req.user.id })
     .populate('seller')
     .sort({ poNo: -1 });
-  res.status(200).json({ po });
+  const { results, pagination } = filterAndPaginate(allPo, req.query, [
+    'poNo',
+    'seller.name',
+    'date',
+    'placeOfSupply',
+  ]);
+  res.status(200).json({ po: results, pagination });
 });
 
 export const getSinglePO = catchAsyncError(async (req, res, next) => {

@@ -1,6 +1,16 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
 
+const initialPagination = {
+  page: 1,
+  limit: 10,
+  totalItems: 0,
+  totalPages: 1,
+  hasPrevPage: false,
+  hasNextPage: false,
+  search: '',
+};
+
 const initialState = {
   poNo: 1,
   seller: '',
@@ -12,45 +22,45 @@ const initialState = {
   error: null,
   loading: false,
   pos: [],
+  pagination: initialPagination,
   message: '',
 };
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
-export const fetchPOs = createAsyncThunk('po/fetchpos', async () => {
-  const token = localStorage.getItem('token');
-
-  const res = await api.get(`${apiUrl}/api/pos`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return res.data.po;
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
 
-export const fetchLastPO = createAsyncThunk(
-  'quotation/fetchQuoteNo',
-  async () => {
-    const token = localStorage.getItem('token');
-
-    const res = await api.get(`${apiUrl}/api/lastpo`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return parseInt(res.data.po.poNo);
+export const fetchPOs = createAsyncThunk(
+  'po/fetchpos',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`${apiUrl}/api/pos`, {
+        params,
+        headers: getAuthHeaders(),
+      });
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch purchase orders'
+      );
+    }
   }
 );
+
+export const fetchLastPO = createAsyncThunk('quotation/fetchQuoteNo', async () => {
+  const res = await api.get(`${apiUrl}/api/lastpo`, {
+    headers: getAuthHeaders(),
+  });
+  return parseInt(res.data.po.poNo);
+});
 
 export const sendPOData = createAsyncThunk(
   'quotation/sendPOData',
   async (data) => {
-    const token = localStorage.getItem('token');
-
     const res = await api.post(`${apiUrl}/api/po/new`, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: getAuthHeaders(),
     });
     return res.data;
   }
@@ -89,7 +99,6 @@ const poSlice = createSlice({
       const updatedProduct = { ...product, ...updatedFields };
       state.products[index] = updatedProduct;
 
-      // Recalculate totals
       state.totalAmount = state.products.reduce(
         (sum, prod) => sum + prod.quantity * prod.rate,
         0
@@ -105,13 +114,23 @@ const poSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchPOs.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(fetchPOs.fulfilled, (state, action) => {
-        state.pos = action.payload;
+        state.loading = false;
+        state.pos = action.payload.po || [];
+        state.pagination = action.payload.pagination || initialPagination;
+      })
+      .addCase(fetchPOs.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
       })
       .addCase(fetchLastPO.fulfilled, (state, action) => {
         state.poNo = action.payload + 1;
       })
-      .addCase(sendPOData.fulfilled, (state, action) => {
+      .addCase(sendPOData.fulfilled, (state) => {
         state.message = 'PO saved successfully';
       });
   },

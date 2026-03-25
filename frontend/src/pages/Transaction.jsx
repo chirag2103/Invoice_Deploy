@@ -1,42 +1,41 @@
-import { Column } from 'react-table';
 import AdminSidebar from '../components/AdminSidebar';
-import { ReactElement, useState, useCallback, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../axiosSetup.js';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { formatNumberWithCommas } from '../services/helper.js';
+import { fetchPayments } from '../slices/paymentSlice';
+import { ListToolbar, PaginationControls } from '../components/ListControls';
 
 const Transaction = () => {
-  const apiUrl = process.env.REACT_APP_API_URL;
-  const token = localStorage.getItem('token');
-  const [payments, setPayments] = useState([]);
+  const dispatch = useDispatch();
+  const { payments, pagination } = useSelector((state) => state.payment);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const formatDate = (inputDate) => {
     if (!inputDate) return '';
     const [yyyy, mm, dd] = inputDate.split('-');
     return `${dd}-${mm}-${yyyy}`;
   };
-  var total = 0;
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const res = await api.get(`${apiUrl}/api/payments`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setPayments(res.data.payments);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    }
     document.title = 'Transactions';
-    fetchData();
-  }, []);
+    dispatch(fetchPayments({ page, limit, search }));
+  }, [dispatch, page, limit, search]);
+  const total = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
   return (
     <>
       <div className='admin-container'>
         <AdminSidebar />
         <main className='invoice-list'>
           <div className='invoice-container'>
+            <ListToolbar
+              title='Customer Transactions'
+              search={search}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              searchPlaceholder='Search payments'
+            />
             <div>
               <table>
                 <thead>
@@ -49,7 +48,6 @@ const Transaction = () => {
                 </thead>
                 <tbody>
                   {payments.map((payment, id) => {
-                    total += payment.amountPaid;
                     return (
                       <tr key={payment._id}>
                         <td>{id + 1}</td>
@@ -62,6 +60,14 @@ const Transaction = () => {
                 </tbody>
               </table>
               <h3>Total: {formatNumberWithCommas(total)}</h3>
+              <PaginationControls
+                pagination={pagination}
+                onPageChange={setPage}
+                onLimitChange={(value) => {
+                  setLimit(value);
+                  setPage(1);
+                }}
+              />
             </div>
           </div>
         </main>

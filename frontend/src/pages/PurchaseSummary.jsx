@@ -1,21 +1,19 @@
-import { Column } from 'react-table';
 import AdminSidebar from '../components/AdminSidebar';
-import { ReactElement, useState, useCallback, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../axiosSetup.js';
 import { formatNumberWithCommas } from '../services/helper.js';
+import { ListToolbar, PaginationControls } from '../components/ListControls';
 
 const PurchaseSummary = () => {
   const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem('token');
   const [payments, setPayments] = useState([]);
-  const formatDate = (inputDate) => {
-    if (!inputDate) return '';
-    const [yyyy, mm, dd] = inputDate.split('-');
-    return `${dd}-${mm}-${yyyy}`;
-  };
-  var total = 0;
+  const [pagination, setPagination] = useState(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const handleCustomerClick = (sellerId) => () => {
     // const newTabUrl = `/seller/${sellerId}/statement`;
     // window.open(newTabUrl, '_blank');
@@ -26,24 +24,34 @@ const PurchaseSummary = () => {
     async function fetchData() {
       try {
         const res = await api.get(`${apiUrl}/api/purchase/summary/all`, {
+          params: { page, limit, search },
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        // console.log(res);
         setPayments(res.data.summary);
+        setPagination(res.data.pagination);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     }
     fetchData();
-  }, []);
+  }, [apiUrl, token, page, limit, search]);
   return (
     <>
       <div className='admin-container'>
         <AdminSidebar />
         <main className='invoice-list'>
           <div className='invoice-container'>
+            <ListToolbar
+              title='Purchase Summary'
+              search={search}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              searchPlaceholder='Search sellers'
+            />
             <div>
               <table>
                 <thead>
@@ -117,6 +125,14 @@ const PurchaseSummary = () => {
                   </tr>
                 </tfoot>
               </table>
+              <PaginationControls
+                pagination={pagination}
+                onPageChange={setPage}
+                onLimitChange={(value) => {
+                  setLimit(value);
+                  setPage(1);
+                }}
+              />
             </div>
           </div>
         </main>

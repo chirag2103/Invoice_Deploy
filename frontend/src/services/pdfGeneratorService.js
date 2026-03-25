@@ -1374,7 +1374,7 @@ export const generateChallanPDF = (data) => {
   };
 
   pdfMake.createPdf(docDefinition).download(
-    `Invoice-${companyName
+    `Challan-${companyName
       ?.split(' ')
       .map((word) => word[0].toUpperCase())
       .join('')}-${challanNo || ''}.pdf`,

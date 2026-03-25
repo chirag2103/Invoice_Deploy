@@ -7,6 +7,7 @@ import {
 import { IoIosPeople } from 'react-icons/io';
 import { AiFillFileText } from 'react-icons/ai';
 import { FaChartBar, FaChartPie, FaStopwatch } from 'react-icons/fa';
+import { HiOutlineUserCircle } from 'react-icons/hi';
 import { useDispatch } from 'react-redux';
 import { logout } from '../slices/userSlice';
 
@@ -114,6 +115,12 @@ const DivOne = ({ location }) => (
         url='/statements'
         text='Statements'
         Icon={FaStopwatch}
+        location={location}
+      />
+      <Li
+        url='/admin/profile'
+        text='Profile'
+        Icon={HiOutlineUserCircle}
         location={location}
       />
     </ul>

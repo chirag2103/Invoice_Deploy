@@ -1,6 +1,7 @@
 import Challan from '../models/Challan.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
+import { filterAndPaginate } from '../utils/listResponse.js';
 
 export const createChallan = catchAsyncError(async (req, res, next) => {
   // console.log(req.body);
@@ -9,10 +10,16 @@ export const createChallan = catchAsyncError(async (req, res, next) => {
 });
 
 export const getChallans = catchAsyncError(async (req, res, next) => {
-  const challans = await Challan.find({ user: req.user.id })
+  const allChallans = await Challan.find({ user: req.user.id })
     .populate('customer')
     .sort({ challanNo: -1 });
-  res.status(200).json({ challans });
+  const { results, pagination } = filterAndPaginate(allChallans, req.query, [
+    'challanNo',
+    'customer.name',
+    'date',
+    'placeOfSupply',
+  ]);
+  res.status(200).json({ challans: results, pagination });
 });
 
 export const getSingleChallan = catchAsyncError(async (req, res, next) => {

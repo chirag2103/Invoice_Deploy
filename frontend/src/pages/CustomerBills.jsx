@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../axiosSetup.js';
 import AdminSidebar from '../components/AdminSidebar';
-// import './CustomerBills.scss';
 import { formatNumberWithCommas } from '../services/helper.js';
+import { ListToolbar, PaginationControls } from '../components/ListControls';
 
 const CustomerBills = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -10,16 +10,22 @@ const CustomerBills = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   useEffect(() => {
     async function fetchCustomerBillingInfo() {
       try {
         const response = await api.get(`${apiUrl}/api/billingInfo`, {
+          params: { page, limit, search },
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
         setCustomers(response.data.data);
+        setPagination(response.data.pagination);
         setLoading(false);
       } catch (error) {
         setError('Error fetching customer billing info');
@@ -27,7 +33,7 @@ const CustomerBills = () => {
       }
     }
     fetchCustomerBillingInfo();
-  }, []);
+  }, [apiUrl, token, page, limit, search]);
 
   const totalBill = customers.reduce(
     (acc, customer) => acc + customer.totalBill,
@@ -47,6 +53,14 @@ const CustomerBills = () => {
       <AdminSidebar />
       <div className='customerContainer'>
         <h3>Customer Billing Information</h3>
+        <ListToolbar
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          searchPlaceholder='Search billing info'
+        />
         {loading ? (
           <p>Loading...</p>
         ) : error ? (
@@ -79,6 +93,14 @@ const CustomerBills = () => {
             </tbody>
           </table>
         )}
+        <PaginationControls
+          pagination={pagination}
+          onPageChange={setPage}
+          onLimitChange={(value) => {
+            setLimit(value);
+            setPage(1);
+          }}
+        />
       </div>
     </div>
   );

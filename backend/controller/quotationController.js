@@ -1,6 +1,7 @@
 import Quotation from '../models/Quotation.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
+import { filterAndPaginate } from '../utils/listResponse.js';
 
 export const createQuotation = catchAsyncError(async (req, res, next) => {
   const exists = await Quotation.find({
@@ -17,10 +18,15 @@ export const createQuotation = catchAsyncError(async (req, res, next) => {
 });
 
 export const getQuotations = catchAsyncError(async (req, res, next) => {
-  const quotations = await Quotation.find({ user: req.user.id })
+  const allQuotations = await Quotation.find({ user: req.user.id })
     .populate('customer')
     .sort({ quoteNo: -1 });
-  res.status(200).json({ quotations });
+  const { results, pagination } = filterAndPaginate(
+    allQuotations,
+    req.query,
+    ['quoteNo', 'customer.name', 'date', 'placeOfSupply']
+  );
+  res.status(200).json({ quotations: results, pagination });
 });
 
 export const getSingleQuotation = catchAsyncError(async (req, res, next) => {

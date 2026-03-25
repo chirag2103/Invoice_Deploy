@@ -1,75 +1,48 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
 
+const apiUrl = process.env.REACT_APP_API_URL;
+
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
+
+const initialPagination = {
+  page: 1,
+  limit: 10,
+  totalItems: 0,
+  totalPages: 1,
+  hasPrevPage: false,
+  hasNextPage: false,
+  search: '',
+};
+
 const initialState = {
   purchasePayments: [],
+  pagination: initialPagination,
+  paidAmount: 0,
   error: null,
   loading: false,
   message: '',
 };
 
-const apiUrl = process.env.REACT_APP_API_URL;
-
 export const fetchPurchasePayments = createAsyncThunk(
   'purchasePayment/fetchPurchasePayments',
-  async (sellerId = null) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token');
-      let url = `${apiUrl}/api/purchase/payments`;
-
-      if (sellerId) {
-        url = `${apiUrl}/api/purchase/payment/seller/${sellerId}`;
-      }
-
+      const { sellerId, ...query } = params;
+      const url = sellerId
+        ? `${apiUrl}/api/purchase/payment/seller/${sellerId}`
+        : `${apiUrl}/api/purchase/payments`;
       const response = await api.get(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        params: query,
+        headers: getAuthHeaders(),
       });
-      return response.data.payments;
-    } catch (error) {
-      throw error;
-    }
-  }
-);
-
-export const addPurchasePayment = createAsyncThunk(
-  'purchasePayment/addPurchasePayment',
-  async (purchasePaymentData) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await api.post(
-        `${apiUrl}/api/purchasepayments`,
-        purchasePaymentData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
       return response.data;
     } catch (error) {
-      throw error;
-    }
-  }
-);
-
-export const deletePurchasePayment = createAsyncThunk(
-  'purchasePayment/deletePurchasePayment',
-  async (id) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await api.delete(
-        `${apiUrl}/api/purchasepayments/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch purchase payments'
       );
-      return { id, message: response.data.message };
-    } catch (error) {
-      throw error;
     }
   }
 );
@@ -90,39 +63,13 @@ const purchasePaymentSlice = createSlice({
       })
       .addCase(fetchPurchasePayments.fulfilled, (state, action) => {
         state.loading = false;
-        state.purchasePayments = action.payload;
+        state.purchasePayments = action.payload.payments || [];
+        state.pagination = action.payload.pagination || initialPagination;
+        state.paidAmount = action.payload.paidAmount || 0;
       })
       .addCase(fetchPurchasePayments.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(addPurchasePayment.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(addPurchasePayment.fulfilled, (state, action) => {
-        state.loading = false;
-        state.purchasePayments.push(action.payload.purchasePayment);
-        state.message = action.payload.message;
-      })
-      .addCase(addPurchasePayment.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      })
-      .addCase(deletePurchasePayment.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(deletePurchasePayment.fulfilled, (state, action) => {
-        state.loading = false;
-        state.purchasePayments = state.purchasePayments.filter(
-          (purchasePayment) => purchasePayment._id !== action.payload.id
-        );
-        state.message = action.payload.message;
-      })
-      .addCase(deletePurchasePayment.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
   },
 });

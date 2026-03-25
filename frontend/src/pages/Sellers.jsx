@@ -1,115 +1,219 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { fetchSellers } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
+import { ListToolbar, PaginationControls } from '../components/ListControls';
+import { fetchSellers } from '../slices/customerSlice';
 import api from '../axiosSetup.js';
+
+const initialForm = {
+  name: '',
+  gstNo: '',
+  address: '',
+  contact: '',
+  openingBalance: '',
+};
 
 const Sellers = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
-  const token = localStorage.getItem('token');
-  const navigate = useNavigate();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { sellers, sellerPagination, loading, error } = useSelector(
+    (state) => state.customers
+  );
+
+  const [formData, setFormData] = useState(initialForm);
+  const [editingId, setEditingId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
   useEffect(() => {
-    // console.log('Hello World');
-    dispatch(fetchSellers());
-  }, [dispatch]);
-  const { sellers } = useSelector((state) => state.customers);
+    dispatch(fetchSellers({ page, limit, search }));
+  }, [dispatch, page, limit, search]);
 
-  const handleCustomerClick = (sellerId) => {
-    navigate(`/seller/${sellerId}/statement`);
+  const resetForm = () => {
+    setFormData(initialForm);
+    setEditingId(null);
   };
 
-  const [name, setName] = useState('');
-  const [gstNo, setgstNo] = useState('');
-  const [address, setAddress] = useState('');
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    let userData = {
-      name: name,
-      gstNo: gstNo,
-      address: address,
-    };
-    let userDataJSON = JSON.stringify(userData);
-    api
-      .post(`${apiUrl}/api/seller/new`, userDataJSON, {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((res) => {
-        // console.log(res);
-        alert(res.status + 'Customer added');
-      })
-      .catch((err) => {
-        alert(err);
-      });
+    try {
+      const payload = {
+        ...formData,
+        openingBalance: Number(formData.openingBalance || 0),
+      };
+
+      if (editingId) {
+        await api.put(`${apiUrl}/api/seller/${editingId}`, payload);
+      } else {
+        await api.post(`${apiUrl}/api/seller/new`, payload);
+      }
+
+      resetForm();
+      dispatch(fetchSellers({ page, limit, search }));
+    } catch (requestError) {
+      alert(requestError.response?.data?.message || 'Unable to save seller');
+    }
   };
+
+  const handleEdit = (seller) => {
+    setEditingId(seller._id);
+    setFormData({
+      name: seller.name || '',
+      gstNo: seller.gstNo || '',
+      address: seller.address || '',
+      contact: seller.contact || '',
+      openingBalance: seller.openingBalance || 0,
+    });
+  };
+
+  const handleDelete = async (sellerId) => {
+    if (!window.confirm('Delete this seller?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`${apiUrl}/api/seller/${sellerId}`);
+      dispatch(fetchSellers({ page, limit, search }));
+    } catch (requestError) {
+      alert(requestError.response?.data?.message || 'Unable to delete seller');
+    }
+  };
+
   return (
     <div className='admin-container'>
-      {/* AdminSideBar */}
       <AdminSidebar />
       <div className='customer-container'>
         <div className='add-customer'>
-          <p>Create Customer</p>
-          <form onSubmit={handleSubmit} method='post' className='invoice-form'>
-            <label htmlFor='name' className='form-label'>
-              Name
-            </label>
+          <p>{editingId ? 'Update Seller' : 'Create Seller'}</p>
+          <form onSubmit={handleSubmit} className='invoice-form'>
+            <label className='form-label'>Name</label>
             <input
               type='text'
-              value={name}
               className='form-input'
-              onChange={(event) => {
-                setName(event.target.value);
-              }}
-              name='customer'
-              id='customer'
+              value={formData.name}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, name: event.target.value }))
+              }
+              required
             />
-            <label htmlFor='gstin' className='form-label'>
-              GSTIN:
-            </label>
-
+            <label className='form-label'>GSTIN</label>
             <input
               type='text'
-              name='gstin'
               className='form-input'
-              value={gstNo}
-              onChange={(event) => {
-                setgstNo(event.target.value);
-              }}
-              id='customer'
+              value={formData.gstNo}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, gstNo: event.target.value }))
+              }
             />
-            <label htmlFor='adddress' className='form-label'>
-              Address:
-            </label>
+            <label className='form-label'>Contact</label>
             <input
               type='text'
-              name='address'
               className='form-input'
-              value={address}
-              onChange={(event) => {
-                setAddress(event.target.value);
-              }}
-              id='customer'
+              value={formData.contact}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, contact: event.target.value }))
+              }
             />
-            <input type='submit' className='add-btn' value='Add' />
+            <label className='form-label'>Address</label>
+            <textarea
+              className='form-input'
+              rows='4'
+              value={formData.address}
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, address: event.target.value }))
+              }
+            />
+            <label className='form-label'>Opening Balance</label>
+            <input
+              type='number'
+              className='form-input'
+              value={formData.openingBalance}
+              onChange={(event) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  openingBalance: event.target.value,
+                }))
+              }
+            />
+            <div className='form-actions'>
+              <button type='submit'>{editingId ? 'Update' : 'Add'}</button>
+              {editingId ? (
+                <button type='button' className='delete-btn' onClick={resetForm}>
+                  Cancel
+                </button>
+              ) : null}
+            </div>
           </form>
         </div>
         <div className='customer-list-container'>
-          <h1>Select a Customer</h1>
-          <div className='customr-list'>
-            {sellers.map((customer) => (
-              <li
-                key={customer._id}
-                onClick={() => handleCustomerClick(customer._id)}
-              >
-                {customer.name}
-              </li>
-            ))}
+          <ListToolbar
+            title='Sellers'
+            subtitle='Manage seller details and open seller statements.'
+            search={search}
+            onSearchChange={(value) => {
+              setSearch(value);
+              setPage(1);
+            }}
+            searchPlaceholder='Search sellers by name, GST, address'
+          />
+          {loading ? <p>Loading...</p> : null}
+          {error ? <p>Error: {error}</p> : null}
+          <div className='table-wrapper'>
+            <table className='table'>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>GST</th>
+                  <th>Contact</th>
+                  <th>Opening</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sellers.map((seller) => (
+                  <tr key={seller._id}>
+                    <td>{seller.name}</td>
+                    <td>{seller.gstNo || '-'}</td>
+                    <td>{seller.contact || '-'}</td>
+                    <td>{seller.openingBalance || 0}</td>
+                    <td className='row-actions'>
+                      <button
+                        type='button'
+                        onClick={() => navigate(`/seller/${seller._id}/statement`)}
+                      >
+                        View
+                      </button>
+                      <button
+                        type='button'
+                        className='edit-btn'
+                        onClick={() => handleEdit(seller)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type='button'
+                        className='delete-btn'
+                        onClick={() => handleDelete(seller._id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+          <PaginationControls
+            pagination={sellerPagination}
+            onPageChange={setPage}
+            onLimitChange={(value) => {
+              setLimit(value);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
     </div>

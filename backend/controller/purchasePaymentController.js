@@ -1,6 +1,7 @@
 import PurchasePayment from '../models/PurchasePayment.js';
 import PurchaseInvoice from '../models/PurchaseInvoice.js';
 import ErrorHandler from '../utils/errorHandler.js';
+import { filterAndPaginate } from '../utils/listResponse.js';
 
 // ✅ Create payment
 export const createPayment = async (req, res, next) => {
@@ -31,13 +32,20 @@ export const createPayment = async (req, res, next) => {
 // ✅ Get all payments
 export const getPayments = async (req, res, next) => {
   try {
-    const payments = await PurchasePayment.find({ user: req.user._id })
+    const allPayments = await PurchasePayment.find({ user: req.user._id })
       .populate('seller', 'name')
       .sort({ date: -1 });
+    const { results, pagination } = filterAndPaginate(allPayments, req.query, [
+      'seller.name',
+      'amountPaid',
+      'date',
+      'remarks',
+    ]);
 
     res.status(200).json({
       success: true,
-      payments,
+      payments: results,
+      pagination,
     });
   } catch (err) {
     next(err);
@@ -93,17 +101,23 @@ export const getPaymentsBySeller = async (req, res, next) => {
   try {
     const seller = req.params.sellerId;
 
-    const payments = await PurchasePayment.find({
+    const allPayments = await PurchasePayment.find({
       user: req.user._id,
       seller,
     }).sort({ date: -1 });
 
-    const total = payments.reduce((acc, p) => acc + p.amountPaid, 0);
+    const total = allPayments.reduce((acc, p) => acc + p.amountPaid, 0);
+    const { results, pagination } = filterAndPaginate(allPayments, req.query, [
+      'amountPaid',
+      'date',
+      'remarks',
+    ]);
 
     res.status(200).json({
       success: true,
-      payments,
+      payments: results,
       paidAmount: total,
+      pagination,
     });
   } catch (err) {
     next(err);

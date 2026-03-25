@@ -161,6 +161,8 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
   const newUserData = {
     name: req.body.name,
     email: req.body.email,
+    companyDetails: req.body.companyDetails,
+    bankDetails: req.body.bankDetails,
   };
   const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
     new: true,
@@ -169,6 +171,7 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
   });
   res.status(200).json({
     success: true,
+    user,
   });
 });
 

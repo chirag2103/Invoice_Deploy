@@ -3,7 +3,20 @@ import api from '../axiosSetup.js';
 import { getTodayDate } from '../services/helper.js';
 
 const apiUrl = process.env.REACT_APP_API_URL;
-const token = localStorage.getItem('token');
+
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
+
+const initialPagination = {
+  page: 1,
+  limit: 10,
+  totalItems: 0,
+  totalPages: 1,
+  hasPrevPage: false,
+  hasNextPage: false,
+  search: '',
+};
 
 const initialState = {
   challanNo: 1,
@@ -11,56 +24,60 @@ const initialState = {
   customer: '',
   orderNo: '',
   orderDate: '',
-  products: [], // { name, hsn, quantity, uom }
+  products: [],
   loading: false,
   error: null,
   challans: [],
+  pagination: initialPagination,
   message: '',
 };
 
-// -------------------- Async Thunks --------------------
-
 export const fetchChallans = createAsyncThunk(
   'challan/fetchChallans',
-  async () => {
-    const response = await api.get(`${apiUrl}/api/challans`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data.challans;
-  },
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`${apiUrl}/api/challans`, {
+        params,
+        headers: getAuthHeaders(),
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch challans'
+      );
+    }
+  }
 );
 
 export const fetchChallanNo = createAsyncThunk(
   'challan/fetchChallanNo',
   async () => {
     const res = await api.get(`${apiUrl}/api/lastchallan`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getAuthHeaders(),
     });
     return parseInt(res.data.challan.challanNo);
-  },
+  }
 );
 
 export const sendChallanData = createAsyncThunk(
   'challan/sendChallanData',
   async (challanData) => {
     const response = await api.post(`${apiUrl}/api/challan/new`, challanData, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getAuthHeaders(),
     });
     return response.data;
-  },
+  }
 );
 
 export const deleteChallan = createAsyncThunk(
   'challan/deleteChallan',
   async (id) => {
     const response = await api.delete(`${apiUrl}/api/challan/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getAuthHeaders(),
     });
-    return response.data.message;
-  },
+    return { id, message: response.data.message };
+  }
 );
-
-// -------------------- Slice --------------------
 
 const challanSlice = createSlice({
   name: 'challan',
@@ -81,8 +98,6 @@ const challanSlice = createSlice({
     setOrderDate(state, action) {
       state.orderDate = action.payload;
     },
-
-    // ✅ ADD PRODUCT (HSN supported)
     addChallanProduct(state, action) {
       state.products.push({
         name: action.payload.name,
@@ -91,30 +106,22 @@ const challanSlice = createSlice({
         uom: action.payload.uom || 'NOS',
       });
     },
-
-    // ✅ EDIT PRODUCT FIELD (USED BY FORM)
     updateProductField(state, action) {
       const { index, updatedFields, field, value } = action.payload;
       if (!state.products[index]) return;
 
       if (updatedFields) {
-        // object style: { index, updatedFields: { name: 'x' } }
         state.products[index] = {
           ...state.products[index],
           ...updatedFields,
         };
       } else if (field !== undefined) {
-        // field style: { index, field: 'name', value: 'x' }
         state.products[index][field] = value;
       }
     },
-
-    // ✅ REMOVE PRODUCT
     removeChallanProduct(state, action) {
       state.products.splice(action.payload, 1);
     },
-
-    // ✅ RESET
     clearChallanData() {
       return initialState;
     },
@@ -128,11 +135,12 @@ const challanSlice = createSlice({
       })
       .addCase(fetchChallans.fulfilled, (state, action) => {
         state.loading = false;
-        state.challans = action.payload;
+        state.challans = action.payload.challans || [];
+        state.pagination = action.payload.pagination || initialPagination;
       })
       .addCase(fetchChallans.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       })
       .addCase(sendChallanData.pending, (state) => {
         state.loading = true;
@@ -145,7 +153,10 @@ const challanSlice = createSlice({
         state.error = action.error.message;
       })
       .addCase(deleteChallan.fulfilled, (state, action) => {
-        state.message = action.payload;
+        state.challans = state.challans.filter(
+          (challan) => challan._id !== action.payload.id
+        );
+        state.message = action.payload.message;
       })
       .addCase(fetchChallanNo.fulfilled, (state, action) => {
         state.challanNo = action.payload + 1;

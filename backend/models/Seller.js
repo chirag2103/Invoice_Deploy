@@ -15,10 +15,28 @@ const sellerSchema = new mongoose.Schema(
     address: String,
     gstNumber: String,
     contact: String,
+    openingBalance: {
+      type: Number,
+      default: 0,
+    },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
-// In Seller.js — replace unique: true on name with:
+
 sellerSchema.index({ user: 1, name: 1 }, { unique: true });
+
+sellerSchema
+  .virtual('gstNo')
+  .get(function () {
+    return this.gstNumber;
+  })
+  .set(function (value) {
+    this.gstNumber = value;
+  });
+
 const Seller = mongoose.model('Seller', sellerSchema);
 export default Seller;

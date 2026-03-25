@@ -33,6 +33,7 @@ import PurchaseTransaction from './pages/PurchaseTransactions';
 import PoPrint from './components/PoPrint';
 import PurchaseOrderForm from './components/PurchaseOrderForm';
 import PurchaseOrderList from './components/PurchaseOrderList';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -112,6 +113,14 @@ function App() {
           element={
             <ProtectedRoute>
               <CustomerBills />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/profile'
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />

@@ -3,6 +3,7 @@ import PurchasePayment from '../models/PurchasePayment.js';
 import Seller from '../models/Seller.js';
 
 import ErrorHandler from '../utils/errorHandler.js';
+import { filterAndPaginate } from '../utils/listResponse.js';
 
 // ✅ Create purchase invoice
 export const createPurchaseInvoice = async (req, res, next) => {
@@ -37,14 +38,19 @@ export const createPurchaseInvoice = async (req, res, next) => {
 // ✅ Get all purchase invoices for logged-in user
 export const getAllPurchases = async (req, res, next) => {
   try {
-    const purchases = await PurchaseInvoice.find({ user: req.user._id })
+    const allPurchases = await PurchaseInvoice.find({ user: req.user._id })
       .populate('seller', 'name') // show seller name
       .sort({ date: -1 });
-    // console.log(purchases);
+    const { results, pagination } = filterAndPaginate(
+      allPurchases,
+      req.query,
+      ['seller.name', 'invoiceNo', 'amount', 'date', 'remarks']
+    );
 
     res.status(200).json({
       success: true,
-      purchases,
+      purchases: results,
+      pagination,
     });
   } catch (err) {
     next(err);
@@ -507,9 +513,17 @@ export const getAllSellerSummary = async (req, res, next) => {
     );
     summary.sort((a, b) => a.seller.name.localeCompare(b.seller.name));
 
+    const { results, pagination } = filterAndPaginate(summary, req.query, [
+      'seller.name',
+      'totalBills',
+      'totalPaid',
+      'remaining',
+    ]);
+
     res.status(200).json({
       success: true,
-      summary,
+      summary: results,
+      pagination,
     });
   } catch (err) {
     next(err);

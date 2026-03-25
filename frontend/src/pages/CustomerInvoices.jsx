@@ -207,6 +207,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../axiosSetup.js';
 import AdminSidebar from '../components/AdminSidebar';
 import { formatNumberWithCommas } from '../services/helper.js';
+import { ListToolbar, PaginationControls } from '../components/ListControls';
 
 const CustomerInvoices = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -214,31 +215,33 @@ const CustomerInvoices = () => {
   const { customerId } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { invoices, loading, error } = useSelector((state) => state.invoice);
+  const { invoices, pagination, customerName, loading, error } =
+    useSelector((state) => state.invoice);
 
   const [payments, setPayments] = useState([]);
-  const [gTotal, setgToal] = useState();
-  const [paidAmount, setPaidAmount] = useState();
-  const [customerName, setCustomerName] = useState();
+  const [gTotal, setgToal] = useState(0);
+  const [paidAmount, setPaidAmount] = useState(0);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        // console.log('id:' + customerId);
         const response = await api.get(
           `${apiUrl}/api/customer/${customerId}/invoices`,
           {
+            params: { page, limit, search },
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
         setgToal(response.data.total);
-        setCustomerName(response.data.customerName);
-        // console.log(response.data.invoices);
         const res = await api.get(
           `${apiUrl}/api/customer/${customerId}/payments`,
           {
+            params: { search },
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -251,8 +254,8 @@ const CustomerInvoices = () => {
       }
     }
     fetchData();
-    dispatch(fetchInvoices(customerId));
-  }, []);
+    dispatch(fetchInvoices({ customerId, page, limit, search }));
+  }, [apiUrl, token, customerId, dispatch, page, limit, search]);
 
   const handleDelete = (invoiceId) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
@@ -281,6 +284,14 @@ const CustomerInvoices = () => {
               <p>Error: {error}</p>
             ) : (
               <div className='invoice-container'>
+                <ListToolbar
+                  search={search}
+                  onSearchChange={(value) => {
+                    setSearch(value);
+                    setPage(1);
+                  }}
+                  searchPlaceholder='Search invoices and payments for this customer'
+                />
                 <table className='invoices-table'>
                   <thead>
                     <tr>
@@ -350,6 +361,14 @@ const CustomerInvoices = () => {
                     </tbody>
                   </table>
                 </div>
+                <PaginationControls
+                  pagination={pagination}
+                  onPageChange={setPage}
+                  onLimitChange={(value) => {
+                    setLimit(value);
+                    setPage(1);
+                  }}
+                />
               </div>
             )}
           </main>

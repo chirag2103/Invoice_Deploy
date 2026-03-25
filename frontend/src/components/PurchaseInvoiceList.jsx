@@ -1,12 +1,17 @@
-import api from '../axiosSetup.js';
 import React, { useEffect, useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 import { formatNumberWithCommas } from '../services/helper.js';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchPurchaseInvoices } from '../slices/purchaseInvoiceSlice';
+import { ListToolbar, PaginationControls } from './ListControls';
 const PurchaseInvoiceList = () => {
-  const [purchases, setPurchases] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const token = localStorage.getItem('token');
+  const dispatch = useDispatch();
+  const { purchaseInvoices, pagination, loading, error } = useSelector(
+    (state) => state.purchaseInvoice
+  );
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const formatDate = (inputDate) => {
     if (!inputDate) return '';
@@ -14,28 +19,9 @@ const PurchaseInvoiceList = () => {
     return `${dd}-${mm}-${yyyy}`;
   };
 
-  const fetchPurchases = async () => {
-    try {
-      const { data } = await api.get(
-        `${process.env.REACT_APP_API_URL}/api/purchase/get/all`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Cache-Control': 'no-store',
-          },
-        }
-      );
-      setPurchases(data.purchases);
-      setLoading(false);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message);
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchPurchases();
-  }, []);
+    dispatch(fetchPurchaseInvoices({ page, limit, search }));
+  }, [dispatch, page, limit, search]);
 
   return (
     <div className='admin-container'>
@@ -43,6 +29,14 @@ const PurchaseInvoiceList = () => {
       <main className='invoice-list'>
         <div className='invoice-container'>
           <h2>Purchase Invoices</h2>
+          <ListToolbar
+            search={search}
+            onSearchChange={(value) => {
+              setSearch(value);
+              setPage(1);
+            }}
+            searchPlaceholder='Search purchase invoices'
+          />
           {loading ? (
             <p>Loading...</p>
           ) : error ? (
@@ -59,21 +53,26 @@ const PurchaseInvoiceList = () => {
                 </tr>
               </thead>
               <tbody>
-                {purchases.map((invoice) => {
-                  // console.log(invoice);
-                  return (
-                    <tr key={invoice._id}>
-                      <td>{invoice.seller?.name || 'Unknown Seller'}</td>
-                      <td>{invoice?.invoiceNo || '-'}</td>
-                      <td>{formatDate(invoice.date?.split('T')[0])}</td>
-                      <td>{formatNumberWithCommas(invoice.amount)}</td>
-                      <td>{invoice.remarks || '-'}</td>
-                    </tr>
-                  );
-                })}
+                {purchaseInvoices.map((invoice) => (
+                  <tr key={invoice._id}>
+                    <td>{invoice.seller?.name || 'Unknown Seller'}</td>
+                    <td>{invoice?.invoiceNo || '-'}</td>
+                    <td>{formatDate(invoice.date?.split('T')[0])}</td>
+                    <td>{formatNumberWithCommas(invoice.amount)}</td>
+                    <td>{invoice.remarks || '-'}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}
+          <PaginationControls
+            pagination={pagination}
+            onPageChange={setPage}
+            onLimitChange={(value) => {
+              setLimit(value);
+              setPage(1);
+            }}
+          />
         </div>
       </main>
     </div>
