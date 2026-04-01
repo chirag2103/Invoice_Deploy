@@ -23,8 +23,19 @@ const quotationSchema = new mongoose.Schema({
     required: true,
   },
   quoteNo: {
-    type: String,
+    type: Number,
     required: true,
+  },
+  sequenceNumber: {
+    type: Number,
+    required: true,
+  },
+  financialYearStart: {
+    type: Number,
+  },
+  financialYearLabel: {
+    type: String,
+    trim: true,
   },
   quotationProducts: [productSchema],
   date: { type: Date, required: true },
@@ -34,5 +45,15 @@ const quotationSchema = new mongoose.Schema({
   termsAndConditions: { type: String, default: '' },
   technicalSpecifications: { type: String, default: '' },
 });
+
+quotationSchema.index(
+  { user: 1, financialYearStart: 1, quoteNo: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      financialYearStart: { $exists: true },
+    },
+  }
+);
 
 export default mongoose.model('Quotation', quotationSchema);

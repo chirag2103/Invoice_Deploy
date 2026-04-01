@@ -13,6 +13,9 @@ const initialPagination = {
 
 const initialState = {
   quoteNo: 1,
+  financialYearLabel: '',
+  currentFinancialYear: '',
+  availableFinancialYears: [],
   customer: '',
   date: '',
   products: [],
@@ -51,11 +54,18 @@ export const fetchQuotations = createAsyncThunk(
 
 export const fetchQuoteNo = createAsyncThunk(
   'quotation/fetchQuoteNo',
-  async () => {
-    const res = await api.get(`${apiUrl}/api/lastquotation`, {
-      headers: getAuthHeaders(),
-    });
-    return parseInt(res.data.quotation.quoteNo);
+  async (date, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`${apiUrl}/api/lastquotation`, {
+        params: date ? { date } : {},
+        headers: getAuthHeaders(),
+      });
+      return res.data.quotation;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch next quotation number'
+      );
+    }
   }
 );
 
@@ -125,13 +135,16 @@ const quotationSlice = createSlice({
         state.loading = false;
         state.quotations = action.payload.quotations || [];
         state.pagination = action.payload.pagination || initialPagination;
+        state.availableFinancialYears = action.payload.availableFinancialYears || [];
+        state.currentFinancialYear = action.payload.currentFinancialYear || '';
       })
       .addCase(fetchQuotations.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || action.error.message;
       })
       .addCase(fetchQuoteNo.fulfilled, (state, action) => {
-        state.quoteNo = action.payload + 1;
+        state.quoteNo = action.payload.quoteNo;
+        state.financialYearLabel = action.payload.financialYearLabel || '';
       })
       .addCase(sendQuotationData.fulfilled, (state) => {
         state.message = 'Quotation saved successfully';

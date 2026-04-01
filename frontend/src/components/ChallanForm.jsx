@@ -5,7 +5,6 @@ import '../styles/InvoiceForm.css';
 import {
   setChallanCustomer,
   setChallanDate,
-  setChallanNo,
   setOrderNo,
   setOrderDate,
   addChallanProduct,
@@ -18,7 +17,11 @@ import {
 import { fetchCustomers } from '../slices/customerSlice';
 import { useNavigate } from 'react-router-dom';
 import { generateChallanPDF } from '../services/pdfGeneratorService';
-import { uomList } from '../services/helper';
+import {
+  formatDocumentNumber,
+  getFinancialYearFromDate,
+  uomList,
+} from '../services/helper';
 
 const ChallanForm = () => {
   const dispatch = useDispatch();
@@ -76,8 +79,13 @@ const ChallanForm = () => {
   // -----------------------------
   useEffect(() => {
     dispatch(fetchCustomers());
-    dispatch(fetchChallanNo());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (challan.challanDate) {
+      dispatch(fetchChallanNo(challan.challanDate));
+    }
+  }, [dispatch, challan.challanDate]);
 
   // -----------------------------
   // Auto-fill Ship To
@@ -145,11 +153,15 @@ const ChallanForm = () => {
         : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
     };
 
-    await dispatch(sendChallanData(challanDataSave));
+    const result = await dispatch(sendChallanData(challanDataSave));
+    const savedChallan = result.payload?.challan;
 
     const pdfData = {
       customer: selectedCustomer,
-      challanNo: challan.challanNo,
+      challanNo: formatDocumentNumber(
+        savedChallan?.challanNo || challan.challanNo,
+        savedChallan?.financialYearLabel || challan.financialYearLabel
+      ),
       date: challan.challanDate,
       orderNo: challan.orderNo,
       orderDate: challan.orderDate,
@@ -243,8 +255,27 @@ const ChallanForm = () => {
 
         {/* Challan No */}
         <div className='form-group'>
+          <label className='form-label'>Financial Year</label>
+          <input
+            className='form-input'
+            value={
+              challan.financialYearLabel ||
+              getFinancialYearFromDate(challan.challanDate)
+            }
+            disabled
+          />
+        </div>
+        <div className='form-group'>
           <label className='form-label'>Challan No</label>
-          <input className='form-input' value={challan.challanNo} disabled />
+          <input
+            className='form-input'
+            value={formatDocumentNumber(
+              challan.challanNo,
+              challan.financialYearLabel ||
+                getFinancialYearFromDate(challan.challanDate)
+            )}
+            disabled
+          />
         </div>
 
         {/* Challan Date */}

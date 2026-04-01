@@ -19,7 +19,11 @@ import api from '../axiosSetup';
 import { uomList } from '../services/helper';
 
 import { generateQuotationPDF } from '../services/pdfGeneratorService';
-import { getTodayDate } from '../services/helper';
+import {
+  formatDocumentNumber,
+  getFinancialYearFromDate,
+  getTodayDate,
+} from '../services/helper';
 
 const QuotationForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -34,7 +38,15 @@ const QuotationForm = () => {
   const quotationToEdit = location.state?.quotation;
 
   const { customers, loading, error } = useSelector((state) => state.customers);
-  const { customer, products, gst, totalAmount, grandTotal, quoteNo } =
+  const {
+    customer,
+    products,
+    gst,
+    totalAmount,
+    grandTotal,
+    quoteNo,
+    financialYearLabel,
+  } =
     useSelector((state) => state.quotation);
 
   const [quotationDate, setQuotationDate] = useState(getTodayDate());
@@ -73,7 +85,7 @@ const QuotationForm = () => {
   // ---------------------------------------------------------
   useEffect(() => {
     dispatch(fetchCustomers());
-    if (!isEdit) dispatch(fetchQuoteNo());
+    if (!isEdit) dispatch(fetchQuoteNo(quotationDate));
 
     if (isEdit && quotationToEdit) {
       dispatch(setCustomer(quotationToEdit.customer._id));
@@ -85,6 +97,12 @@ const QuotationForm = () => {
     }
     // eslint-disable-next-line
   }, [dispatch, isEdit]);
+
+  useEffect(() => {
+    if (!isEdit && quotationDate) {
+      dispatch(fetchQuoteNo(quotationDate));
+    }
+  }, [dispatch, isEdit, quotationDate]);
 
   // ---------------------------------------------------------
   // Add Product
@@ -117,7 +135,15 @@ const QuotationForm = () => {
 
     const pdfData = {
       customer: selectedCustomer,
-      quotationNo: isEdit ? quotationToEdit.quoteNo : quoteNo,
+      quotationNo: isEdit
+        ? formatDocumentNumber(
+            quotationToEdit.quoteNo,
+            quotationToEdit.financialYearLabel
+          )
+        : formatDocumentNumber(
+            quoteNo,
+            financialYearLabel || getFinancialYearFromDate(quotationDate)
+          ),
       date: quotationDate,
       products,
       totalAmount,
@@ -138,7 +164,6 @@ const QuotationForm = () => {
           `${apiUrl}/api/quotation/${quotationToEdit._id}`,
           {
             customer,
-            quoteNo: quotationToEdit.quoteNo,
             gst,
             quotationProducts: products,
             date: quotationDate,
@@ -150,10 +175,9 @@ const QuotationForm = () => {
           { headers: { Authorization: `Bearer ${token}` } },
         );
       } else {
-        await dispatch(
+        const result = await dispatch(
           sendQuotationData({
             customer,
-            quoteNo: quoteNo,
             quotationProducts: products,
             gst,
             invoiceTotal: totalAmount,
@@ -161,8 +185,15 @@ const QuotationForm = () => {
             date: quotationDate,
             technicalSpecifications,
             termsAndConditions,
-          }),
+          })
         );
+
+        if (result.meta.requestStatus === 'fulfilled' && result.payload?.quotation) {
+          pdfData.quotationNo = formatDocumentNumber(
+            result.payload.quotation.quoteNo,
+            result.payload.quotation.financialYearLabel
+          );
+        }
       }
 
       // Generate PDF directly
@@ -198,12 +229,35 @@ const QuotationForm = () => {
       >
         {/* Quote No */}
         <div className='form-group'>
+          <label className='form-label'>Financial Year</label>
+          <input
+            type='text'
+            className='form-input'
+            value={
+              isEdit
+                ? quotationToEdit.financialYearLabel ||
+                  getFinancialYearFromDate(quotationDate)
+                : financialYearLabel || getFinancialYearFromDate(quotationDate)
+            }
+            disabled
+          />
+        </div>
+
+        <div className='form-group'>
           <label className='form-label'>Quote No:</label>
           <input
             type='text'
             className='form-input'
             value={
-              isEdit ? `Q-${quotationToEdit.quoteNo}` : `Q-${quoteNo || 0}`
+              isEdit
+                ? formatDocumentNumber(
+                    quotationToEdit.quoteNo,
+                    quotationToEdit.financialYearLabel
+                  )
+                : formatDocumentNumber(
+                    quoteNo || 0,
+                    financialYearLabel || getFinancialYearFromDate(quotationDate)
+                  )
             }
             disabled
           />

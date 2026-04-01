@@ -5,17 +5,28 @@ import AdminSidebar from './AdminSidebar';
 import { fetchInvoices } from '../slices/invoiceSlice';
 import { ListToolbar, PaginationControls } from './ListControls';
 import { generateInvoicePDF } from '../services/pdfGeneratorService.js';
-import { formatNumberWithCommas } from '../services/helper.js';
+import {
+  formatDocumentNumber,
+  formatNumberWithCommas,
+} from '../services/helper.js';
 
 const InvoiceList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { invoices, pagination, loading, error } = useSelector(
+  const {
+    invoices,
+    pagination,
+    loading,
+    error,
+    availableFinancialYears,
+    currentFinancialYear,
+  } = useSelector(
     (state) => state.invoice
   );
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -35,15 +46,30 @@ const InvoiceList = () => {
   }, [searchInput]);
 
   useEffect(() => {
-    dispatch(fetchInvoices({ page, limit, search }));
-  }, [dispatch, page, limit, search]);
+    if (!selectedFinancialYear && currentFinancialYear) {
+      setSelectedFinancialYear(currentFinancialYear);
+      return;
+    }
+
+    dispatch(
+      fetchInvoices({
+        page,
+        limit,
+        search,
+        financialYear: selectedFinancialYear || undefined,
+      })
+    );
+  }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
 
   const handlePrint = (invoice, invoicefor) => {
     generateInvoicePDF({
       challanNo: invoice.challanNo || '',
       gst: invoice.gst,
       invoicefor,
-      billNo: invoice.invoiceNo,
+      billNo: formatDocumentNumber(
+        invoice.invoiceNo,
+        invoice.financialYearLabel
+      ),
       products: invoice.invoiceProducts,
       customer: invoice.customer,
       date: invoice.date.split('T'),
@@ -66,7 +92,10 @@ const InvoiceList = () => {
         challanNo: invoice.challanNo || '',
         gst: invoice.gst,
         invoicefor,
-        billNo: invoice.invoiceNo,
+        billNo: formatDocumentNumber(
+          invoice.invoiceNo,
+          invoice.financialYearLabel
+        ),
         products: invoice.invoiceProducts,
         customer: invoice.customer,
         date: invoice.date.split('T')[0],
@@ -90,6 +119,22 @@ const InvoiceList = () => {
             search={searchInput}
             onSearchChange={setSearchInput}
             searchPlaceholder='Search invoices'
+            actions={
+              <select
+                value={selectedFinancialYear}
+                onChange={(event) => {
+                  setSelectedFinancialYear(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value=''>All FY</option>
+                {availableFinancialYears.map((financialYear) => (
+                  <option key={financialYear} value={financialYear}>
+                    FY {financialYear}
+                  </option>
+                ))}
+              </select>
+            }
           />
           {error ? <p>Error: {error}</p> : null}
           {loading ? <p>Loading...</p> : null}
@@ -108,9 +153,14 @@ const InvoiceList = () => {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((invoice) => (
-                  <tr key={invoice._id}>
-                    <td>{invoice.invoiceNo}</td>
+                  {invoices.map((invoice) => (
+                    <tr key={invoice._id}>
+                      <td>
+                        {formatDocumentNumber(
+                          invoice.invoiceNo,
+                          invoice.financialYearLabel
+                        )}
+                      </td>
                     <td>{invoice?.customer?.name}</td>
                     <td>{formatDate(invoice.date.split('T')[0])}</td>
                     <td>{formatNumberWithCommas(invoice.grandTotal)}</td>

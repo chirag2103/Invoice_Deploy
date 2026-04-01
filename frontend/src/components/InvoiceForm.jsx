@@ -14,7 +14,11 @@ import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup.js';
 import { generateInvoicePDF } from '../services/pdfGeneratorService.js';
-import { getTodayDate } from '../services/helper.js';
+import {
+  formatDocumentNumber,
+  getFinancialYearFromDate,
+  getTodayDate,
+} from '../services/helper.js';
 import { uomList } from '../services/helper';
 
 const InvoiceForm = () => {
@@ -56,7 +60,15 @@ const InvoiceForm = () => {
     error: customersError,
   } = useSelector((state) => state.customers);
 
-  const { billNo, customer, gst, products, totalAmount, grandTotal } =
+  const {
+    billNo,
+    financialYearLabel,
+    customer,
+    gst,
+    products,
+    totalAmount,
+    grandTotal,
+  } =
     useSelector((state) => state.invoice);
 
   const [date, setDate] = useState(getTodayDate());
@@ -85,7 +97,6 @@ const InvoiceForm = () => {
   // ---------------- INITIAL LOAD ----------------
   useEffect(() => {
     dispatch(fetchCustomers());
-    if (!isEdit) dispatch(fetchBillNo());
 
     if (isFromQuotation && quotationData) {
       dispatch(setCustomer(quotationData.customer));
@@ -115,6 +126,12 @@ const InvoiceForm = () => {
       );
     }
   }, [dispatch, isEdit, isFromQuotation, quotationData, challanData]);
+
+  useEffect(() => {
+    if (!isEdit && date) {
+      dispatch(fetchBillNo(date));
+    }
+  }, [dispatch, isEdit, date]);
 
   // ---------------- EDIT MODE ----------------
   useEffect(() => {
@@ -186,7 +203,6 @@ const InvoiceForm = () => {
     try {
       const payload = {
         customer: customer._id,
-        invoiceNo: billNo,
         gst,
         invoiceProducts: products,
         invoiceTotal: totalAmount,
@@ -202,14 +218,19 @@ const InvoiceForm = () => {
           : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
       };
 
-      await api.post(`${apiUrl}/api/invoice/new`, payload, {
+      const { data } = await api.post(`${apiUrl}/api/invoice/new`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      const savedInvoice = data.invoice;
 
       generateInvoicePDF({
         customer,
         shipTo: payload.shipTo,
-        billNo,
+        billNo: formatDocumentNumber(
+          savedInvoice.invoiceNo,
+          savedInvoice.financialYearLabel
+        ),
         products,
         gst,
         totalAmount,
@@ -266,14 +287,19 @@ const InvoiceForm = () => {
             },
       };
 
-      await api.put(`${apiUrl}/api/invoice/${invoiceToEdit._id}`, payload, {
+      const { data } = await api.put(`${apiUrl}/api/invoice/${invoiceToEdit._id}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      const savedInvoice = data.invoice;
 
       generateInvoicePDF({
         customer,
         shipTo: payload.shipTo,
-        billNo: invoiceToEdit.invoiceNo,
+        billNo: formatDocumentNumber(
+          savedInvoice.invoiceNo,
+          savedInvoice.financialYearLabel
+        ),
         products,
         gst,
         totalAmount,
@@ -316,6 +342,7 @@ const InvoiceForm = () => {
             gstNo: shipToGst,
           },
       billNo,
+      financialYearLabel,
       products,
       gst,
       totalAmount,
@@ -421,11 +448,34 @@ const InvoiceForm = () => {
         )}
         {/* Bill No */}
         <div className='form-group'>
+          <label className='form-label'>Financial Year</label>
+          <input
+            type='text'
+            className='form-input'
+            value={
+              isEdit
+                ? invoiceToEdit.financialYearLabel || getFinancialYearFromDate(date)
+                : financialYearLabel || getFinancialYearFromDate(date)
+            }
+            disabled
+          />
+        </div>
+        <div className='form-group'>
           <label className='form-label'>Bill No</label>
           <input
             type='text'
             className='form-input'
-            value={isEdit ? invoiceToEdit.invoiceNo : billNo}
+            value={
+              isEdit
+                ? formatDocumentNumber(
+                    invoiceToEdit.invoiceNo,
+                    invoiceToEdit.financialYearLabel
+                  )
+                : formatDocumentNumber(
+                    billNo,
+                    financialYearLabel || getFinancialYearFromDate(date)
+                  )
+            }
             disabled
           />
         </div>

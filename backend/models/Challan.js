@@ -27,8 +27,19 @@ const challanSchema = mongoose.Schema({
     gstNo: { type: String },
   }, // 👉 SHIP TO (OPTIONAL)
   challanNo: {
-    type: String,
+    type: Number,
     required: true,
+  },
+  sequenceNumber: {
+    type: Number,
+    required: true,
+  },
+  financialYearStart: {
+    type: Number,
+  },
+  financialYearLabel: {
+    type: String,
+    trim: true,
   },
   challanProducts: [challanProductSchema],
   challanDate: {
@@ -38,5 +49,15 @@ const challanSchema = mongoose.Schema({
   orderNo: String,
   orderDate: Date,
 });
+
+challanSchema.index(
+  { user: 1, financialYearStart: 1, challanNo: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      financialYearStart: { $exists: true },
+    },
+  }
+);
 
 export default mongoose.model('Challan', challanSchema);
