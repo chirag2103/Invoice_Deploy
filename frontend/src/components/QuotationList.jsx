@@ -4,17 +4,25 @@ import { useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import { fetchQuotations } from '../slices/quotationSlice';
 import { generateQuotationPDF } from '../services/pdfGeneratorService';
-import { formatNumberWithCommas } from '../services/helper';
+import { formatDocumentNumber, formatNumberWithCommas } from '../services/helper';
 import { ListToolbar, PaginationControls } from './ListControls';
 
 const QuotationList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { quotations, pagination, loading, error } = useSelector(
+  const {
+    quotations,
+    pagination,
+    loading,
+    error,
+    availableFinancialYears,
+    currentFinancialYear,
+  } = useSelector(
     (state) => state.quotation
   );
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -35,13 +43,28 @@ const QuotationList = () => {
   }, [searchInput]);
 
   useEffect(() => {
-    dispatch(fetchQuotations({ page, limit, search }));
-  }, [dispatch, page, limit, search]);
+    if (!selectedFinancialYear && currentFinancialYear) {
+      setSelectedFinancialYear(currentFinancialYear);
+      return;
+    }
+
+    dispatch(
+      fetchQuotations({
+        page,
+        limit,
+        search,
+        financialYear: selectedFinancialYear || undefined,
+      })
+    );
+  }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
 
   const handlePrint = (quotation) => {
     generateQuotationPDF({
       customer: quotation.customer,
-      quotationNo: quotation.quoteNo,
+      quotationNo: formatDocumentNumber(
+        quotation.quoteNo,
+        quotation.financialYearLabel
+      ),
       date: quotation.date.split('T')[0],
       products: quotation.quotationProducts,
       gst: quotation.gst,
@@ -72,7 +95,10 @@ const QuotationList = () => {
       state: {
         gst: quotation.gst,
         invoicefor: 'Quotation',
-        billNo: quotation.quoteNo,
+        billNo: formatDocumentNumber(
+          quotation.quoteNo,
+          quotation.financialYearLabel
+        ),
         products: quotation.quotationProducts,
         customer: quotation.customer,
         date: quotation.date.split('T')[0],
@@ -92,6 +118,22 @@ const QuotationList = () => {
             search={searchInput}
             onSearchChange={setSearchInput}
             searchPlaceholder='Search quotations'
+            actions={
+              <select
+                value={selectedFinancialYear}
+                onChange={(event) => {
+                  setSelectedFinancialYear(event.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value=''>All FY</option>
+                {availableFinancialYears.map((financialYear) => (
+                  <option key={financialYear} value={financialYear}>
+                    FY {financialYear}
+                  </option>
+                ))}
+              </select>
+            }
           />
           {error ? <p>Error: {error}</p> : null}
           {loading ? <p>Loading...</p> : null}
@@ -109,9 +151,14 @@ const QuotationList = () => {
               </tr>
             </thead>
             <tbody>
-              {quotations.map((quotation) => (
-                <tr key={quotation._id}>
-                  <td>Q-{quotation.quoteNo}</td>
+                {quotations.map((quotation) => (
+                  <tr key={quotation._id}>
+                    <td>
+                      {formatDocumentNumber(
+                        quotation.quoteNo,
+                        quotation.financialYearLabel
+                      )}
+                    </td>
                   <td>{quotation.customer?.name}</td>
                   <td>{formatDate(quotation.date.split('T')[0])}</td>
                   <td>Rs {formatNumberWithCommas(quotation.grandTotal)}</td>

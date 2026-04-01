@@ -31,6 +31,18 @@ const invoiceSchema = mongoose.Schema({
     type: Number,
     required: true,
   },
+  sequenceNumber: {
+    type: Number,
+    required: true,
+  },
+  financialYearStart: {
+    type: Number,
+    required: false,
+  },
+  financialYearLabel: {
+    type: String,
+    trim: true,
+  },
   orderNo: String,
   challanNo: String,
   gst: Number,
@@ -45,6 +57,16 @@ const invoiceSchema = mongoose.Schema({
   },
   termsAndConditions: { type: String, default: '' },
 });
+
+invoiceSchema.index(
+  { user: 1, financialYearStart: 1, invoiceNo: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      financialYearStart: { $exists: true },
+    },
+  }
+);
 
 // invoiceSchema.pre('save', function (next) {
 //   this.remainingAmount = this.invoiceTotal - this.paidAmount;

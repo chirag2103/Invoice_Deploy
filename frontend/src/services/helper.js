@@ -44,6 +44,24 @@ export const getTodayDate = () => {
   return today.toISOString().split('T')[0]; // YYYY-MM-DD
 };
 
+export const getFinancialYearFromDate = (dateInput) => {
+  const date = dateInput ? new Date(dateInput) : new Date();
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const startYear = month >= 3 ? year : year - 1;
+  return `${String(startYear).slice(-2)}-${String(startYear + 1).slice(-2)}`;
+};
+
+export const formatDocumentNumber = (number, financialYearLabel) => {
+  if (number === undefined || number === null || number === '') {
+    return '';
+  }
+
+  return financialYearLabel
+    ? `${financialYearLabel}/${number}`
+    : String(number);
+};
+
 export function formatDate(date) {
   if (!date) return '';
   try {

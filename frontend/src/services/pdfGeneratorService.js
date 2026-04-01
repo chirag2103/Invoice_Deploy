@@ -18,6 +18,8 @@ const FONT = {
   title: { fontSize: 16, bold: true, color: COLORS.text, lineHeight: 1.1 },
 };
 
+const MIN_ROWS = 11;
+
 function getBankName(companyBank = {}) {
   return companyBank?.bankName || companyBank?.name || '';
 }
@@ -180,7 +182,7 @@ const signatureImage =
 
 /* ================= INVOICE ================= */
 
-export const generateInvoicePDF = (data) => {
+const buildInvoiceDocDefinition = (data, options = {}) => {
   const {
     companyName,
     companyAddress,
@@ -206,6 +208,7 @@ export const generateInvoicePDF = (data) => {
     companyBank,
     invoicefor = 'Original Copy',
   } = data;
+  const { download = true, fileName } = options;
 
   const shipToData = shipTo || customer;
 
@@ -225,7 +228,6 @@ export const generateInvoicePDF = (data) => {
     ];
   });
 
-  const MIN_ROWS = 2;
   const fillerRows =
     rows.length < MIN_ROWS
       ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
@@ -295,7 +297,7 @@ export const generateInvoicePDF = (data) => {
                 text: `${companyName
                   ?.split(' ')
                   .map((word) => word[0].toUpperCase())
-                  .join('')}-${billNo || ''}`,
+                  .join('')}/${billNo || ''}`,
                 ...FONT.normal,
               },
             ],
@@ -659,11 +661,92 @@ export const generateInvoicePDF = (data) => {
     ],
   };
 
-  pdfMake.createPdf(docDefinition).download(
-    `Invoice-${companyName
-      ?.split(' ')
-      .map((word) => word[0].toUpperCase())
-      .join('')}-${billNo || ''}.pdf`,
+  if (download) {
+    pdfMake.createPdf(docDefinition).download(
+      fileName ||
+        `Invoice-${companyName
+          ?.split(' ')
+          .map((word) => word[0].toUpperCase())
+          .join('')}-${billNo || ''}.pdf`
+    );
+  }
+
+  return docDefinition;
+};
+
+export const generateInvoicePDF = (data) => buildInvoiceDocDefinition(data);
+
+export const generateMonthlyInvoicesPDF = ({
+  invoices = [],
+  invoicefor = 'Original Copy',
+  monthLabel = '',
+  financialYearLabel = '',
+  companyName = '',
+  companyAddress = '',
+  companyGST = '',
+  companyPhone = '',
+  companyBank = {},
+}) => {
+  if (!invoices.length) {
+    return;
+  }
+
+  const companyCode = companyName
+    ?.split(' ')
+    .map((word) => word[0]?.toUpperCase())
+    .join('');
+
+  const combinedContent = invoices.flatMap((invoice, index) => {
+    const invoiceDoc = buildInvoiceDocDefinition(
+      {
+        companyName,
+        companyAddress,
+        companyGST,
+        companyPhone,
+        companyBank,
+        billNo: invoice.billNo,
+        date: invoice.date,
+        challanNo: invoice.challanNo,
+        challanDate: invoice.challanDate,
+        orderNo: invoice.orderNo,
+        orderDate: invoice.orderDate,
+        disDocNo: invoice.disDocNo,
+        deliveryDate: invoice.deliveryDate,
+        dispatchedThrough: invoice.dispatchedThrough,
+        destination: invoice.destination,
+        customer: invoice.customer,
+        shipTo: invoice.shipTo,
+        products: invoice.products,
+        totalAmount: invoice.totalAmount,
+        termsAndConditions: invoice.termsAndConditions,
+        gst: invoice.gst,
+        grandTotal: invoice.grandTotal,
+        invoicefor,
+      },
+      { download: false }
+    );
+
+    const content = [...invoiceDoc.content];
+    if (index < invoices.length - 1) {
+      content.push({ text: '', pageBreak: 'after' });
+    }
+    return content;
+  });
+
+  pdfMake.createPdf({
+    pageSize: 'A4',
+    pageMargins: [20, 20, 20, 25],
+    defaultStyle: {
+      font: 'Roboto',
+      fontSize: 10.5,
+      color: COLORS.text,
+      lineHeight: 1,
+    },
+    content: combinedContent,
+  }).download(
+    `Invoices-${companyCode || 'COMPANY'}-${financialYearLabel || 'FY'}-${
+      monthLabel || 'Month'
+    }-${invoicefor === 'Duplicate Copy' ? 'Duplicate' : 'Original'}.pdf`
   );
 };
 
@@ -703,7 +786,6 @@ export const generateQuotationPDF = (data) => {
     ];
   });
 
-  const MIN_ROWS = 2;
   const fillerRows =
     rows.length < MIN_ROWS
       ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
@@ -1112,7 +1194,6 @@ export const generateChallanPDF = (data) => {
     ];
   });
 
-  const MIN_ROWS = 2;
   const fillerRows =
     rows.length < MIN_ROWS
       ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [

@@ -20,6 +20,9 @@ const initialPagination = {
 
 const initialState = {
   challanNo: 1,
+  financialYearLabel: '',
+  currentFinancialYear: '',
+  availableFinancialYears: [],
   challanDate: getTodayDate(),
   customer: '',
   orderNo: '',
@@ -51,11 +54,18 @@ export const fetchChallans = createAsyncThunk(
 
 export const fetchChallanNo = createAsyncThunk(
   'challan/fetchChallanNo',
-  async () => {
-    const res = await api.get(`${apiUrl}/api/lastchallan`, {
-      headers: getAuthHeaders(),
-    });
-    return parseInt(res.data.challan.challanNo);
+  async (date, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`${apiUrl}/api/lastchallan`, {
+        params: date ? { date } : {},
+        headers: getAuthHeaders(),
+      });
+      return res.data.challan;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch next challan number'
+      );
+    }
   }
 );
 
@@ -137,6 +147,8 @@ const challanSlice = createSlice({
         state.loading = false;
         state.challans = action.payload.challans || [];
         state.pagination = action.payload.pagination || initialPagination;
+        state.availableFinancialYears = action.payload.availableFinancialYears || [];
+        state.currentFinancialYear = action.payload.currentFinancialYear || '';
       })
       .addCase(fetchChallans.rejected, (state, action) => {
         state.loading = false;
@@ -159,7 +171,8 @@ const challanSlice = createSlice({
         state.message = action.payload.message;
       })
       .addCase(fetchChallanNo.fulfilled, (state, action) => {
-        state.challanNo = action.payload + 1;
+        state.challanNo = action.payload.challanNo;
+        state.financialYearLabel = action.payload.financialYearLabel || '';
       });
   },
 });

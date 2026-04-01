@@ -15,6 +15,9 @@ const initialPagination = {
 
 const initialState = {
   billNo: 1,
+  financialYearLabel: '',
+  currentFinancialYear: '',
+  availableFinancialYears: [],
   customer: '',
   date: '',
   products: [],
@@ -58,12 +61,22 @@ export const fetchInvoices = createAsyncThunk(
   }
 );
 
-export const fetchBillNo = createAsyncThunk('invoice/fetchBillNo', async () => {
-  const res = await api.get(`${apiUrl}/api/lastinvoice`, {
-    headers: getAuthHeaders(),
-  });
-  return parseInt(res.data.invoice.invoiceNo);
-});
+export const fetchBillNo = createAsyncThunk(
+  'invoice/fetchBillNo',
+  async (date, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`${apiUrl}/api/lastinvoice`, {
+        params: date ? { date } : {},
+        headers: getAuthHeaders(),
+      });
+      return res.data.invoice;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch next invoice number'
+      );
+    }
+  }
+);
 
 export const deleteInvoice = createAsyncThunk(
   'invoice/deleteInvoice',
@@ -164,13 +177,16 @@ const invoiceSlice = createSlice({
         state.pagination = action.payload.pagination || initialPagination;
         state.customerTotal = action.payload.total || 0;
         state.customerName = action.payload.customerName || '';
+        state.availableFinancialYears = action.payload.availableFinancialYears || [];
+        state.currentFinancialYear = action.payload.currentFinancialYear || '';
       })
       .addCase(fetchInvoices.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || action.error.message;
       })
       .addCase(fetchBillNo.fulfilled, (state, action) => {
-        state.billNo = action.payload + 1;
+        state.billNo = action.payload.invoiceNo;
+        state.financialYearLabel = action.payload.financialYearLabel || '';
       })
       .addCase(deleteInvoice.fulfilled, (state, action) => {
         state.invoices = state.invoices.filter(
