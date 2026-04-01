@@ -12,8 +12,8 @@ const COLORS = {
 };
 
 const FONT = {
-  normal: { fontSize: 10.5, color: COLORS.text, lineHeight: 1.15 },
-  small: { fontSize: 9.5, color: COLORS.text, lineHeight: 1.15 },
+  normal: { fontSize: 10, color: COLORS.text, lineHeight: 1.15 },
+  small: { fontSize: 9, color: COLORS.text, lineHeight: 1.15 },
   label: { fontSize: 10, bold: true, color: COLORS.text, lineHeight: 1.1 },
   title: { fontSize: 16, bold: true, color: COLORS.text, lineHeight: 1.1 },
 };
@@ -225,7 +225,7 @@ export const generateInvoicePDF = (data) => {
     ];
   });
 
-  const MIN_ROWS = 15;
+  const MIN_ROWS = 2;
   const fillerRows =
     rows.length < MIN_ROWS
       ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
@@ -326,7 +326,7 @@ export const generateInvoicePDF = (data) => {
           paddingTop: () => 3,
           paddingBottom: () => 3,
         },
-        margin: [0, 0, 0, 8],
+        margin: [0, 0, 0, 4],
       },
 
       {
@@ -538,7 +538,7 @@ export const generateInvoicePDF = (data) => {
           paddingTop: () => 2,
           paddingBottom: () => 2,
         },
-        margin: [0, 4, 0, 8],
+        margin: [0, 4, 0, 4],
       },
 
       {
@@ -703,7 +703,7 @@ export const generateQuotationPDF = (data) => {
     ];
   });
 
-  const MIN_ROWS = 15;
+  const MIN_ROWS = 2;
   const fillerRows =
     rows.length < MIN_ROWS
       ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
@@ -1112,7 +1112,7 @@ export const generateChallanPDF = (data) => {
     ];
   });
 
-  const MIN_ROWS = 15;
+  const MIN_ROWS = 2;
   const fillerRows =
     rows.length < MIN_ROWS
       ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
