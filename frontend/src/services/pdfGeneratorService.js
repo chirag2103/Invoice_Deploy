@@ -19,6 +19,44 @@ const FONT = {
 };
 
 const MIN_ROWS = 11;
+const INVOICE_FIRST_PAGE_MIN_ROWS = 8;
+const INVOICE_FIRST_PAGE_MAX_ROWS = 18;
+const INVOICE_CONTINUATION_PAGE_MAX_ROWS = 18;
+
+const simpleBorderLayout = {
+  hLineWidth: () => 0.5,
+  vLineWidth: () => 0.5,
+  hLineColor: () => COLORS.border,
+  vLineColor: () => COLORS.border,
+};
+
+const paddedBorderLayout = {
+  ...simpleBorderLayout,
+  paddingLeft: () => 4,
+  paddingRight: () => 4,
+  paddingTop: () => 3,
+  paddingBottom: () => 3,
+};
+
+const compactBorderLayout = {
+  ...simpleBorderLayout,
+  paddingLeft: () => 3,
+  paddingRight: () => 3,
+  paddingTop: () => 2,
+  paddingBottom: () => 2,
+};
+
+const invoiceTableLayout = {
+  hLineWidth: (i, node) =>
+    i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0,
+  vLineWidth: () => 0.5,
+  hLineColor: () => COLORS.border,
+  vLineColor: () => COLORS.border,
+  paddingLeft: () => 3,
+  paddingRight: () => 3,
+  paddingTop: () => 2,
+  paddingBottom: () => 2,
+};
 
 function getBankName(companyBank = {}) {
   return companyBank?.bankName || companyBank?.name || '';
@@ -182,6 +220,435 @@ const signatureImage =
 
 /* ================= INVOICE ================= */
 
+const createInvoiceFillerRows = (count) =>
+  Array.from({ length: Math.max(count, 0) }).map(() => [
+    { text: ' ', ...FONT.small },
+    { text: ' ', ...FONT.small },
+    { text: ' ', ...FONT.small },
+    { text: ' ', ...FONT.small },
+    { text: ' ', ...FONT.small },
+    { text: ' ', ...FONT.small },
+    { text: ' ', ...FONT.small },
+  ]);
+
+const getInvoiceRows = (products = []) =>
+  products.map((p, i) => {
+    const qty = Number(p.quantity || 0);
+    const rate = Number(p.rate || 0);
+    const amount = qty * rate;
+
+    return [
+      { text: String(i + 1), ...FONT.small, alignment: 'center' },
+      formatProductName(p.name),
+      { text: p.hsn || '', ...FONT.small, alignment: 'center' },
+      { text: String(qty), ...FONT.small, alignment: 'center' },
+      { text: p.uom || '', ...FONT.small, alignment: 'center' },
+      { text: formatCurrency(rate), ...FONT.small, alignment: 'center' },
+      { text: formatCurrency(amount), ...FONT.small, alignment: 'center' },
+    ];
+  });
+
+const getInvoiceRowChunks = (rows) => {
+  if (rows.length <= INVOICE_FIRST_PAGE_MAX_ROWS) {
+    return [
+      {
+        rows,
+        fillerRowCount: Math.max(INVOICE_FIRST_PAGE_MIN_ROWS - rows.length, 0),
+      },
+    ];
+  }
+
+  const chunks = [
+    {
+      rows: rows.slice(0, INVOICE_FIRST_PAGE_MAX_ROWS),
+      fillerRowCount: 0,
+    },
+  ];
+
+  for (
+    let index = INVOICE_FIRST_PAGE_MAX_ROWS;
+    index < rows.length;
+    index += INVOICE_CONTINUATION_PAGE_MAX_ROWS
+  ) {
+    chunks.push({
+      rows: rows.slice(index, index + INVOICE_CONTINUATION_PAGE_MAX_ROWS),
+      fillerRowCount: 0,
+    });
+  }
+
+  return chunks;
+};
+
+const buildInvoiceHeaderSection = ({
+  companyName,
+  companyAddress,
+  companyGST,
+  companyPhone,
+  billNo,
+  date,
+  challanNo,
+  challanDate,
+  invoicefor,
+  pageIndex,
+}) => [
+  {
+    text: 'TAX INVOICE',
+    ...FONT.title,
+    alignment: 'center',
+    margin: [0, 0, 0, 4],
+  },
+  {
+    text: pageIndex === 0 ? invoicefor : `${invoicefor} (Continued)`,
+    ...FONT.small,
+    alignment: 'center',
+    margin: [0, 0, 0, 8],
+  },
+  {
+    table: {
+      widths: ['60%', '20%', '20%'],
+      body: [
+        [
+          {
+            stack: [
+              {
+                text: companyName,
+                fontSize: 14,
+                bold: true,
+                color: COLORS.text,
+              },
+              { text: companyAddress, ...FONT.small, margin: [0, 2, 0, 0] },
+              {
+                text: `GSTIN: ${companyGST || '-'}`,
+                ...FONT.small,
+                margin: [0, 2, 0, 0],
+              },
+              {
+                text: `Mobile No. ${companyPhone || ''}`,
+                ...FONT.small,
+                margin: [0, 2, 0, 0],
+              },
+            ],
+            rowSpan: 4,
+          },
+          { text: 'Invoice No.', ...FONT.label },
+          {
+            text: `${companyName
+              ?.split(' ')
+              .map((word) => word[0].toUpperCase())
+              .join('')}/${billNo || ''}`,
+            ...FONT.normal,
+          },
+        ],
+        [
+          {},
+          { text: 'Invoice Date', ...FONT.label },
+          { text: formatDate(date), ...FONT.normal },
+        ],
+        [
+          {},
+          { text: 'Challan No.', ...FONT.label },
+          { text: challanNo || '', ...FONT.normal },
+        ],
+        [
+          {},
+          { text: 'Challan Date', ...FONT.label },
+          { text: formatDate(challanDate), ...FONT.normal },
+        ],
+      ],
+    },
+    layout: paddedBorderLayout,
+    margin: [0, 0, 0, 4],
+  },
+];
+
+const buildInvoicePartySection = ({ customer, shipToData }) => ({
+  columns: [
+    {
+      width: '50%',
+      table: {
+        widths: ['100%'],
+        body: [
+          [
+            {
+              stack: [
+                {
+                  text: 'BUYER (BILL TO),',
+                  ...FONT.label,
+                  margin: [0, 0, 0, 2],
+                },
+                { text: customer?.name || '-', ...FONT.normal },
+                {
+                  text: customer?.address || '-',
+                  ...FONT.small,
+                  margin: [0, 2, 0, 0],
+                },
+                {
+                  text: `GSTIN: ${customer?.gstNo || 'NA'}`,
+                  ...FONT.small,
+                  margin: [0, 2, 0, 0],
+                },
+              ],
+              margin: [4, 4, 4, 4],
+            },
+          ],
+        ],
+      },
+      layout: simpleBorderLayout,
+    },
+    {
+      width: '50%',
+      table: {
+        widths: ['100%'],
+        body: [
+          [
+            {
+              stack: [
+                {
+                  text: 'CONSIGNEE (SHIP TO),',
+                  ...FONT.label,
+                  margin: [0, 0, 0, 2],
+                },
+                { text: shipToData?.name || '-', ...FONT.normal },
+                {
+                  text: shipToData?.address || '-',
+                  ...FONT.small,
+                  margin: [0, 2, 0, 0],
+                },
+                {
+                  text: `GSTIN: ${shipToData?.gstNo || 'NA'}`,
+                  ...FONT.small,
+                  margin: [0, 2, 0, 0],
+                },
+              ],
+              margin: [4, 4, 4, 4],
+            },
+          ],
+        ],
+      },
+      layout: simpleBorderLayout,
+    },
+  ],
+  margin: [0, 4, 0, 6],
+});
+
+const buildInvoiceMetaSection = ({
+  orderNo,
+  orderDate,
+  disDocNo,
+  deliveryDate,
+  dispatchedThrough,
+  destination,
+}) => ({
+  table: {
+    widths: ['16%', '15%', '20%', '17%', '16%', '16%'],
+    body: [
+      [
+        { text: "Buyer's Order No.", ...FONT.small },
+        { text: orderNo || '-', ...FONT.small },
+        { text: 'Dated', ...FONT.small },
+        { text: formatDate(orderDate), ...FONT.small },
+        { text: 'Dis.Doc. No-', ...FONT.small },
+        { text: disDocNo || '-', ...FONT.small },
+      ],
+      [
+        { text: 'Delivery Date-', ...FONT.small },
+        {
+          text: deliveryDate ? formatDate(deliveryDate) : '-',
+          ...FONT.small,
+        },
+        { text: 'Dispatched Through-', ...FONT.small },
+        { text: dispatchedThrough || '-', ...FONT.small },
+        { text: 'Destination-', ...FONT.small },
+        { text: destination || '-', ...FONT.small },
+      ],
+    ],
+  },
+  layout: compactBorderLayout,
+  margin: [0, 4, 0, 6],
+});
+
+const buildInvoiceProductsSection = (rows, fillerRowCount = 0) => ({
+  table: {
+    headerRows: 1,
+    widths: ['6%', '50%', '10%', '6%', '6%', '10%', '12%'],
+    body: [
+      [
+        { text: 'Sr.No', ...FONT.label, alignment: 'center' },
+        { text: 'Particulars', ...FONT.label, alignment: 'center' },
+        { text: 'HSN', ...FONT.label, alignment: 'center' },
+        { text: 'Qty', ...FONT.label, alignment: 'center' },
+        { text: 'UOM', ...FONT.label, alignment: 'center' },
+        { text: 'Rate', ...FONT.label, alignment: 'center' },
+        { text: 'Amount', ...FONT.label, alignment: 'center' },
+      ],
+      ...rows,
+      ...createInvoiceFillerRows(fillerRowCount),
+    ],
+  },
+  layout: invoiceTableLayout,
+  margin: [0, 4, 0, 6],
+});
+
+const buildInvoiceFooterSections = ({
+  companyName,
+  companyBank,
+  totalAmount,
+  gst,
+  grandTotal,
+  termsAndConditions,
+}) => [
+  {
+    table: {
+      widths: ['50%', '25%', '25%'],
+      body: [
+        [
+          {
+            text: [
+              { text: 'Rupees in Words:\n', bold: true },
+              convertToWords(grandTotal),
+            ],
+            rowSpan: 4,
+            ...FONT.small,
+          },
+          { text: 'Subtotal', ...FONT.small },
+          {
+            text: formatCurrency(totalAmount),
+            ...FONT.small,
+            alignment: 'right',
+          },
+        ],
+        [
+          {},
+          { text: `CGST (${gst}%)`, ...FONT.small },
+          {
+            text: formatCurrency(totalAmount * (gst / 100)),
+            ...FONT.small,
+            alignment: 'right',
+          },
+        ],
+        [
+          {},
+          { text: `SGST (${gst}%)`, ...FONT.small },
+          {
+            text: formatCurrency(totalAmount * (gst / 100)),
+            ...FONT.small,
+            alignment: 'right',
+          },
+        ],
+        [
+          {},
+          { text: 'Grand Total', ...FONT.label },
+          {
+            text: formatCurrency(grandTotal),
+            ...FONT.label,
+            alignment: 'right',
+          },
+        ],
+      ],
+    },
+    layout: compactBorderLayout,
+    margin: [0, 4, 0, 4],
+  },
+  {
+    table: {
+      widths: ['60%', '40%'],
+      body: [
+        [
+          {
+            stack: [
+              { text: 'Bank Details', ...FONT.label, margin: [0, 0, 0, 2] },
+              { text: companyName || '', ...FONT.small },
+              {
+                text: `Bank Name: ${getBankName(companyBank)}`,
+                ...FONT.small,
+                margin: [0, 1, 0, 0],
+              },
+              {
+                text: `A/C No: ${companyBank?.accountNumber || ''}`,
+                ...FONT.small,
+                margin: [0, 1, 0, 0],
+              },
+              {
+                text: `IFSC: ${getBankIfsc(companyBank)}`,
+                ...FONT.small,
+                margin: [0, 1, 0, 0],
+              },
+            ],
+            margin: [4, 4, 4, 4],
+          },
+          {
+            stack: [
+              {
+                text: `For ${companyName || ''}`,
+                ...FONT.label,
+                alignment: 'right',
+                margin: [0, 0, 0, 4],
+              },
+              {
+                image: signatureImage,
+                fit: [120, 40],
+                alignment: 'right',
+                margin: [0, 0, 0, 0],
+              },
+              {
+                text: 'Authorized Signatory',
+                ...FONT.small,
+                alignment: 'right',
+              },
+            ],
+            margin: [4, 4, 4, 4],
+          },
+        ],
+      ],
+    },
+    layout: simpleBorderLayout,
+  },
+  {
+    columns: [{ text: 'Subject to Anand jurisdiction', ...FONT.small }],
+  },
+  ...(termsAndConditions
+    ? [
+        {
+          stack: [
+            {
+              text: 'TERMS & CONDITIONS',
+              ...FONT.label,
+              fontSize: 11,
+              margin: [0, 8, 0, 4],
+            },
+            {
+              table: {
+                widths: ['100%'],
+                body: [
+                  [
+                    {
+                      stack: [
+                        {
+                          ul: formatTextAsBulletPoints(termsAndConditions),
+                          margin: [0, 0, 0, 0],
+                        },
+                      ],
+                      margin: [4, 4, 4, 4],
+                    },
+                  ],
+                ],
+              },
+              layout: simpleBorderLayout,
+            },
+          ],
+          margin: [0, 4, 0, 0],
+        },
+      ]
+    : []),
+  {
+    text: 'This document is computer generated and does not require signature.',
+    ...FONT.small,
+    alignment: 'center',
+    margin: [0, 8, 0, 0],
+    italics: true,
+  },
+];
+
 const buildInvoiceDocDefinition = (data, options = {}) => {
   const {
     companyName,
@@ -211,35 +678,52 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
   const { download = true, fileName } = options;
 
   const shipToData = shipTo || customer;
+  const rows = getInvoiceRows(products);
+  const chunks = getInvoiceRowChunks(rows);
 
-  const rows = products.map((p, i) => {
-    const qty = Number(p.quantity || 0);
-    const rate = Number(p.rate || 0);
-    const amount = qty * rate;
-
-    return [
-      { text: String(i + 1), ...FONT.small, alignment: 'center' },
-      formatProductName(p.name),
-      { text: p.hsn || '', ...FONT.small, alignment: 'center' },
-      { text: String(qty), ...FONT.small, alignment: 'center' },
-      { text: p.uom || '', ...FONT.small, alignment: 'center' },
-      { text: formatCurrency(rate), ...FONT.small, alignment: 'center' },
-      { text: formatCurrency(amount), ...FONT.small, alignment: 'center' },
+  const content = chunks.flatMap((chunk, pageIndex) => {
+    const pageContent = [
+      ...buildInvoiceHeaderSection({
+        companyName,
+        companyAddress,
+        companyGST,
+        companyPhone,
+        billNo,
+        date,
+        challanNo,
+        challanDate,
+        invoicefor,
+        pageIndex,
+      }),
+      buildInvoicePartySection({ customer, shipToData }),
+      buildInvoiceMetaSection({
+        orderNo,
+        orderDate,
+        disDocNo,
+        deliveryDate,
+        dispatchedThrough,
+        destination,
+      }),
+      buildInvoiceProductsSection(chunk.rows, chunk.fillerRowCount),
     ];
-  });
 
-  const fillerRows =
-    rows.length < MIN_ROWS
-      ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-        ])
-      : [];
+    if (pageIndex === chunks.length - 1) {
+      pageContent.push(
+        ...buildInvoiceFooterSections({
+          companyName,
+          companyBank,
+          totalAmount,
+          gst,
+          grandTotal,
+          termsAndConditions,
+        }),
+      );
+    } else {
+      pageContent.push({ text: '', pageBreak: 'after' });
+    }
+
+    return pageContent;
+  });
 
   const docDefinition = {
     pageSize: 'A4',
@@ -250,415 +734,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
       color: COLORS.text,
       lineHeight: 1,
     },
-
-    content: [
-      {
-        text: 'TAX INVOICE',
-        ...FONT.title,
-        alignment: 'center',
-        margin: [0, 0, 0, 4],
-      },
-      {
-        text: invoicefor,
-        ...FONT.small,
-        alignment: 'center',
-        margin: [0, 0, 0, 8],
-      },
-
-      {
-        table: {
-          widths: ['60%', '20%', '20%'],
-          body: [
-            [
-              {
-                stack: [
-                  {
-                    text: companyName,
-                    fontSize: 14,
-                    bold: true,
-                    color: COLORS.text,
-                  },
-                  { text: companyAddress, ...FONT.small, margin: [0, 2, 0, 0] },
-                  {
-                    text: `GSTIN: ${companyGST || '-'}`,
-                    ...FONT.small,
-                    margin: [0, 2, 0, 0],
-                  },
-                  {
-                    text: `Mobile No. ${companyPhone || ''}`,
-                    ...FONT.small,
-                    margin: [0, 2, 0, 0],
-                  },
-                ],
-                rowSpan: 4,
-              },
-              { text: 'Invoice No.', ...FONT.label },
-              {
-                text: `${companyName
-                  ?.split(' ')
-                  .map((word) => word[0].toUpperCase())
-                  .join('')}/${billNo || ''}`,
-                ...FONT.normal,
-              },
-            ],
-            [
-              {},
-              { text: 'Invoice Date', ...FONT.label },
-              { text: formatDate(date), ...FONT.normal },
-            ],
-            [
-              {},
-              { text: 'Challan No.', ...FONT.label },
-              { text: challanNo || '', ...FONT.normal },
-            ],
-            [
-              {},
-              { text: 'Challan Date', ...FONT.label },
-              { text: formatDate(challanDate), ...FONT.normal },
-            ],
-          ],
-        },
-        layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-          paddingLeft: () => 4,
-          paddingRight: () => 4,
-          paddingTop: () => 3,
-          paddingBottom: () => 3,
-        },
-        margin: [0, 0, 0, 4],
-      },
-
-      {
-        columns: [
-          {
-            width: '50%',
-            table: {
-              widths: ['100%'],
-              body: [
-                [
-                  {
-                    stack: [
-                      {
-                        text: 'BUYER (BILL TO),',
-                        ...FONT.label,
-                        margin: [0, 0, 0, 2],
-                      },
-                      { text: customer?.name || '-', ...FONT.normal },
-                      {
-                        text: customer?.address || '-',
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                      {
-                        text: `GSTIN: ${customer?.gstNo || 'NA'}`,
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                    ],
-                    margin: [4, 4, 4, 4],
-                  },
-                ],
-              ],
-            },
-            layout: {
-              hLineWidth: () => 0.5,
-              vLineWidth: () => 0.5,
-              hLineColor: () => COLORS.border,
-              vLineColor: () => COLORS.border,
-            },
-          },
-          {
-            width: '50%',
-            table: {
-              widths: ['100%'],
-              body: [
-                [
-                  {
-                    stack: [
-                      {
-                        text: 'CONSIGNEE (SHIP TO),',
-                        ...FONT.label,
-                        margin: [0, 0, 0, 2],
-                      },
-                      { text: shipToData?.name || '-', ...FONT.normal },
-                      {
-                        text: shipToData?.address || '-',
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                      {
-                        text: `GSTIN: ${shipToData?.gstNo || 'NA'}`,
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                    ],
-                    margin: [4, 4, 4, 4],
-                  },
-                ],
-              ],
-            },
-            layout: {
-              hLineWidth: () => 0.5,
-              vLineWidth: () => 0.5,
-              hLineColor: () => COLORS.border,
-              vLineColor: () => COLORS.border,
-            },
-          },
-        ],
-        margin: [0, 4, 0, 6],
-      },
-
-      {
-        table: {
-          widths: ['16%', '15%', '20%', '17%', '16%', '16%'],
-          body: [
-            [
-              { text: "Buyer's Order No.", ...FONT.small },
-              { text: orderNo || '-', ...FONT.small },
-              { text: 'Dated', ...FONT.small },
-              { text: formatDate(orderDate), ...FONT.small },
-              { text: 'Dis.Doc. No-', ...FONT.small },
-              { text: disDocNo || '-', ...FONT.small },
-            ],
-            [
-              { text: 'Delivery Date-', ...FONT.small },
-              {
-                text: deliveryDate ? formatDate(deliveryDate) : '-',
-                ...FONT.small,
-              },
-              { text: 'Dispatched Through-', ...FONT.small },
-              { text: dispatchedThrough || '-', ...FONT.small },
-              { text: 'Destination-', ...FONT.small },
-              { text: destination || '-', ...FONT.small },
-            ],
-          ],
-        },
-        layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-          paddingLeft: () => 3,
-          paddingRight: () => 3,
-          paddingTop: () => 2,
-          paddingBottom: () => 2,
-        },
-        margin: [0, 4, 0, 6],
-      },
-
-      {
-        table: {
-          headerRows: 1,
-          widths: ['6%', '50%', '10%', '6%', '6%', '10%', '12%'],
-          body: [
-            [
-              { text: 'Sr.No', ...FONT.label, alignment: 'center' },
-              { text: 'Particulars', ...FONT.label, alignment: 'center' },
-              { text: 'HSN', ...FONT.label, alignment: 'center' },
-              { text: 'Qty', ...FONT.label, alignment: 'center' },
-              { text: 'UOM', ...FONT.label, alignment: 'center' },
-              { text: 'Rate', ...FONT.label, alignment: 'center' },
-              { text: 'Amount', ...FONT.label, alignment: 'center' },
-            ],
-            ...rows,
-            ...fillerRows,
-          ],
-        },
-        layout: {
-          hLineWidth: (i, node) =>
-            i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-          paddingLeft: () => 3,
-          paddingRight: () => 3,
-          paddingTop: () => 2,
-          paddingBottom: () => 2,
-        },
-        margin: [0, 4, 0, 6],
-      },
-
-      {
-        table: {
-          widths: ['50%', '25%', '25%'],
-          body: [
-            [
-              {
-                text: [
-                  { text: 'Rupees in Words:\n', bold: true },
-                  convertToWords(grandTotal),
-                ],
-                rowSpan: 4,
-                ...FONT.small,
-              },
-              { text: 'Subtotal', ...FONT.small },
-              {
-                text: formatCurrency(totalAmount),
-                ...FONT.small,
-                alignment: 'right',
-              },
-            ],
-            [
-              {},
-              { text: `CGST (${gst}%)`, ...FONT.small },
-              {
-                text: formatCurrency(totalAmount * (gst / 100)),
-                ...FONT.small,
-                alignment: 'right',
-              },
-            ],
-            [
-              {},
-              { text: `SGST (${gst}%)`, ...FONT.small },
-              {
-                text: formatCurrency(totalAmount * (gst / 100)),
-                ...FONT.small,
-                alignment: 'right',
-              },
-            ],
-            [
-              {},
-              { text: 'Grand Total', ...FONT.label },
-              {
-                text: formatCurrency(grandTotal),
-                ...FONT.label,
-                alignment: 'right',
-              },
-            ],
-          ],
-        },
-        layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-          paddingLeft: () => 3,
-          paddingRight: () => 3,
-          paddingTop: () => 2,
-          paddingBottom: () => 2,
-        },
-        margin: [0, 4, 0, 4],
-      },
-
-      {
-        table: {
-          widths: ['60%', '40%'],
-          body: [
-            [
-              {
-                stack: [
-                  { text: 'Bank Details', ...FONT.label, margin: [0, 0, 0, 2] },
-                  { text: companyName || '', ...FONT.small },
-                  {
-                    text: `Bank Name: ${getBankName(companyBank)}`,
-                    ...FONT.small,
-                    margin: [0, 1, 0, 0],
-                  },
-                  {
-                    text: `A/C No: ${companyBank?.accountNumber || ''}`,
-                    ...FONT.small,
-                    margin: [0, 1, 0, 0],
-                  },
-                  {
-                    text: `IFSC: ${getBankIfsc(companyBank)}`,
-                    ...FONT.small,
-                    margin: [0, 1, 0, 0],
-                  },
-                ],
-                margin: [4, 4, 4, 4],
-              },
-              {
-                stack: [
-                  {
-                    text: `For ${companyName || ''}`,
-                    ...FONT.label,
-                    alignment: 'right',
-                    margin: [0, 0, 0, 4],
-                  },
-                  {
-                    image: signatureImage,
-                    fit: [120, 40],
-                    alignment: 'right',
-                    margin: [0, 0, 0, 0],
-                  },
-                  {
-                    text: 'Authorized Signatory',
-                    ...FONT.small,
-                    alignment: 'right',
-                  },
-                ],
-                margin: [4, 4, 4, 4],
-              },
-            ],
-          ],
-        },
-        layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-        },
-      },
-      {
-        columns: [{ text: 'Subject to Anand jurisdiction', ...FONT.small }],
-      },
-      // Payment Terms & Conditions section - UPDATED
-      ...(termsAndConditions
-        ? [
-            {
-              stack: [
-                {
-                  text: 'TERMS & CONDITIONS',
-                  ...FONT.label,
-                  fontSize: 11,
-                  margin: [0, 8, 0, 4],
-                },
-                {
-                  table: {
-                    widths: ['100%'],
-                    body: [
-                      [
-                        {
-                          stack: [
-                            ...(termsAndConditions
-                              ? [
-                                  {
-                                    ul: formatTextAsBulletPoints(
-                                      termsAndConditions,
-                                    ),
-                                    margin: [0, 0, 0, 0],
-                                  },
-                                ]
-                              : []),
-                          ],
-                          margin: [4, 4, 4, 4],
-                        },
-                      ],
-                    ],
-                  },
-                  layout: {
-                    hLineWidth: () => 0.5,
-                    vLineWidth: () => 0.5,
-                    hLineColor: () => COLORS.border,
-                    vLineColor: () => COLORS.border,
-                  },
-                },
-              ],
-              margin: [0, 4, 0, 0],
-            },
-          ]
-        : []),
-      {
-        text: 'This document is computer generated and does not require signature.',
-        ...FONT.small,
-        alignment: 'center',
-        margin: [0, 8, 0, 0],
-        italics: true,
-      },
-    ],
+    content,
   };
 
   if (download) {
@@ -667,7 +743,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
         `Invoice-${companyName
           ?.split(' ')
           .map((word) => word[0].toUpperCase())
-          .join('')}-${billNo || ''}.pdf`
+          .join('')}-${billNo || ''}.pdf`,
     );
   }
 
@@ -723,7 +799,7 @@ export const generateMonthlyInvoicesPDF = ({
         grandTotal: invoice.grandTotal,
         invoicefor,
       },
-      { download: false }
+      { download: false },
     );
 
     const content = [...invoiceDoc.content];
@@ -733,21 +809,23 @@ export const generateMonthlyInvoicesPDF = ({
     return content;
   });
 
-  pdfMake.createPdf({
-    pageSize: 'A4',
-    pageMargins: [20, 20, 20, 25],
-    defaultStyle: {
-      font: 'Roboto',
-      fontSize: 10.5,
-      color: COLORS.text,
-      lineHeight: 1,
-    },
-    content: combinedContent,
-  }).download(
-    `Invoices-${companyCode || 'COMPANY'}-${financialYearLabel || 'FY'}-${
-      monthLabel || 'Month'
-    }-${invoicefor === 'Duplicate Copy' ? 'Duplicate' : 'Original'}.pdf`
-  );
+  pdfMake
+    .createPdf({
+      pageSize: 'A4',
+      pageMargins: [20, 20, 20, 25],
+      defaultStyle: {
+        font: 'Roboto',
+        fontSize: 10.5,
+        color: COLORS.text,
+        lineHeight: 1,
+      },
+      content: combinedContent,
+    })
+    .download(
+      `Invoices-${companyCode || 'COMPANY'}-${financialYearLabel || 'FY'}-${
+        monthLabel || 'Month'
+      }-${invoicefor === 'Duplicate Copy' ? 'Duplicate' : 'Original'}.pdf`,
+    );
 };
 
 /* ================= QUOTATION ================= */

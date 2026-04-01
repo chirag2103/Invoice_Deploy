@@ -21,6 +21,7 @@ const ChallanList = () => {
   } = useSelector(
     (state) => state.challan
   );
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
   const [page, setPage] = useState(1);
@@ -34,7 +35,15 @@ const ChallanList = () => {
     return `${dd}-${mm}-${yyyy}`;
   };
 
-  // Fetch all challans
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
+
   useEffect(() => {
     if (!selectedFinancialYear && currentFinancialYear) {
       setSelectedFinancialYear(currentFinancialYear);
@@ -110,95 +119,85 @@ const ChallanList = () => {
   // };
 
   return (
-    <>
-      {loading ? (
-        <p>Loading...</p>
-      ) : error ? (
-        <p>Error: {error}</p>
-      ) : (
-        <div className='admin-container'>
-          <AdminSidebar />
+    <div className='admin-container'>
+      <AdminSidebar />
 
-          <main className='invoice-list'>
-            <div className='invoice-container'>
-              <h2>Challan List</h2>
-              <ListToolbar
-                search={search}
-                onSearchChange={(value) => {
-                  setSearch(value);
+      <main className='invoice-list'>
+        <div className='invoice-container'>
+          <ListToolbar
+            title='Challan List'
+            subtitle='Search challan number, customer, or date.'
+            search={searchInput}
+            onSearchChange={setSearchInput}
+            searchPlaceholder='Search challans'
+            actions={
+              <select
+                value={selectedFinancialYear}
+                onChange={(event) => {
+                  setSelectedFinancialYear(event.target.value);
                   setPage(1);
                 }}
-                searchPlaceholder='Search challan number, customer, date'
-                actions={
-                  <select
-                    value={selectedFinancialYear}
-                    onChange={(event) => {
-                      setSelectedFinancialYear(event.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <option value=''>All FY</option>
-                    {availableFinancialYears.map((financialYear) => (
-                      <option key={financialYear} value={financialYear}>
-                        FY {financialYear}
-                      </option>
-                    ))}
-                  </select>
-                }
-              />
+              >
+                <option value=''>All FY</option>
+                {availableFinancialYears.map((financialYear) => (
+                  <option key={financialYear} value={financialYear}>
+                    FY {financialYear}
+                  </option>
+                ))}
+              </select>
+            }
+          />
+          {error ? <p>Error: {error}</p> : null}
+          {loading ? <p>Loading...</p> : null}
 
-              <table>
-                <thead>
-                  <tr>
-                    <th>Challan No</th>
-                    <th>Customer</th>
-                    <th>Date</th>
-                    <th>Print</th>
-                    <th>Convert</th>
-                    {/* <th>Delete</th> */}
-                  </tr>
-                </thead>
+          <table>
+            <thead>
+              <tr>
+                <th>Challan No</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Print</th>
+                <th>Convert</th>
+                {/* <th>Delete</th> */}
+              </tr>
+            </thead>
 
-                <tbody>
-                  {challans.map((challan) => (
-                    <tr key={challan._id}>
-                      <td>
-                        {formatDocumentNumber(
-                          challan.challanNo,
-                          challan.financialYearLabel
-                        )}
-                      </td>
-                      <td>{challan.customer?.name}</td>
-                      <td>{formatDate(challan.challanDate?.split('T')[0])}</td>
+            <tbody>
+              {challans.map((challan) => (
+                <tr key={challan._id}>
+                  <td>
+                    {formatDocumentNumber(
+                      challan.challanNo,
+                      challan.financialYearLabel
+                    )}
+                  </td>
+                  <td>{challan.customer?.name}</td>
+                  <td>{formatDate(challan.challanDate?.split('T')[0])}</td>
 
-                      <td>
-                        <button onClick={() => handlePrint(challan)}>
-                          Print
-                        </button>
-                      </td>
+                  <td>
+                    <button onClick={() => handlePrint(challan)}>Print</button>
+                  </td>
 
-                      <td>
-                        <button onClick={() => handleConvertToInvoice(challan)}>
-                          Convert
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <PaginationControls
-                pagination={pagination}
-                onPageChange={setPage}
-                onLimitChange={(value) => {
-                  setLimit(value);
-                  setPage(1);
-                }}
-              />
-            </div>
-          </main>
+                  <td>
+                    <button onClick={() => handleConvertToInvoice(challan)}>
+                      Convert
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <PaginationControls
+            pagination={pagination}
+            onPageChange={setPage}
+            onLimitChange={(value) => {
+              setLimit(value);
+              setPage(1);
+            }}
+          />
         </div>
-      )}
-    </>
+      </main>
+    </div>
   );
 };
 
