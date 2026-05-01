@@ -18,9 +18,7 @@ const ChallanList = () => {
     error,
     availableFinancialYears,
     currentFinancialYear,
-  } = useSelector(
-    (state) => state.challan
-  );
+  } = useSelector((state) => state.challan);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
@@ -56,19 +54,28 @@ const ChallanList = () => {
         limit,
         search,
         financialYear: selectedFinancialYear || undefined,
-      })
+      }),
     );
-  }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
+  }, [
+    dispatch,
+    page,
+    limit,
+    search,
+    selectedFinancialYear,
+    currentFinancialYear,
+  ]);
 
   // ---------------------------------------------------------
   // Print challan → Generate PDF directly
   // ---------------------------------------------------------
   const handlePrint = (challan) => {
+    const shipTo = challan.shipTo ? challan.shipTo : challan.customer;
+    console.log(shipTo);
     const pdfData = {
       customer: challan.customer,
       challanNo: formatDocumentNumber(
         challan.challanNo,
-        challan.financialYearLabel
+        challan.financialYearLabel,
       ),
       date: challan.challanDate?.split('T')[0],
       products: challan.challanProducts,
@@ -82,7 +89,7 @@ const ChallanList = () => {
       companyPhone: user.companyDetails?.mobile,
     };
 
-    generateChallanPDF(pdfData);
+    generateChallanPDF(pdfData, shipTo);
   };
 
   // ---------------------------------------------------------
@@ -168,7 +175,7 @@ const ChallanList = () => {
                   <td>
                     {formatDocumentNumber(
                       challan.challanNo,
-                      challan.financialYearLabel
+                      challan.financialYearLabel,
                     )}
                   </td>
                   <td>{challan.customer?.name}</td>

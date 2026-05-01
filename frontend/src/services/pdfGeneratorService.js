@@ -1244,7 +1244,7 @@ export const generateQuotationPDF = (data) => {
 
 /* ================= CHALLAN ================= */
 
-export const generateChallanPDF = (data) => {
+export const generateChallanPDF = (data, shipTo) => {
   const {
     companyName,
     companyAddress,
@@ -1255,7 +1255,6 @@ export const generateChallanPDF = (data) => {
     orderDate,
     date,
     customer,
-    shipTo,
     products = [],
   } = data;
 
