@@ -65,6 +65,7 @@ const InvoiceList = () => {
     generateInvoicePDF({
       challanNo: invoice.challanNo || '',
       gst: invoice.gst,
+      gstType: invoice.gstType || 'intraState',
       invoicefor,
       billNo: formatDocumentNumber(
         invoice.invoiceNo,

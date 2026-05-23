@@ -24,6 +24,7 @@ const initialState = {
   totalAmount: 0,
   grandTotal: 0,
   gst: 9,
+  gstType: 'intraState',
   error: null,
   loading: false,
   invoices: [],
@@ -107,6 +108,10 @@ const invoiceSlice = createSlice({
       state.grandTotal = Math.round(
         state.totalAmount + (state.totalAmount * state.gst * 2) / 100
       );
+    },
+
+    setGstType(state, action) {
+      state.gstType = action.payload;
     },
 
     addProduct(state, action) {
@@ -200,6 +205,7 @@ const invoiceSlice = createSlice({
 export const {
   setCustomer,
   setGst,
+  setGstType,
   addProduct,
   removeProduct,
   updateProduct,

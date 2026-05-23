@@ -494,9 +494,51 @@ const buildInvoiceFooterSections = ({
   companyBank,
   totalAmount,
   gst,
+  gstType = 'intraState',
   grandTotal,
   termsAndConditions,
-}) => [
+}) => {
+  const isIGST = gstType === 'interState';
+  const igstRate = gst * 2;
+  const igstAmount = totalAmount * (igstRate / 100);
+  const cgstSgstAmount = totalAmount * (gst / 100);
+
+  const taxRows = isIGST
+    ? [
+        [
+          {},
+          { text: `IGST (${igstRate}%)`, ...FONT.small },
+          {
+            text: formatCurrency(igstAmount),
+            ...FONT.small,
+            alignment: 'right',
+          },
+        ],
+      ]
+    : [
+        [
+          {},
+          { text: `CGST (${gst}%)`, ...FONT.small },
+          {
+            text: formatCurrency(cgstSgstAmount),
+            ...FONT.small,
+            alignment: 'right',
+          },
+        ],
+        [
+          {},
+          { text: `SGST (${gst}%)`, ...FONT.small },
+          {
+            text: formatCurrency(cgstSgstAmount),
+            ...FONT.small,
+            alignment: 'right',
+          },
+        ],
+      ];
+
+  const totalRows = taxRows.length + 2; // subtotal + tax rows + grand total
+
+  return [
   {
     table: {
       widths: ['50%', '25%', '25%'],
@@ -507,7 +549,7 @@ const buildInvoiceFooterSections = ({
               { text: 'Rupees in Words:\n', bold: true },
               convertToWords(grandTotal),
             ],
-            rowSpan: 4,
+            rowSpan: totalRows,
             ...FONT.small,
           },
           { text: 'Subtotal', ...FONT.small },
@@ -517,24 +559,7 @@ const buildInvoiceFooterSections = ({
             alignment: 'right',
           },
         ],
-        [
-          {},
-          { text: `CGST (${gst}%)`, ...FONT.small },
-          {
-            text: formatCurrency(totalAmount * (gst / 100)),
-            ...FONT.small,
-            alignment: 'right',
-          },
-        ],
-        [
-          {},
-          { text: `SGST (${gst}%)`, ...FONT.small },
-          {
-            text: formatCurrency(totalAmount * (gst / 100)),
-            ...FONT.small,
-            alignment: 'right',
-          },
-        ],
+        ...taxRows,
         [
           {},
           { text: 'Grand Total', ...FONT.label },
@@ -647,7 +672,7 @@ const buildInvoiceFooterSections = ({
     margin: [0, 8, 0, 0],
     italics: true,
   },
-];
+]};
 
 const buildInvoiceDocDefinition = (data, options = {}) => {
   const {
@@ -671,6 +696,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
     totalAmount,
     termsAndConditions,
     gst,
+    gstType = 'intraState',
     grandTotal = 0,
     companyBank,
     invoicefor = 'Original Copy',
@@ -714,6 +740,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
           companyBank,
           totalAmount,
           gst,
+          gstType,
           grandTotal,
           termsAndConditions,
         }),
@@ -842,11 +869,17 @@ export const generateQuotationPDF = (data) => {
     products = [],
     totalAmount,
     gst,
+    gstType = 'intraState',
     grandTotal = 0,
     companyBank,
     termsAndConditions,
     technicalSpecifications,
   } = data;
+
+  const isIGST = gstType === 'interState';
+  const igstRate = gst * 2;
+  const igstAmount = totalAmount * (igstRate / 100);
+  const cgstSgstAmount = totalAmount * (gst / 100);
 
   const rows = products.map((p, i) => {
     const qty = Number(p.quantity || 0);
@@ -1020,67 +1053,87 @@ export const generateQuotationPDF = (data) => {
         margin: [0, 4, 0, 6],
       },
 
-      {
-        table: {
-          widths: ['50%', '25%', '25%'],
-          body: [
-            [
-              {
-                text: [
-                  { text: 'Rupees in Words:\n', bold: true },
-                  convertToWords(grandTotal),
-                ],
-                rowSpan: 4,
-                ...FONT.small,
-              },
-              { text: 'Subtotal', ...FONT.small },
-              {
-                text: formatCurrency(totalAmount),
-                ...FONT.small,
-                alignment: 'right',
-              },
+      (() => {
+        const quotationTaxRows = isIGST
+          ? [
+              [
+                {},
+                { text: `IGST (${igstRate}%)`, ...FONT.small },
+                {
+                  text: formatCurrency(igstAmount),
+                  ...FONT.small,
+                  alignment: 'right',
+                },
+              ],
+            ]
+          : [
+              [
+                {},
+                { text: `CGST (${gst}%)`, ...FONT.small },
+                {
+                  text: formatCurrency(cgstSgstAmount),
+                  ...FONT.small,
+                  alignment: 'right',
+                },
+              ],
+              [
+                {},
+                { text: `SGST (${gst}%)`, ...FONT.small },
+                {
+                  text: formatCurrency(cgstSgstAmount),
+                  ...FONT.small,
+                  alignment: 'right',
+                },
+              ],
+            ];
+
+        const quotationTotalRows = quotationTaxRows.length + 2;
+
+        return {
+          table: {
+            widths: ['50%', '25%', '25%'],
+            body: [
+              [
+                {
+                  text: [
+                    { text: 'Rupees in Words:\n', bold: true },
+                    convertToWords(grandTotal),
+                  ],
+                  rowSpan: quotationTotalRows,
+                  ...FONT.small,
+                },
+                { text: 'Subtotal', ...FONT.small },
+                {
+                  text: formatCurrency(totalAmount),
+                  ...FONT.small,
+                  alignment: 'right',
+                },
+              ],
+              ...quotationTaxRows,
+              [
+                {},
+                { text: 'Grand Total', ...FONT.label },
+                {
+                  text: formatCurrency(grandTotal),
+                  ...FONT.label,
+                  alignment: 'right',
+                },
+              ],
             ],
-            [
-              {},
-              { text: `CGST (${gst}%)`, ...FONT.small },
-              {
-                text: formatCurrency(totalAmount * (gst / 100)),
-                ...FONT.small,
-                alignment: 'right',
-              },
-            ],
-            [
-              {},
-              { text: `SGST (${gst}%)`, ...FONT.small },
-              {
-                text: formatCurrency(totalAmount * (gst / 100)),
-                ...FONT.small,
-                alignment: 'right',
-              },
-            ],
-            [
-              {},
-              { text: 'Grand Total', ...FONT.label },
-              {
-                text: formatCurrency(grandTotal),
-                ...FONT.label,
-                alignment: 'right',
-              },
-            ],
-          ],
-        },
-        layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-          paddingLeft: () => 3,
-          paddingRight: () => 3,
-          paddingTop: () => 2,
-          paddingBottom: () => 2,
-        },
-        margin: [0, 4, 0, 8],
-      },
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+            hLineColor: () => COLORS.border,
+            vLineColor: () => COLORS.border,
+            paddingLeft: () => 3,
+            paddingRight: () => 3,
+            paddingTop: () => 2,
+            paddingBottom: () => 2,
+          },
+          margin: [0, 4, 0, 8],
+        };
+      })(),
 
       {
         table: {

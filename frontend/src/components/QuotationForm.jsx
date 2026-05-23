@@ -5,6 +5,7 @@ import '../styles/InvoiceForm.css';
 import {
   setCustomer,
   setGst,
+  setGstType,
   addProduct,
   removeProduct,
   updateProduct,
@@ -42,6 +43,7 @@ const QuotationForm = () => {
     customer,
     products,
     gst,
+    gstType,
     totalAmount,
     grandTotal,
     quoteNo,
@@ -90,6 +92,7 @@ const QuotationForm = () => {
     if (isEdit && quotationToEdit) {
       dispatch(setCustomer(quotationToEdit.customer._id));
       dispatch(setGst(quotationToEdit.gst));
+      dispatch(setGstType(quotationToEdit.gstType || 'intraState'));
       quotationToEdit.quotationProducts.forEach((p) => dispatch(addProduct(p)));
       setQuotationDate(quotationToEdit.date?.split('T')[0]);
       setTermsAndConditions(quotationToEdit.termsAndConditions || '');
@@ -149,6 +152,7 @@ const QuotationForm = () => {
       totalAmount,
       grandTotal,
       gst,
+      gstType,
       termsAndConditions,
       technicalSpecifications,
       companyName: user.companyDetails?.name,
@@ -165,6 +169,7 @@ const QuotationForm = () => {
           {
             customer,
             gst,
+            gstType,
             quotationProducts: products,
             date: quotationDate,
             grandTotal,
@@ -180,6 +185,7 @@ const QuotationForm = () => {
             customer,
             quotationProducts: products,
             gst,
+            gstType,
             invoiceTotal: totalAmount,
             grandTotal,
             date: quotationDate,
@@ -299,9 +305,22 @@ const QuotationForm = () => {
           </select>
         </div>
 
+        {/* GST Type */}
+        <div className='form-group'>
+          <label className='form-label'>GST Type</label>
+          <select
+            className='form-select'
+            value={gstType}
+            onChange={(e) => dispatch(setGstType(e.target.value))}
+          >
+            <option value='intraState'>CGST + SGST (Intra-State)</option>
+            <option value='interState'>IGST (Inter-State)</option>
+          </select>
+        </div>
+
         {/* GST */}
         <div className='form-group'>
-          <label className='form-label'>GST (%)</label>
+          <label className='form-label'>GST Rate</label>
           <select
             className='form-select'
             value={gst}
@@ -309,8 +328,17 @@ const QuotationForm = () => {
             required
           >
             <option value=''>Select</option>
-            <option value={6}>6%</option>
-            <option value={9}>9%</option>
+            {gstType === 'interState' ? (
+              <>
+                <option value={6}>12% (IGST)</option>
+                <option value={9}>18% (IGST)</option>
+              </>
+            ) : (
+              <>
+                <option value={6}>6% + 6% (CGST + SGST)</option>
+                <option value={9}>9% + 9% (CGST + SGST)</option>
+              </>
+            )}
           </select>
         </div>
 

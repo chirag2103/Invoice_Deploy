@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   setCustomer,
   setGst,
+  setGstType,
   addProduct,
   removeProduct,
   fetchBillNo,
@@ -65,6 +66,7 @@ const InvoiceForm = () => {
     financialYearLabel,
     customer,
     gst,
+    gstType,
     products,
     totalAmount,
     grandTotal,
@@ -101,6 +103,7 @@ const InvoiceForm = () => {
     if (isFromQuotation && quotationData) {
       dispatch(setCustomer(quotationData.customer));
       dispatch(setGst(quotationData.gst));
+      if (quotationData.gstType) dispatch(setGstType(quotationData.gstType));
       quotationData.quotationProducts.forEach((p) => dispatch(addProduct(p)));
       setDate(new Date().toISOString().split('T')[0]);
     }
@@ -138,6 +141,7 @@ const InvoiceForm = () => {
     if (isEdit && invoiceToEdit) {
       dispatch(setCustomer(invoiceToEdit.customer));
       dispatch(setGst(invoiceToEdit.gst));
+      dispatch(setGstType(invoiceToEdit.gstType || 'intraState'));
       invoiceToEdit.invoiceProducts.forEach((p) => dispatch(addProduct(p)));
 
       setDate(parseDate(invoiceToEdit.date));
@@ -204,6 +208,7 @@ const InvoiceForm = () => {
       const payload = {
         customer: customer._id,
         gst,
+        gstType,
         invoiceProducts: products,
         invoiceTotal: totalAmount,
         grandTotal,
@@ -233,6 +238,7 @@ const InvoiceForm = () => {
         ),
         products,
         gst,
+        gstType,
         totalAmount,
         grandTotal,
         date,
@@ -269,6 +275,7 @@ const InvoiceForm = () => {
       const payload = {
         customer: customer._id,
         gst,
+        gstType,
         invoiceProducts: products,
         invoiceTotal: totalAmount,
         grandTotal,
@@ -302,6 +309,7 @@ const InvoiceForm = () => {
         ),
         products,
         gst,
+        gstType,
         totalAmount,
         grandTotal,
         date,
@@ -345,6 +353,7 @@ const InvoiceForm = () => {
       financialYearLabel,
       products,
       gst,
+      gstType,
       totalAmount,
       grandTotal,
       date,
@@ -490,17 +499,38 @@ const InvoiceForm = () => {
             style={{ width: '10rem' }}
           />
         </div>
+        {/* GST Type */}
+        <div className='form-group'>
+          <label className='form-label'>GST Type</label>
+          <select
+            className='form-select'
+            value={gstType}
+            onChange={(e) => dispatch(setGstType(e.target.value))}
+          >
+            <option value='intraState'>CGST + SGST (Intra-State)</option>
+            <option value='interState'>IGST (Inter-State)</option>
+          </select>
+        </div>
         {/* GST */}
         <div className='form-group'>
-          <label className='form-label'>GST</label>
+          <label className='form-label'>GST Rate</label>
           <select
             className='form-select'
             value={gst}
             onChange={(e) => dispatch(setGst(Number(e.target.value)))}
           >
             <option value=''>Select</option>
-            <option value={6}>6%</option>
-            <option value={9}>9%</option>
+            {gstType === 'interState' ? (
+              <>
+                <option value={6}>12% (IGST)</option>
+                <option value={9}>18% (IGST)</option>
+              </>
+            ) : (
+              <>
+                <option value={6}>6% + 6% (CGST + SGST)</option>
+                <option value={9}>9% + 9% (CGST + SGST)</option>
+              </>
+            )}
           </select>
         </div>
         {/* Challan No */}

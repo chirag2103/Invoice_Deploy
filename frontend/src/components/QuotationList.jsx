@@ -68,6 +68,7 @@ const QuotationList = () => {
       date: quotation.date.split('T')[0],
       products: quotation.quotationProducts,
       gst: quotation.gst,
+      gstType: quotation.gstType || 'intraState',
       totalAmount: quotation.invoiceTotal,
       grandTotal: quotation.grandTotal,
       technicalSpecifications: quotation.technicalSpecifications || [],

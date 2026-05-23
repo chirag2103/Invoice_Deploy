@@ -40,6 +40,11 @@ const quotationSchema = new mongoose.Schema({
   quotationProducts: [productSchema],
   date: { type: Date, required: true },
   gst: { type: Number, default: 9 },
+  gstType: {
+    type: String,
+    enum: ['intraState', 'interState'],
+    default: 'intraState',
+  },
   invoiceTotal: Number,
   grandTotal: Number,
   termsAndConditions: { type: String, default: '' },

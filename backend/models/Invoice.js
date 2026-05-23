@@ -46,6 +46,11 @@ const invoiceSchema = mongoose.Schema({
   orderNo: String,
   challanNo: String,
   gst: Number,
+  gstType: {
+    type: String,
+    enum: ['intraState', 'interState'],
+    default: 'intraState',
+  },
   challanDate: Date,
   orderDate: Date,
   invoiceProducts: [productSchema],

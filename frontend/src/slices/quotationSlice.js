@@ -22,6 +22,7 @@ const initialState = {
   totalAmount: 0,
   grandTotal: 0,
   gst: 9,
+  gstType: 'intraState',
   error: null,
   loading: false,
   quotations: [],
@@ -89,6 +90,9 @@ const quotationSlice = createSlice({
     setGst(state, action) {
       state.gst = action.payload;
     },
+    setGstType(state, action) {
+      state.gstType = action.payload;
+    },
     addProduct(state, action) {
       state.products.push(action.payload);
       state.totalAmount += action.payload.quantity * action.payload.rate;
@@ -155,6 +159,7 @@ const quotationSlice = createSlice({
 export const {
   setCustomer,
   setGst,
+  setGstType,
   addProduct,
   removeProduct,
   updateProduct,
