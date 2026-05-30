@@ -1,146 +1,308 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useLocation, useNavigate } from 'react-router-dom';
+import api from '../axiosSetup.js';
+import AdminSidebar from './AdminSidebar';
 import '../styles/InvoiceForm.css';
+import { fetchSellers } from '../slices/customerSlice';
 import {
-  setSeller,
-  setGst,
   addProduct,
-  removeProduct,
   clearPoData,
-  fetchLastPO,
+  fetchPONo,
+  removeProduct,
   sendPOData,
+  setGst,
+  setGstType,
+  setSeller,
   updateProduct,
 } from '../slices/poSlice';
-import { fetchSellers } from '../slices/customerSlice';
-import { useNavigate, useLocation } from 'react-router-dom';
-import AdminSidebar from './AdminSidebar';
+import { generatePurchaseOrderPDF } from '../services/pdfGeneratorService';
+import {
+  formatDocumentNumber,
+  getFinancialYearFromDate,
+  getTodayDate,
+  uomList,
+} from '../services/helper';
 
 const PurchaseOrderForm = () => {
-  const parseDate = (d) => d?.split('T')[0];
+  const apiUrl = process.env.REACT_APP_API_URL;
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const isEdit = location.state?.po ? true : false;
+  const isEdit = Boolean(location.state?.po);
   const poToEdit = location.state?.po;
 
   const { sellers, loading, error } = useSelector((state) => state.customers);
-  const { seller, products, gst, totalAmount, grandTotal, poNo } = useSelector(
-    (state) => state.po
-  );
+  const {
+    seller,
+    products,
+    gst,
+    gstType,
+    totalAmount,
+    grandTotal,
+    poNo,
+    financialYearLabel,
+  } = useSelector((state) => state.po);
 
+  const [poDate, setPoDate] = useState(getTodayDate());
   const [product, setProduct] = useState({
     name: '',
+    hsn: '',
     quantity: 1,
     rate: 0,
     uom: 'NOS',
   });
-  const [quotationDate, setQuotationDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
+  const [termsAndConditions, setTermsAndConditions] = useState('');
+  const [technicalSpecifications, setTechnicalSpecifications] = useState('');
+  const [saving, setSaving] = useState(false);
+  const nameTextareaRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchSellers());
-    if (!isEdit) dispatch(fetchLastPO());
+    return () => dispatch(clearPoData());
+  }, [dispatch]);
 
-    if (isEdit) {
-      dispatch(setSeller(poToEdit.customer._id));
-      dispatch(setGst(poToEdit.gst));
-      setQuotationDate(parseDate(poToEdit.date));
-      poToEdit.quotationProducts.forEach((p) => dispatch(addProduct(p)));
+  useEffect(() => {
+    if (!isEdit || !poToEdit) {
+      return;
     }
-  }, [dispatch, isEdit]);
 
-  const handleAddProduct = () => {
-    if (!product.name || product.quantity <= 0 || product.rate < 0) return;
-    dispatch(addProduct(product));
-    setProduct({ name: '', quantity: 1, rate: 0, uom: 'NOS' });
+    dispatch(setSeller(poToEdit.seller?._id || poToEdit.seller));
+    dispatch(setGst(poToEdit.gst));
+    dispatch(setGstType(poToEdit.gstType || 'intraState'));
+    setPoDate(poToEdit.date?.split('T')[0] || getTodayDate());
+    setTermsAndConditions(poToEdit.termsAndConditions || '');
+    setTechnicalSpecifications(poToEdit.technicalSpecifications || '');
+    poToEdit.poProducts.forEach((item) => dispatch(addProduct(item)));
+  }, [dispatch, isEdit, poToEdit]);
+
+  useEffect(() => {
+    if (!isEdit && poDate) {
+      dispatch(fetchPONo(poDate));
+    }
+  }, [dispatch, isEdit, poDate]);
+
+  const handleProductNameKeyDown = (event) => {
+    if (event.key !== 'Tab') {
+      return;
+    }
+
+    event.preventDefault();
+    const textarea = event.target;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const nextValue =
+      product.name.substring(0, start) + '    ' + product.name.substring(end);
+
+    setProduct((current) => ({ ...current, name: nextValue }));
+
+    requestAnimationFrame(() => {
+      textarea.selectionStart = start + 4;
+      textarea.selectionEnd = start + 4;
+    });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!product && !quotationDate && !seller) e.preventDefault();
-    const selectedSeller = sellers.find((c) => c._id === seller);
-    const poData = {
-      seller: selectedSeller, // for printing
-      poNo: poNo,
-      date: quotationDate,
-      products,
-      gst,
-      totalAmount,
-      grandTotal,
-      invoicefor: 'PO',
-    };
-    await dispatch(
-      sendPOData({
-        seller,
-        poNo: poNo,
-        poProducts: products,
-        gst,
-        invoiceTotal: totalAmount,
-        grandTotal,
-        date: parseDate(quotationDate),
-      })
-    ).then(() => {
-      dispatch(clearPoData());
-      navigate('/po/preview', { state: poData });
+  const handleAddProduct = () => {
+    if (!product.name.trim() || product.quantity <= 0 || product.rate < 0) {
+      alert('Enter valid product details.');
+      return;
+    }
+
+    dispatch(addProduct(product));
+    setProduct({
+      name: '',
+      hsn: '',
+      quantity: 1,
+      rate: 0,
+      uom: 'NOS',
     });
+    nameTextareaRef.current?.focus();
+  };
+
+  const selectedSeller = sellers.find((item) => item._id === seller);
+
+  const pdfData = (savedValues = {}) => ({
+    seller: selectedSeller,
+    poNo: formatDocumentNumber(
+      savedValues.poNo ?? poNo,
+      savedValues.financialYearLabel ||
+        (isEdit
+          ? poToEdit?.financialYearLabel
+          : financialYearLabel || getFinancialYearFromDate(poDate))
+    ),
+    date: poDate,
+    products,
+    gst,
+    gstType,
+    totalAmount,
+    grandTotal,
+    technicalSpecifications,
+    termsAndConditions,
+    companyName: user.companyDetails?.name,
+      companyAddress: user.companyDetails?.address,
+      companyGST: user.companyDetails?.gstin,
+      companyPhone: user.companyDetails?.mobile,
+      companyBank: user.bankDetails || {},
+      userSignature: user.signature || null,
+    });
+
+  const savePayload = {
+    seller,
+    poProducts: products,
+    gst,
+    gstType,
+    invoiceTotal: totalAmount,
+    grandTotal,
+    date: poDate,
+    termsAndConditions,
+    technicalSpecifications,
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!seller || products.length === 0) {
+      alert('Select seller and add at least one product.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (isEdit && poToEdit) {
+        const { data } = await api.put(
+          `${apiUrl}/api/po/${poToEdit._id}`,
+          savePayload,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        generatePurchaseOrderPDF(
+          pdfData({
+            poNo: data.po.poNo,
+            financialYearLabel: data.po.financialYearLabel,
+          })
+        );
+      } else {
+        const result = await dispatch(sendPOData(savePayload));
+
+        if (result.meta.requestStatus !== 'fulfilled' || !result.payload?.po) {
+          throw new Error(result.payload || 'Unable to save purchase order');
+        }
+
+        generatePurchaseOrderPDF(
+          pdfData({
+            poNo: result.payload.po.poNo,
+            financialYearLabel: result.payload.po.financialYearLabel,
+          })
+        );
+      }
+
+      navigate('/pos/all');
+    } catch (requestError) {
+      console.error('Purchase order save error', requestError);
+      alert(
+        requestError.response?.data?.message ||
+          requestError.message ||
+          'Failed to save purchase order.'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGenerateWithoutSaving = () => {
+    if (!selectedSeller || products.length === 0) {
+      alert('Select seller and add at least one product.');
+      return;
+    }
+
+    generatePurchaseOrderPDF(pdfData());
   };
 
   return (
     <div className='admin-container'>
       <AdminSidebar />
-      <div className='create-invoice-container'>
+      <main className='invoice-list'>
         <div className='invoice-container'>
-          <h2 className='invoice-header'>{isEdit ? 'Edit PO' : 'Create PO'}</h2>
-          <form className='invoice-form' onSubmit={handleSubmit}>
+          <h2 className='invoice-header'>
+            {isEdit ? 'Edit Purchase Order' : 'Create Purchase Order'}
+          </h2>
+
+          <form
+            className='invoice-form'
+            onSubmit={handleSubmit}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
+                event.preventDefault();
+              }
+            }}
+          >
             <div className='form-group'>
-              <label htmlFor='quoteNo' className='form-label'>
-                Quote No:
-              </label>
+              <label className='form-label'>Financial Year</label>
               <input
                 type='text'
-                id='quoteNo'
                 className='form-input'
-                value={`Q-${poNo || 0}`}
+                value={
+                  isEdit
+                    ? poToEdit?.financialYearLabel || getFinancialYearFromDate(poDate)
+                    : financialYearLabel || getFinancialYearFromDate(poDate)
+                }
                 disabled
               />
             </div>
+
             <div className='form-group'>
-              <label htmlFor='quotationDate' className='form-label'>
-                Quotation Date:
-              </label>
+              <label className='form-label'>PO No.</label>
+              <input
+                type='text'
+                className='form-input'
+                value={
+                  isEdit
+                    ? formatDocumentNumber(
+                        poToEdit?.poNo,
+                        poToEdit?.financialYearLabel
+                      )
+                    : formatDocumentNumber(
+                        poNo,
+                        financialYearLabel || getFinancialYearFromDate(poDate)
+                      )
+                }
+                disabled
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>PO Date</label>
               <input
                 type='date'
-                id='quotationDate'
                 className='form-input'
-                value={quotationDate}
-                onChange={(e) => setQuotationDate(e.target.value)}
+                value={poDate}
+                onChange={(event) => setPoDate(event.target.value)}
                 required
               />
             </div>
 
             <div className='form-group'>
-              <label htmlFor='customer' className='form-label'>
-                Seller:
-              </label>
+              <label className='form-label'>Seller</label>
               <select
-                id='customer'
                 className='form-select'
                 value={seller || ''}
-                onChange={(e) => dispatch(setSeller(e.target.value))}
+                onChange={(event) => dispatch(setSeller(event.target.value))}
                 required
               >
-                <option value=''>Select Customer</option>
+                <option value=''>Select Seller</option>
                 {loading ? (
-                  <option value=''>Loading...</option>
+                  <option>Loading...</option>
                 ) : error ? (
-                  <option value=''>Error</option>
+                  <option>Error loading sellers</option>
                 ) : (
-                  sellers.map((cust) => (
-                    <option key={cust._id} value={cust._id}>
-                      {cust.name}
+                  sellers.map((item) => (
+                    <option key={item._id} value={item._id}>
+                      {item.name}
                     </option>
                   ))
                 )}
@@ -148,29 +310,50 @@ const PurchaseOrderForm = () => {
             </div>
 
             <div className='form-group'>
-              <label htmlFor='gst' className='form-label'>
-                GST (%)
-              </label>
+              <label className='form-label'>GST Type</label>
               <select
-                id='gst'
+                className='form-select'
+                value={gstType}
+                onChange={(event) => dispatch(setGstType(event.target.value))}
+              >
+                <option value='intraState'>CGST + SGST (Intra-State)</option>
+                <option value='interState'>IGST (Inter-State)</option>
+              </select>
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>GST Rate</label>
+              <select
                 className='form-select'
                 value={gst}
-                onChange={(e) => dispatch(setGst(Number(e.target.value)))}
-                required
+                onChange={(event) => dispatch(setGst(Number(event.target.value)))}
               >
                 <option value=''>Select</option>
-                <option value={6}>6%</option>
-                <option value={9}>9%</option>
+                {gstType === 'interState' ? (
+                  <>
+                    <option value={6}>12% (IGST)</option>
+                    <option value={9}>18% (IGST)</option>
+                  </>
+                ) : (
+                  <>
+                    <option value={6}>6% + 6% (CGST + SGST)</option>
+                    <option value={9}>9% + 9% (CGST + SGST)</option>
+                  </>
+                )}
               </select>
             </div>
 
             <h3 className='products-header'>Products</h3>
-            {products.length > 0 ? (
+
+            {products.length === 0 ? (
+              <p className='no-products'>No products added</p>
+            ) : (
               <table className='products-table'>
                 <thead>
                   <tr>
-                    <th>Product Name</th>
-                    <th>Quantity</th>
+                    <th>Name</th>
+                    <th>HSN</th>
+                    <th>Qty</th>
                     <th>UOM</th>
                     <th>Rate</th>
                     <th>Amount</th>
@@ -178,17 +361,32 @@ const PurchaseOrderForm = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p, i) => (
-                    <tr key={i}>
+                  {products.map((item, index) => (
+                    <tr key={index}>
+                      <td>
+                        <textarea
+                          value={item.name}
+                          onChange={(event) =>
+                            dispatch(
+                              updateProduct({
+                                index,
+                                updatedFields: { name: event.target.value },
+                              })
+                            )
+                          }
+                          className='table-input table-textarea'
+                          rows={3}
+                        />
+                      </td>
                       <td>
                         <input
                           type='text'
-                          value={p.name}
-                          onChange={(e) =>
+                          value={item.hsn || ''}
+                          onChange={(event) =>
                             dispatch(
                               updateProduct({
-                                index: i,
-                                updatedFields: { name: e.target.value },
+                                index,
+                                updatedFields: { hsn: event.target.value },
                               })
                             )
                           }
@@ -198,13 +396,13 @@ const PurchaseOrderForm = () => {
                       <td>
                         <input
                           type='number'
-                          value={p.quantity}
-                          onChange={(e) =>
+                          value={item.quantity}
+                          onChange={(event) =>
                             dispatch(
                               updateProduct({
-                                index: i,
+                                index,
                                 updatedFields: {
-                                  quantity: Number(e.target.value),
+                                  quantity: Number(event.target.value),
                                 },
                               })
                             )
@@ -214,45 +412,47 @@ const PurchaseOrderForm = () => {
                       </td>
                       <td>
                         <select
-                          value={p.uom}
-                          onChange={(e) =>
+                          value={item.uom}
+                          onChange={(event) =>
                             dispatch(
                               updateProduct({
-                                index: i,
-                                updatedFields: { uom: e.target.value },
+                                index,
+                                updatedFields: { uom: event.target.value },
                               })
                             )
                           }
                           className='table-select'
                         >
-                          <option value='NOS'>NOS</option>
-                          <option value='Kg'>Kg</option>
-                          <option value='Liters'>Liters</option>
-                          <option value='Set'>Set</option>
-                          <option value='Meter'>Meter</option>
+                          {uomList.map((uom) => (
+                            <option key={uom} value={uom}>
+                              {uom}
+                            </option>
+                          ))}
                         </select>
                       </td>
                       <td>
                         <input
                           type='number'
-                          value={p.rate}
-                          onChange={(e) =>
+                          value={item.rate}
+                          onChange={(event) =>
                             dispatch(
                               updateProduct({
-                                index: i,
-                                updatedFields: { rate: Number(e.target.value) },
+                                index,
+                                updatedFields: {
+                                  rate: Number(event.target.value),
+                                },
                               })
                             )
                           }
                           className='table-input'
                         />
                       </td>
-                      <td>{p.quantity * p.rate}</td>
+                      <td>{`₹${(item.quantity * item.rate).toFixed(2)}`}</td>
                       <td>
                         <button
                           type='button'
                           className='remove-btn'
-                          onClick={() => dispatch(removeProduct(i))}
+                          onClick={() => dispatch(removeProduct(index))}
                         >
                           Remove
                         </button>
@@ -261,96 +461,147 @@ const PurchaseOrderForm = () => {
                   ))}
                 </tbody>
               </table>
-            ) : (
-              <p className='no-products'>No products added yet.</p>
             )}
 
             <div className='form-group'>
-              <label htmlFor='productName' className='form-label'>
-                Product Name
-              </label>
+              <label className='form-label'>Product Name</label>
+              <textarea
+                ref={nameTextareaRef}
+                className='form-input product-name-textarea'
+                value={product.name}
+                onChange={(event) =>
+                  setProduct((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+                onKeyDown={handleProductNameKeyDown}
+                rows={4}
+                placeholder='Product Details (use Tab for indentation)'
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>HSN Code</label>
               <input
                 type='text'
-                id='productName'
                 className='form-input'
-                value={product.name}
-                onChange={(e) =>
-                  setProduct({ ...product, name: e.target.value })
+                value={product.hsn}
+                onChange={(event) =>
+                  setProduct((current) => ({
+                    ...current,
+                    hsn: event.target.value,
+                  }))
                 }
               />
             </div>
 
             <div className='form-group'>
-              <label htmlFor='uom' className='form-label'>
-                UOM
-              </label>
+              <label className='form-label'>Quantity</label>
+              <input
+                type='number'
+                className='form-input'
+                value={product.quantity}
+                onChange={(event) =>
+                  setProduct((current) => ({
+                    ...current,
+                    quantity: Number(event.target.value),
+                  }))
+                }
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>Rate</label>
+              <input
+                type='number'
+                className='form-input'
+                value={product.rate}
+                onChange={(event) =>
+                  setProduct((current) => ({
+                    ...current,
+                    rate: Number(event.target.value),
+                  }))
+                }
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='form-label'>UOM</label>
               <select
-                id='uom'
                 className='form-select'
                 value={product.uom}
-                onChange={(e) =>
-                  setProduct({ ...product, uom: e.target.value })
+                onChange={(event) =>
+                  setProduct((current) => ({
+                    ...current,
+                    uom: event.target.value,
+                  }))
                 }
               >
-                <option value='NOS'>NOS</option>
-                <option value='Kg'>Kg</option>
-                <option value='Liters'>Liters</option>
-                <option value='Set'>Set</option>
+                {uomList.map((uom) => (
+                  <option key={uom} value={uom}>
+                    {uom}
+                  </option>
+                ))}
               </select>
             </div>
 
-            <div className='form-group'>
-              <label htmlFor='quantity' className='form-label'>
-                Quantity
-              </label>
-              <input
-                type='number'
-                id='quantity'
-                className='form-input'
-                value={product.quantity}
-                onChange={(e) =>
-                  setProduct({ ...product, quantity: Number(e.target.value) })
-                }
-              />
-            </div>
-
-            <div className='form-group'>
-              <label htmlFor='rate' className='form-label'>
-                Rate
-              </label>
-              <input
-                type='number'
-                id='rate'
-                className='form-input'
-                value={product.rate}
-                onChange={(e) =>
-                  setProduct({ ...product, rate: Number(e.target.value) })
-                }
-              />
-            </div>
-
-            <button
-              type='button'
-              className='add-btn'
-              onClick={handleAddProduct}
-            >
+            <button type='button' className='add-btn' onClick={handleAddProduct}>
               Add Product
             </button>
 
-            <div className='invoice-totals'>
-              <p>Total Amount: ₹{totalAmount}</p>
+            <div className='form-section'>
+              <h3>Terms & Conditions</h3>
+              <div className='form-group'>
+                <textarea
+                  className='form-input'
+                  value={termsAndConditions}
+                  onChange={(event) => setTermsAndConditions(event.target.value)}
+                  rows='5'
+                  placeholder='Enter terms and conditions...'
+                />
+              </div>
+            </div>
 
-              <p>Grand Total: ₹{grandTotal}</p>
+            <div className='form-section'>
+              <h3>Technical Details</h3>
+              <div className='form-group'>
+                <textarea
+                  className='form-input'
+                  value={technicalSpecifications}
+                  onChange={(event) =>
+                    setTechnicalSpecifications(event.target.value)
+                  }
+                  rows='5'
+                  placeholder='Enter technical specifications...'
+                />
+              </div>
+            </div>
+
+            <div className='invoice-totals'>
+              <p>Total Amount: ₹{totalAmount.toFixed(2)}</p>
+              <p>Grand Total: ₹{grandTotal.toFixed(2)}</p>
             </div>
 
             <div className='form-actions'>
-              <button type='submit' className='generate-btn'>
-                {isEdit ? 'Save Changes' : 'Save PO'}
+              <button type='submit' className='generate-btn' disabled={saving}>
+                {saving
+                  ? 'Saving...'
+                  : isEdit
+                    ? 'Save Changes & Generate PDF'
+                    : 'Save & Generate PDF'}
+              </button>
+              <button
+                type='button'
+                className='generate-vendor-btn'
+                onClick={handleGenerateWithoutSaving}
+              >
+                Generate Preview PDF
               </button>
             </div>
           </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

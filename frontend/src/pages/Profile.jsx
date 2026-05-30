@@ -4,6 +4,8 @@ import AdminSidebar from '../components/AdminSidebar';
 import api from '../axiosSetup.js';
 import { loginSuccess } from '../slices/userSlice';
 
+const MAX_SIGNATURE_SIZE_BYTES = 1024 * 1024;
+
 const Profile = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const dispatch = useDispatch();
@@ -24,7 +26,16 @@ const Profile = () => {
       branch: currentUser.bankDetails?.branch || '',
       ifsc: currentUser.bankDetails?.ifsc || '',
     },
+    signature: currentUser.signature?.dataUrl
+      ? {
+          dataUrl: currentUser.signature.dataUrl,
+          contentType: currentUser.signature.contentType || '',
+          fileName: currentUser.signature.fileName || 'signature',
+        }
+      : null,
   });
+
+  const [signatureError, setSignatureError] = useState('');
 
   const handleChange = (section, field, value) => {
     if (!section) {
@@ -38,6 +49,52 @@ const Profile = () => {
         ...prev[section],
         [field]: value,
       },
+    }));
+  };
+
+  const handleSignatureUpload = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (
+      !['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(
+        file.type.toLowerCase()
+      )
+    ) {
+      setSignatureError('Signature must be PNG, JPG, JPEG, or WEBP.');
+      return;
+    }
+
+    if (file.size > MAX_SIGNATURE_SIZE_BYTES) {
+      setSignatureError('Signature must be 1 MB or smaller.');
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      setSignatureError('');
+      setFormData((prev) => ({
+        ...prev,
+        signature: {
+          dataUrl: String(reader.result || ''),
+          contentType: file.type,
+          fileName: file.name,
+        },
+      }));
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveSignature = () => {
+    setSignatureError('');
+    setFormData((prev) => ({
+      ...prev,
+      signature: null,
     }));
   };
 
@@ -175,6 +232,41 @@ const Profile = () => {
                     )
                   }
                 />
+              </div>
+              <div className='profile-grid-full'>
+                <label className='form-label'>Authorized Signature</label>
+                <input
+                  className='form-input'
+                  type='file'
+                  accept='image/png,image/jpeg,image/jpg,image/webp'
+                  onChange={handleSignatureUpload}
+                />
+                <p>
+                  Upload a clean transparent or white-background signature. This
+                  will be used on invoices, quotations, challans, and purchase
+                  orders.
+                </p>
+                {signatureError ? <p>Error: {signatureError}</p> : null}
+                {formData.signature?.dataUrl ? (
+                  <div className='profile-signature-preview'>
+                    <img
+                      src={formData.signature.dataUrl}
+                      alt='Authorized signature preview'
+                      className='profile-signature-image'
+                    />
+                    <div className='form-actions'>
+                      <button
+                        type='button'
+                        className='remove-btn'
+                        onClick={handleRemoveSignature}
+                      >
+                        Remove Signature
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p>No signature uploaded yet.</p>
+                )}
               </div>
             </div>
             <div className='form-actions'>

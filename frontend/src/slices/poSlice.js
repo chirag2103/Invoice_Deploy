@@ -13,12 +13,16 @@ const initialPagination = {
 
 const initialState = {
   poNo: 1,
+  financialYearLabel: '',
+  currentFinancialYear: '',
+  availableFinancialYears: [],
   seller: '',
   date: '',
   products: [],
   totalAmount: 0,
   grandTotal: 0,
   gst: 9,
+  gstType: 'intraState',
   error: null,
   loading: false,
   pos: [],
@@ -31,6 +35,11 @@ const apiUrl = process.env.REACT_APP_API_URL;
 const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
+
+const calculateGrandTotal = (totalAmount, gst, gstType) => {
+  const multiplier = gstType === 'interState' ? 1 : 2;
+  return Math.round(totalAmount + (totalAmount * gst * multiplier) / 100);
+};
 
 export const fetchPOs = createAsyncThunk(
   'po/fetchpos',
@@ -49,20 +58,37 @@ export const fetchPOs = createAsyncThunk(
   }
 );
 
-export const fetchLastPO = createAsyncThunk('quotation/fetchQuoteNo', async () => {
-  const res = await api.get(`${apiUrl}/api/lastpo`, {
-    headers: getAuthHeaders(),
-  });
-  return parseInt(res.data.po.poNo);
-});
+export const fetchPONo = createAsyncThunk(
+  'po/fetchPONo',
+  async (date, { rejectWithValue }) => {
+    try {
+      const res = await api.get(`${apiUrl}/api/lastpo`, {
+        params: date ? { date } : {},
+        headers: getAuthHeaders(),
+      });
+      return res.data.po;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message ||
+          'Failed to fetch next purchase order number'
+      );
+    }
+  }
+);
 
 export const sendPOData = createAsyncThunk(
-  'quotation/sendPOData',
-  async (data) => {
-    const res = await api.post(`${apiUrl}/api/po/new`, data, {
-      headers: getAuthHeaders(),
-    });
-    return res.data;
+  'po/sendPOData',
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await api.post(`${apiUrl}/api/po/new`, data, {
+        headers: getAuthHeaders(),
+      });
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to save purchase order'
+      );
+    }
   }
 );
 
@@ -75,19 +101,36 @@ const poSlice = createSlice({
     },
     setGst(state, action) {
       state.gst = action.payload;
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
+      );
+    },
+    setGstType(state, action) {
+      state.gstType = action.payload;
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
+      );
     },
     addProduct(state, action) {
       state.products.push(action.payload);
       state.totalAmount += action.payload.quantity * action.payload.rate;
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
     removeProduct(state, action) {
       const removed = state.products.splice(action.payload, 1)[0];
       state.totalAmount -= removed.quantity * removed.rate;
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
     updateProduct: (state, action) => {
@@ -103,8 +146,10 @@ const poSlice = createSlice({
         (sum, prod) => sum + prod.quantity * prod.rate,
         0
       );
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
 
@@ -122,16 +167,25 @@ const poSlice = createSlice({
         state.loading = false;
         state.pos = action.payload.po || [];
         state.pagination = action.payload.pagination || initialPagination;
+        state.availableFinancialYears = action.payload.availableFinancialYears || [];
+        state.currentFinancialYear = action.payload.currentFinancialYear || '';
       })
       .addCase(fetchPOs.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || action.error.message;
       })
-      .addCase(fetchLastPO.fulfilled, (state, action) => {
-        state.poNo = action.payload + 1;
+      .addCase(fetchPONo.fulfilled, (state, action) => {
+        state.poNo = action.payload.poNo;
+        state.financialYearLabel = action.payload.financialYearLabel || '';
+      })
+      .addCase(fetchPONo.rejected, (state, action) => {
+        state.error = action.payload || action.error.message;
       })
       .addCase(sendPOData.fulfilled, (state) => {
         state.message = 'PO saved successfully';
+      })
+      .addCase(sendPOData.rejected, (state, action) => {
+        state.error = action.payload || action.error.message;
       });
   },
 });
@@ -139,6 +193,7 @@ const poSlice = createSlice({
 export const {
   setSeller,
   setGst,
+  setGstType,
   addProduct,
   removeProduct,
   updateProduct,

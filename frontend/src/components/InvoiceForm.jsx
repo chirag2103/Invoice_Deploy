@@ -252,6 +252,7 @@ const InvoiceForm = () => {
         companyGST: user.companyDetails?.gstin,
         companyPhone: user.companyDetails?.mobile,
         companyBank: user.bankDetails || {},
+        userSignature: user.signature || null,
       });
 
       navigate('/invoices/all');
@@ -323,6 +324,7 @@ const InvoiceForm = () => {
         companyGST: user.companyDetails?.gstin,
         companyPhone: user.companyDetails?.mobile,
         companyBank: user.bankDetails || {},
+        userSignature: user.signature || null,
       });
 
       navigate('/invoices/all');
@@ -367,6 +369,7 @@ const InvoiceForm = () => {
       companyGST: user.companyDetails?.gstin,
       companyPhone: user.companyDetails?.mobile,
       companyBank: user.bankDetails || {},
+      userSignature: user.signature || null,
     });
   };
 

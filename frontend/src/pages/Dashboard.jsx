@@ -225,6 +225,7 @@ const Dashboard = () => {
       companyGST: user.companyDetails?.gstin || '',
       companyPhone: user.companyDetails?.mobile || '',
       companyBank: user.bankDetails || {},
+      userSignature: user.signature || null,
       invoices: [...monthData.monthInvoices]
         .sort((first, second) => {
           if ((first.invoiceNo || 0) !== (second.invoiceNo || 0)) {

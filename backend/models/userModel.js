@@ -32,6 +32,24 @@ const userSchema = new mongoose.Schema({
     accountNumber: { type: String },
     ifsc: { type: String },
   },
+  signature: {
+    dataUrl: {
+      type: String,
+      default: null,
+    },
+    contentType: {
+      type: String,
+      default: null,
+    },
+    fileName: {
+      type: String,
+      default: null,
+    },
+    updatedAt: {
+      type: Date,
+      default: null,
+    },
+  },
   avatar: {
     public_id: {
       type: String,

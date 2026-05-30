@@ -30,7 +30,6 @@ import Sellers from './pages/Sellers';
 import SellerStatement from './pages/SellerStatement';
 import SellerPayments from './pages/sellerPayments';
 import PurchaseTransaction from './pages/PurchaseTransactions';
-import PoPrint from './components/PoPrint';
 import PurchaseOrderForm from './components/PurchaseOrderForm';
 import PurchaseOrderList from './components/PurchaseOrderList';
 import Profile from './pages/Profile';
@@ -214,14 +213,6 @@ function App() {
           }
         />
         <Route
-          path='/po/preview'
-          element={
-            <ProtectedRoute>
-              <PoPrint />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path='/invoices/all'
           element={
             <ProtectedRoute>
@@ -290,6 +281,14 @@ function App() {
           element={
             <ProtectedRoute>
               <QuotationForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/po/:poId/edit'
+          element={
+            <ProtectedRoute>
+              <PurchaseOrderForm />
             </ProtectedRoute>
           }
         />

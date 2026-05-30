@@ -4,6 +4,61 @@ import ErrorHandler from '../utils/errorHandler.js';
 import { sendToken } from '../utils/jwtToken.js';
 import { sendEmail } from '../utils/sendEmail.js';
 import crypto from 'crypto';
+
+const SIGNATURE_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+]);
+const MAX_SIGNATURE_SIZE_BYTES = 1024 * 1024;
+
+const normalizeSignature = (signature) => {
+  if (!signature) {
+    return null;
+  }
+
+  if (signature === null) {
+    return null;
+  }
+
+  const dataUrl = String(signature.dataUrl || '').trim();
+
+  if (!dataUrl) {
+    return null;
+  }
+
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+
+  if (!match) {
+    throw new ErrorHandler('Signature must be a valid image data URL', 400);
+  }
+
+  const contentType =
+    match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1].toLowerCase();
+
+  if (!SIGNATURE_MIME_TYPES.has(contentType)) {
+    throw new ErrorHandler('Signature image must be PNG, JPG, JPEG, or WEBP', 400);
+  }
+
+  const imageBuffer = Buffer.from(match[2], 'base64');
+
+  if (!imageBuffer.length) {
+    throw new ErrorHandler('Signature image is empty', 400);
+  }
+
+  if (imageBuffer.length > MAX_SIGNATURE_SIZE_BYTES) {
+    throw new ErrorHandler('Signature image must be 1 MB or smaller', 400);
+  }
+
+  return {
+    dataUrl,
+    contentType,
+    fileName: signature.fileName || 'signature',
+    updatedAt: new Date(),
+  };
+};
+
 export const registerUser = catchAsyncError(async (req, res, next) => {
   const {
     name,
@@ -12,6 +67,7 @@ export const registerUser = catchAsyncError(async (req, res, next) => {
     companyDetails,
     bankDetails,
     avatar,
+    signature,
   } = req.body;
 
   const existingUser = await User.findOne({ email });
@@ -26,6 +82,7 @@ export const registerUser = catchAsyncError(async (req, res, next) => {
     password,
     companyDetails,
     bankDetails,
+    signature: normalizeSignature(signature),
     avatar: {
       public_id: avatar?.public_id || 'default_avatar_id',
       url: avatar?.url || 'default_avatar_url',
@@ -164,6 +221,11 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
     companyDetails: req.body.companyDetails,
     bankDetails: req.body.bankDetails,
   };
+
+  if (Object.prototype.hasOwnProperty.call(req.body, 'signature')) {
+    newUserData.signature = normalizeSignature(req.body.signature);
+  }
+
   const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
     new: true,
     runValidators: true,

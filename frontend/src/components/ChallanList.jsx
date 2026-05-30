@@ -87,6 +87,7 @@ const ChallanList = () => {
       companyAddress: user.companyDetails?.address,
       companyGST: user.companyDetails?.gstin,
       companyPhone: user.companyDetails?.mobile,
+      userSignature: user.signature || null,
     };
 
     generateChallanPDF(pdfData, shipTo);

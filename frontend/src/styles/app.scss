@@ -721,6 +721,27 @@ aside {
   grid-column: 1 / -1;
 }
 
+.profile-signature-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fff, #fff8f0);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.profile-signature-image {
+  max-width: 260px;
+  max-height: 96px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
 .add-customer p,
 .customer-list-container h1,
 .invoice-list h3 {
