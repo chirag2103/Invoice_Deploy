@@ -36,6 +36,10 @@ const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
 
+const calculateGrandTotal = (totalAmount, gst, gstType) => {
+  return Math.round(totalAmount + (totalAmount * gst * 2) / 100);
+};
+
 export const fetchQuotations = createAsyncThunk(
   'quotation/fetchQuotations',
   async (params = {}, { rejectWithValue }) => {
@@ -89,22 +93,36 @@ const quotationSlice = createSlice({
     },
     setGst(state, action) {
       state.gst = action.payload;
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
+      );
     },
     setGstType(state, action) {
       state.gstType = action.payload;
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
+      );
     },
     addProduct(state, action) {
       state.products.push(action.payload);
       state.totalAmount += action.payload.quantity * action.payload.rate;
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
     removeProduct(state, action) {
       const removed = state.products.splice(action.payload, 1)[0];
       state.totalAmount -= removed.quantity * removed.rate;
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
     updateProduct: (state, action) => {
@@ -120,8 +138,10 @@ const quotationSlice = createSlice({
         (sum, prod) => sum + prod.quantity * prod.rate,
         0
       );
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
 

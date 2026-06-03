@@ -38,6 +38,10 @@ const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
 
+const calculateGrandTotal = (totalAmount, gst, gstType) => {
+  return Math.round(totalAmount + (totalAmount * gst * 2) / 100);
+};
+
 export const fetchInvoices = createAsyncThunk(
   'invoice/fetchInvoices',
   async (payload = {}, { rejectWithValue }) => {
@@ -105,13 +109,20 @@ const invoiceSlice = createSlice({
 
     setGst(state, action) {
       state.gst = action.payload;
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
 
     setGstType(state, action) {
       state.gstType = action.payload;
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
+      );
     },
 
     addProduct(state, action) {
@@ -128,8 +139,10 @@ const invoiceSlice = createSlice({
         0
       );
 
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
 
@@ -141,8 +154,10 @@ const invoiceSlice = createSlice({
         0
       );
 
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
 
@@ -160,8 +175,10 @@ const invoiceSlice = createSlice({
         0
       );
 
-      state.grandTotal = Math.round(
-        state.totalAmount + (state.totalAmount * state.gst * 2) / 100
+      state.grandTotal = calculateGrandTotal(
+        state.totalAmount,
+        state.gst,
+        state.gstType
       );
     },
 

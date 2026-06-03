@@ -37,8 +37,7 @@ const getAuthHeaders = () => ({
 });
 
 const calculateGrandTotal = (totalAmount, gst, gstType) => {
-  const multiplier = gstType === 'interState' ? 1 : 2;
-  return Math.round(totalAmount + (totalAmount * gst * multiplier) / 100);
+  return Math.round(totalAmount + (totalAmount * gst * 2) / 100);
 };
 
 export const fetchPOs = createAsyncThunk(
