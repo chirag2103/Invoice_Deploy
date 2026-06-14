@@ -6,15 +6,15 @@ import {
   setGstType,
   addProduct,
   removeProduct,
-  fetchBillNo,
+  fetchProformaNo,
   updateProduct,
   clearAllData,
-} from '../slices/invoiceSlice.js';
+} from '../slices/proformaSlice.js';
 import { fetchCustomers } from '../slices/customerSlice.js';
 import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup.js';
-import { generateInvoicePDF } from '../services/pdfGeneratorService.js';
+import { generateProformaInvoicePDF } from '../services/pdfGeneratorService.js';
 import {
   formatDocumentNumber,
   getFinancialYearFromDate,
@@ -22,7 +22,7 @@ import {
 } from '../services/helper.js';
 import { uomList } from '../services/helper';
 
-const InvoiceForm = () => {
+const ProformaInvoiceForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -31,7 +31,6 @@ const InvoiceForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // product name textarea ref for tab handling
   const nameTextareaRef = useRef(null);
 
   const handleNameKeyDown = (e) => {
@@ -49,13 +48,10 @@ const InvoiceForm = () => {
     }
   };
 
-  const isEdit = Boolean(location.state?.invoice);
-  const invoiceToEdit = location.state?.invoice;
-  const challanData = location.state?.fromChallan;
+  const isEdit = Boolean(location.state?.proformaInvoice);
+  const proformaToEdit = location.state?.proformaInvoice;
   const isFromQuotation = location.state?.fromQuotation;
   const quotationData = location.state?.quotation;
-  const isFromProforma = location.state?.fromProforma;
-  const proformaData = location.state?.proforma;
 
   const {
     customers,
@@ -64,7 +60,7 @@ const InvoiceForm = () => {
   } = useSelector((state) => state.customers);
 
   const {
-    billNo,
+    proformaNo,
     financialYearLabel,
     customer,
     gst,
@@ -72,14 +68,14 @@ const InvoiceForm = () => {
     products,
     totalAmount,
     grandTotal,
-  } =
-    useSelector((state) => state.invoice);
+  } = useSelector((state) => state.proforma);
 
   const [date, setDate] = useState(getTodayDate());
   const [challanNo, setChallanNo] = useState('');
   const [challanDate, setChallanDate] = useState('');
   const [orderNo, setOrderNo] = useState('');
   const [orderDate, setOrderDate] = useState('');
+  const [validUntil, setValidUntil] = useState('');
   const [saving, setSaving] = useState(false);
 
   // product input
@@ -109,75 +105,38 @@ const InvoiceForm = () => {
       quotationData.quotationProducts.forEach((p) => dispatch(addProduct(p)));
       setDate(new Date().toISOString().split('T')[0]);
     }
-
-    if (isFromProforma && proformaData) {
-      dispatch(setCustomer(proformaData.customer));
-      dispatch(setGst(proformaData.gst));
-      if (proformaData.gstType) dispatch(setGstType(proformaData.gstType));
-      proformaData.proformaProducts.forEach((p) => dispatch(addProduct(p)));
-      setDate(new Date().toISOString().split('T')[0]);
-      setOrderNo(proformaData.orderNo || '');
-      setOrderDate(parseDate(proformaData.orderDate) || '');
-      setTermsAndConditions(proformaData.termsAndConditions || '');
-      if (proformaData.shipTo) {
-        setSameAsBillTo(false);
-        setShipToName(proformaData.shipTo.name || '');
-        setShipToAddress(proformaData.shipTo.address || '');
-        setShipToGst(proformaData.shipTo.gstNo || '');
-      }
-    }
-
-    if (!isEdit && challanData) {
-      dispatch(setCustomer(challanData.customer));
-      setDate(new Date().toISOString().split('T')[0]);
-      setChallanNo(challanData.challanNo || '');
-      setChallanDate(parseDate(challanData.challanDate));
-      setOrderNo(challanData.orderNo || '');
-      setOrderDate(parseDate(challanData.orderDate));
-
-      challanData.products.forEach((p) =>
-        dispatch(
-          addProduct({
-            name: p.name,
-            hsn: p.hsn || '',
-            quantity: p.quantity,
-            rate: 0,
-            uom: p.uom,
-          }),
-        ),
-      );
-    }
-  }, [dispatch, isEdit, isFromQuotation, quotationData, isFromProforma, proformaData, challanData]);
+  }, [dispatch, isEdit, isFromQuotation, quotationData]);
 
   useEffect(() => {
     if (!isEdit && date) {
-      dispatch(fetchBillNo(date));
+      dispatch(fetchProformaNo(date));
     }
   }, [dispatch, isEdit, date]);
 
   // ---------------- EDIT MODE ----------------
   useEffect(() => {
-    if (isEdit && invoiceToEdit) {
-      dispatch(setCustomer(invoiceToEdit.customer));
-      dispatch(setGst(invoiceToEdit.gst));
-      dispatch(setGstType(invoiceToEdit.gstType || 'intraState'));
-      invoiceToEdit.invoiceProducts.forEach((p) => dispatch(addProduct(p)));
+    if (isEdit && proformaToEdit) {
+      dispatch(setCustomer(proformaToEdit.customer));
+      dispatch(setGst(proformaToEdit.gst));
+      dispatch(setGstType(proformaToEdit.gstType || 'intraState'));
+      proformaToEdit.proformaProducts.forEach((p) => dispatch(addProduct(p)));
 
-      setDate(parseDate(invoiceToEdit.date));
-      setChallanNo(invoiceToEdit.challanNo || '');
-      setChallanDate(parseDate(invoiceToEdit.challanDate));
-      setOrderNo(invoiceToEdit.orderNo || '');
-      setOrderDate(parseDate(invoiceToEdit.orderDate));
-      setTermsAndConditions(invoiceToEdit.termsAndConditions || '');
+      setDate(parseDate(proformaToEdit.date));
+      setChallanNo(proformaToEdit.challanNo || '');
+      setChallanDate(parseDate(proformaToEdit.challanDate));
+      setOrderNo(proformaToEdit.orderNo || '');
+      setOrderDate(parseDate(proformaToEdit.orderDate));
+      setValidUntil(parseDate(proformaToEdit.validUntil) || '');
+      setTermsAndConditions(proformaToEdit.termsAndConditions || '');
 
-      if (invoiceToEdit.shipTo) {
+      if (proformaToEdit.shipTo) {
         setSameAsBillTo(false);
-        setShipToName(invoiceToEdit.shipTo.name || '');
-        setShipToAddress(invoiceToEdit.shipTo.address || '');
-        setShipToGst(invoiceToEdit.shipTo.gstNo || '');
+        setShipToName(proformaToEdit.shipTo.name || '');
+        setShipToAddress(proformaToEdit.shipTo.address || '');
+        setShipToGst(proformaToEdit.shipTo.gstNo || '');
       }
     }
-  }, [dispatch, isEdit, invoiceToEdit]);
+  }, [dispatch, isEdit, proformaToEdit]);
 
   // ---------------- CLEANUP ----------------
   useEffect(() => {
@@ -216,22 +175,10 @@ const InvoiceForm = () => {
     dispatch(removeProduct(index));
   };
 
-  // PDF helper — pulls template & logo from user profile
-  const getPdfExtras = () => ({
-    companyName: user.companyDetails?.name,
-    companyAddress: user.companyDetails?.address,
-    companyGST: user.companyDetails?.gstin,
-    companyPhone: user.companyDetails?.mobile,
-    companyBank: user.bankDetails || {},
-    userSignature: user.signature || null,
-    companyLogo: user.companyLogo || null,
-    template: user.pdfTemplate || 'classic',
-  });
-
   // ---------------- SAVE ----------------
-  const handleGenerateInvoice = async () => {
+  const handleGenerateProforma = async () => {
     if (!customer || products.length === 0 || !date) {
-      alert('Incomplete invoice data');
+      alert('Incomplete proforma data');
       return;
     }
     setSaving(true);
@@ -240,7 +187,7 @@ const InvoiceForm = () => {
         customer: customer._id,
         gst,
         gstType,
-        invoiceProducts: products,
+        proformaProducts: products,
         invoiceTotal: totalAmount,
         grandTotal,
         date,
@@ -248,24 +195,25 @@ const InvoiceForm = () => {
         challanDate,
         orderNo,
         orderDate,
+        validUntil,
         termsAndConditions,
         shipTo: sameAsBillTo
           ? null
           : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
       };
 
-      const { data } = await api.post(`${apiUrl}/api/invoice/new`, payload, {
+      const { data } = await api.post(`${apiUrl}/api/proforma/new`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const savedInvoice = data.invoice;
+      const savedProforma = data.proforma;
 
-      generateInvoicePDF({
+      generateProformaInvoicePDF({
         customer,
         shipTo: payload.shipTo,
         billNo: formatDocumentNumber(
-          savedInvoice.invoiceNo,
-          savedInvoice.financialYearLabel
+          savedProforma.proformaNo,
+          savedProforma.financialYearLabel
         ),
         products,
         gst,
@@ -277,23 +225,31 @@ const InvoiceForm = () => {
         challanDate,
         orderNo,
         orderDate,
+        validUntil,
         termsAndConditions,
-        ...getPdfExtras(),
+        companyName: user.companyDetails?.name,
+        companyAddress: user.companyDetails?.address,
+        companyGST: user.companyDetails?.gstin,
+        companyPhone: user.companyDetails?.mobile,
+        companyBank: user.bankDetails || {},
+        userSignature: user.signature || null,
+        companyLogo: user.companyLogo || null,
+        template: user.pdfTemplate || 'classic',
       });
 
-      navigate('/invoices/all');
+      navigate('/proformas/all');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSaveInvoice = async () => {
-    if (!isEdit || !invoiceToEdit) {
+  const handleSaveProforma = async () => {
+    if (!isEdit || !proformaToEdit) {
       alert('Nothing to save');
       return;
     }
     if (!customer || products.length === 0 || !date) {
-      alert('Incomplete invoice data');
+      alert('Incomplete proforma data');
       return;
     }
 
@@ -303,7 +259,7 @@ const InvoiceForm = () => {
         customer: customer._id,
         gst,
         gstType,
-        invoiceProducts: products,
+        proformaProducts: products,
         invoiceTotal: totalAmount,
         grandTotal,
         date,
@@ -311,6 +267,7 @@ const InvoiceForm = () => {
         challanDate,
         orderNo,
         orderDate,
+        validUntil,
         termsAndConditions,
         shipTo: sameAsBillTo
           ? null
@@ -321,18 +278,22 @@ const InvoiceForm = () => {
             },
       };
 
-      const { data } = await api.put(`${apiUrl}/api/invoice/${invoiceToEdit._id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await api.put(
+        `${apiUrl}/api/proforma/${proformaToEdit._id}`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      const savedInvoice = data.invoice;
+      const savedProforma = data.proforma;
 
-      generateInvoicePDF({
+      generateProformaInvoicePDF({
         customer,
         shipTo: payload.shipTo,
         billNo: formatDocumentNumber(
-          savedInvoice.invoiceNo,
-          savedInvoice.financialYearLabel
+          savedProforma.proformaNo,
+          savedProforma.financialYearLabel
         ),
         products,
         gst,
@@ -344,55 +305,31 @@ const InvoiceForm = () => {
         challanDate,
         orderNo,
         orderDate,
+        validUntil,
         termsAndConditions,
-        ...getPdfExtras(),
+        companyName: user.companyDetails?.name,
+        companyAddress: user.companyDetails?.address,
+        companyGST: user.companyDetails?.gstin,
+        companyPhone: user.companyDetails?.mobile,
+        companyBank: user.bankDetails || {},
+        userSignature: user.signature || null,
+        companyLogo: user.companyLogo || null,
+        template: user.pdfTemplate || 'classic',
       });
 
-      navigate('/invoices/all');
+      navigate('/proformas/all');
     } catch (err) {
-      console.error('Update invoice failed', err);
-      alert('Failed to update invoice');
+      console.error('Update proforma failed', err);
+      alert('Failed to update proforma invoice');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleGenerateDuplicate = () => {
-    if (!customer || products.length === 0 || !date) {
-      alert('Incomplete invoice data');
-      return;
-    }
-
-    generateInvoicePDF({
-      customer,
-      shipTo: sameAsBillTo
-        ? null
-        : {
-            name: shipToName,
-            address: shipToAddress,
-            gstNo: shipToGst,
-          },
-      billNo,
-      financialYearLabel,
-      products,
-      gst,
-      gstType,
-      totalAmount,
-      grandTotal,
-      date,
-      challanNo,
-      challanDate,
-      orderNo,
-      orderDate,
-      termsAndConditions,
-      ...getPdfExtras(),
-    });
-  };
-
   return (
     <div className='invoice-container'>
       <h2 className='invoice-header'>
-        {isEdit ? 'Edit Invoice' : 'Create Invoice'}
+        {isEdit ? 'Edit Proforma Invoice' : 'Create Proforma Invoice'}
       </h2>
 
       <form
@@ -401,7 +338,7 @@ const InvoiceForm = () => {
         onKeyDown={(e) => {
           if (
             e.key === 'Enter' &&
-            e.target.tagName !== 'TEXTAREA' // allow Enter in textareas
+            e.target.tagName !== 'TEXTAREA'
           ) {
             e.preventDefault();
           }
@@ -474,7 +411,7 @@ const InvoiceForm = () => {
             </div>
           </>
         )}
-        {/* Bill No */}
+        {/* Financial Year */}
         <div className='form-group'>
           <label className='form-label'>Financial Year</label>
           <input
@@ -482,25 +419,26 @@ const InvoiceForm = () => {
             className='form-input'
             value={
               isEdit
-                ? invoiceToEdit.financialYearLabel || getFinancialYearFromDate(date)
+                ? proformaToEdit.financialYearLabel || getFinancialYearFromDate(date)
                 : financialYearLabel || getFinancialYearFromDate(date)
             }
             disabled
           />
         </div>
+        {/* Proforma No */}
         <div className='form-group'>
-          <label className='form-label'>Bill No</label>
+          <label className='form-label'>Proforma No</label>
           <input
             type='text'
             className='form-input'
             value={
               isEdit
                 ? formatDocumentNumber(
-                    invoiceToEdit.invoiceNo,
-                    invoiceToEdit.financialYearLabel
+                    proformaToEdit.proformaNo,
+                    proformaToEdit.financialYearLabel
                   )
                 : formatDocumentNumber(
-                    billNo,
+                    proformaNo,
                     financialYearLabel || getFinancialYearFromDate(date)
                   )
             }
@@ -515,6 +453,17 @@ const InvoiceForm = () => {
             className='form-input'
             value={date}
             onChange={(e) => setDate(e.target.value)}
+            style={{ width: '10rem' }}
+          />
+        </div>
+        {/* Valid Until */}
+        <div className='form-group'>
+          <label className='form-label'>Valid Until:</label>
+          <input
+            type='date'
+            className='form-input'
+            value={validUntil}
+            onChange={(e) => setValidUntil(e.target.value)}
             style={{ width: '10rem' }}
           />
         </div>
@@ -827,34 +776,26 @@ const InvoiceForm = () => {
           {!isEdit ? (
             <button
               className='generate-btn'
-              onClick={handleGenerateInvoice}
+              onClick={handleGenerateProforma}
               disabled={saving}
             >
-              {saving ? 'Saving...' : 'Generate Invoice & Save'}
+              {saving ? 'Saving...' : 'Generate Proforma & Save'}
             </button>
           ) : (
             <>
               <button
                 className='save-btn'
-                onClick={handleSaveInvoice}
+                onClick={handleSaveProforma}
                 disabled={saving}
               >
                 {saving ? 'Saving...' : 'Save & Generate PDF'}
               </button>
             </>
           )}
-
-          <button
-            className='generate-vendor-btn'
-            type='button'
-            onClick={handleGenerateDuplicate}
-          >
-            Generate Duplicate (No Save)
-          </button>
         </div>
       </form>
     </div>
   );
 };
 
-export default InvoiceForm;
+export default ProformaInvoiceForm;

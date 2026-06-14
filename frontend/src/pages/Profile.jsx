@@ -6,6 +6,24 @@ import { loginSuccess } from '../slices/userSlice';
 
 const MAX_SIGNATURE_SIZE_BYTES = 1024 * 1024;
 
+const TEMPLATE_OPTIONS = [
+  {
+    value: 'classic',
+    label: 'Classic',
+    description: 'Traditional fully-bordered grid layout. All columns and rows have borders. Amount in words on left, totals on right.',
+  },
+  {
+    value: 'modern',
+    label: 'Modern',
+    description: 'Dark blue header bar, card-style sections, alternating table row colors, accent highlights — no vertical table lines.',
+  },
+  {
+    value: 'minimal',
+    label: 'Minimal',
+    description: 'Borderless, open layout with thin horizontal rules. Clean typography, totals right-aligned, generous whitespace.',
+  },
+];
+
 const Profile = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const dispatch = useDispatch();
@@ -33,9 +51,18 @@ const Profile = () => {
           fileName: currentUser.signature.fileName || 'signature',
         }
       : null,
+    companyLogo: currentUser.companyLogo?.dataUrl
+      ? {
+          dataUrl: currentUser.companyLogo.dataUrl,
+          contentType: currentUser.companyLogo.contentType || '',
+          fileName: currentUser.companyLogo.fileName || 'logo',
+        }
+      : null,
+    pdfTemplate: currentUser.pdfTemplate || 'classic',
   });
 
   const [signatureError, setSignatureError] = useState('');
+  const [logoError, setLogoError] = useState('');
 
   const handleChange = (section, field, value) => {
     if (!section) {
@@ -95,6 +122,52 @@ const Profile = () => {
     setFormData((prev) => ({
       ...prev,
       signature: null,
+    }));
+  };
+
+  const handleLogoUpload = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (
+      !['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(
+        file.type.toLowerCase()
+      )
+    ) {
+      setLogoError('Logo must be PNG, JPG, JPEG, or WEBP.');
+      return;
+    }
+
+    if (file.size > MAX_SIGNATURE_SIZE_BYTES) {
+      setLogoError('Logo must be 1 MB or smaller.');
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      setLogoError('');
+      setFormData((prev) => ({
+        ...prev,
+        companyLogo: {
+          dataUrl: String(reader.result || ''),
+          contentType: file.type,
+          fileName: file.name,
+        },
+      }));
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoError('');
+    setFormData((prev) => ({
+      ...prev,
+      companyLogo: null,
     }));
   };
 
@@ -233,6 +306,83 @@ const Profile = () => {
                   }
                 />
               </div>
+
+              {/* ===== COMPANY LOGO ===== */}
+              <div className='profile-grid-full'>
+                <label className='form-label'>Company Logo</label>
+                <input
+                  className='form-input'
+                  type='file'
+                  accept='image/png,image/jpeg,image/jpg,image/webp'
+                  onChange={handleLogoUpload}
+                />
+                <p style={{ fontSize: '0.85rem', color: '#555', marginTop: '4px' }}>
+                  Upload your company logo (PNG, JPG, max 1 MB). It will be embedded in PDF documents according to the selected template.
+                </p>
+                {logoError ? <p style={{ color: 'red' }}>Error: {logoError}</p> : null}
+                {formData.companyLogo?.dataUrl ? (
+                  <div className='profile-signature-preview'>
+                    <img
+                      src={formData.companyLogo.dataUrl}
+                      alt='Company logo preview'
+                      className='profile-signature-image'
+                      style={{ maxHeight: '60px', maxWidth: '200px', objectFit: 'contain' }}
+                    />
+                    <div className='form-actions'>
+                      <button
+                        type='button'
+                        className='remove-btn'
+                        onClick={handleRemoveLogo}
+                      >
+                        Remove Logo
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ color: '#888', fontSize: '0.85rem' }}>No logo uploaded yet.</p>
+                )}
+              </div>
+
+              {/* ===== PDF TEMPLATE ===== */}
+              <div className='profile-grid-full'>
+                <label className='form-label'>PDF Template</label>
+                <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '12px' }}>
+                  Choose the layout style for all generated PDFs (invoices, quotations, proforma, challans, purchase orders).
+                </p>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {TEMPLATE_OPTIONS.map((opt) => (
+                    <label
+                      key={opt.value}
+                      style={{
+                        flex: '1 1 160px',
+                        border: `2px solid ${formData.pdfTemplate === opt.value ? '#1a56db' : '#d1d5db'}`,
+                        borderRadius: '8px',
+                        padding: '12px',
+                        cursor: 'pointer',
+                        background: formData.pdfTemplate === opt.value ? '#eff6ff' : '#fff',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <input
+                        type='radio'
+                        name='pdfTemplate'
+                        value={opt.value}
+                        checked={formData.pdfTemplate === opt.value}
+                        onChange={() => handleChange(null, 'pdfTemplate', opt.value)}
+                        style={{ marginRight: '8px' }}
+                      />
+                      <strong style={{ color: formData.pdfTemplate === opt.value ? '#1a56db' : '#374151' }}>
+                        {opt.label}
+                      </strong>
+                      <p style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '4px', marginLeft: '20px' }}>
+                        {opt.description}
+                      </p>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* ===== SIGNATURE ===== */}
               <div className='profile-grid-full'>
                 <label className='form-label'>Authorized Signature</label>
                 <input

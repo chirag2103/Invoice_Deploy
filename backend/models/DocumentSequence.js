@@ -11,7 +11,7 @@ const documentSequenceSchema = new mongoose.Schema(
     documentType: {
       type: String,
       required: true,
-      enum: ['invoice', 'quotation', 'challan'],
+      enum: ['invoice', 'quotation', 'challan', 'proforma'],
     },
     financialYearStart: {
       type: Number,

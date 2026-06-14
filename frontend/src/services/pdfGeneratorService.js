@@ -678,6 +678,401 @@ const buildInvoiceFooterSections = ({
   },
 ]};
 
+/* =====================================================
+   SHARED TEMPLATE HELPERS  (Modern + Minimal)
+   Used by Invoice, Quotation, Purchase Order, Challan
+   ===================================================== */
+
+const MODERN_COLORS = {
+  blue: '#1e3a5f',
+  accent: '#1a56db',
+  light: '#eff6ff',
+  rowAlt: '#f9fafb',
+  card: '#f8fafc',
+  border: '#e2e8f0',
+  blueBorder: '#bfdbfe',
+  textDark: '#374151',
+  textMid: '#6b7280',
+  white: '#ffffff',
+};
+
+const MINIMAL_COLORS = {
+  dark: '#111827',
+  gray: '#6b7280',
+  line: '#e5e7eb',
+};
+
+// ---- Modern: company header bar ----
+const buildModernHeader = ({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType }) => {
+  const logoNode = companyLogo?.dataUrl ? { image: companyLogo.dataUrl, fit: [70, 35], width: 80, margin: [0, 4, 12, 4] } : null;
+  return [
+    {
+      table: {
+        widths: ['*'],
+        body: [[{
+          columns: [
+            ...(logoNode ? [logoNode] : []),
+            {
+              stack: [
+                { text: companyName || '', fontSize: 18, bold: true, color: MODERN_COLORS.white },
+                { text: companyAddress || '', fontSize: 8.5, color: '#cbd5e1', margin: [0, 2, 0, 0] },
+                { text: `GSTIN: ${companyGST || '-'}  |  Ph: ${companyPhone || ''}`, fontSize: 8.5, color: '#94a3b8', margin: [0, 2, 0, 0] },
+              ],
+            },
+          ],
+          fillColor: MODERN_COLORS.blue,
+          margin: [12, 10, 12, 10],
+        }]],
+      },
+      layout: { hLineWidth: () => 0, vLineWidth: () => 0 },
+    },
+    {
+      columns: [
+        { text: docType, fontSize: 13, bold: true, color: MODERN_COLORS.white, fillColor: MODERN_COLORS.accent, margin: [8, 5, 8, 5] },
+        { text: '', width: '*' },
+      ],
+      margin: [0, 0, 0, 8],
+    },
+  ];
+};
+
+// ---- Modern: meta card row ----
+const buildModernMetaCard = (fields) => ({
+  table: {
+    widths: ['*'],
+    body: [[{
+      stack: fields.map(([label, value]) => ({
+        text: [{ text: `${label}: `, bold: true, fontSize: 9, color: MODERN_COLORS.accent }, { text: value || '-', fontSize: 9, color: MODERN_COLORS.textDark }],
+        margin: [0, 1, 0, 0],
+      })),
+      fillColor: MODERN_COLORS.light,
+      margin: [8, 8, 8, 8],
+    }]],
+  },
+  layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => MODERN_COLORS.blueBorder, vLineColor: () => MODERN_COLORS.blueBorder },
+});
+
+// ---- Modern: 2-column party section ----
+const buildModernPartySection = ({ leftLabel, leftParty, rightLabel, rightParty }) => ({
+  columns: [
+    {
+      width: '50%',
+      table: {
+        widths: ['100%'],
+        body: [[{
+          stack: [
+            { text: leftLabel, fontSize: 8, bold: true, color: MODERN_COLORS.accent, margin: [0, 0, 0, 3] },
+            { text: leftParty?.name || '-', fontSize: 11, bold: true, color: MODERN_COLORS.blue },
+            { text: leftParty?.address || '-', fontSize: 8.5, color: MODERN_COLORS.textDark, margin: [0, 2, 0, 0] },
+            { text: `GSTIN: ${leftParty?.gstNo || 'NA'}`, fontSize: 8.5, color: MODERN_COLORS.textMid, margin: [0, 2, 0, 0] },
+          ],
+          fillColor: MODERN_COLORS.card, margin: [8, 8, 8, 8],
+        }]],
+      },
+      layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => MODERN_COLORS.border, vLineColor: () => MODERN_COLORS.border },
+    },
+    {
+      width: '50%',
+      table: {
+        widths: ['100%'],
+        body: [[{
+          stack: [
+            { text: rightLabel, fontSize: 8, bold: true, color: MODERN_COLORS.accent, margin: [0, 0, 0, 3] },
+            { text: rightParty?.name || '-', fontSize: 11, bold: true, color: MODERN_COLORS.blue },
+            { text: rightParty?.address || '-', fontSize: 8.5, color: MODERN_COLORS.textDark, margin: [0, 2, 0, 0] },
+            { text: `GSTIN: ${rightParty?.gstNo || 'NA'}`, fontSize: 8.5, color: MODERN_COLORS.textMid, margin: [0, 2, 0, 0] },
+          ],
+          fillColor: MODERN_COLORS.card, margin: [8, 8, 8, 8],
+        }]],
+      },
+      layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => MODERN_COLORS.border, vLineColor: () => MODERN_COLORS.border },
+    },
+  ],
+  margin: [0, 0, 0, 8],
+});
+
+// ---- Modern: products table (alternating rows, dark blue header, no vertical lines) ----
+const buildModernProductsTable = (rows, colWidths, headerLabels, fillerCount = 0) => {
+  const fillerCells = headerLabels.map(() => ({ text: ' ', fontSize: 9 }));
+  const fillerRows = Array.from({ length: fillerCount }).map(() => fillerCells);
+
+  const modernRows = rows.map((row, i) =>
+    row.map((cell) => ({ ...cell, fillColor: i % 2 === 1 ? MODERN_COLORS.rowAlt : null }))
+  );
+  const modernFillerRows = fillerRows.map((row, i) =>
+    row.map((cell) => ({ ...cell, fillColor: (rows.length + i) % 2 === 1 ? MODERN_COLORS.rowAlt : null }))
+  );
+
+  return {
+    table: {
+      headerRows: 1,
+      widths: colWidths,
+      body: [
+        headerLabels.map((label, idx) => ({
+          text: label,
+          bold: true,
+          fontSize: 9,
+          color: MODERN_COLORS.white,
+          fillColor: MODERN_COLORS.blue,
+          alignment: idx === headerLabels.length - 1 ? 'right' : 'center',
+        })),
+        ...modernRows,
+        ...modernFillerRows,
+      ],
+    },
+    layout: {
+      hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0.3),
+      vLineWidth: () => 0,
+      hLineColor: () => MODERN_COLORS.border,
+      paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 3, paddingBottom: () => 3,
+    },
+    margin: [0, 0, 0, 8],
+  };
+};
+
+// ---- Modern: totals + footer ----
+const buildModernTotalsFooter = ({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }) => {
+  const isIGST = gstType === 'interState';
+  const taxAmount = totalAmount * (gst / 100);
+  const igstAmount = totalAmount * ((gst * 2) / 100);
+  const taxRows = isIGST
+    ? [[{ text: `IGST (${gst * 2}%)`, fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(igstAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }]]
+    : [
+        [{ text: `CGST (${gst}%)`, fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }],
+        [{ text: `SGST (${gst}%)`, fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }],
+      ];
+
+  return [
+    {
+      columns: [
+        {
+          width: '55%',
+          table: {
+            widths: ['*'],
+            body: [[{ text: `Amount in Words:\n${convertToWords(grandTotal)}`, fontSize: 9, italic: true, color: MODERN_COLORS.blue, margin: [8, 6, 8, 6] }]],
+          },
+          layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => MODERN_COLORS.blueBorder, vLineColor: () => MODERN_COLORS.blueBorder },
+        },
+        { width: '5%', text: '' },
+        {
+          width: '40%',
+          table: {
+            widths: ['*', 'auto'],
+            body: [
+              [{ text: 'Subtotal', fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }],
+              ...taxRows,
+              [
+                { text: 'GRAND TOTAL', bold: true, fontSize: 10, color: MODERN_COLORS.blue, fillColor: MODERN_COLORS.light },
+                { text: formatCurrency(grandTotal), bold: true, fontSize: 10, alignment: 'right', color: MODERN_COLORS.blue, fillColor: MODERN_COLORS.light },
+              ],
+            ],
+          },
+          layout: {
+            hLineWidth: (i, node) => (i === node.table.body.length - 1 ? 1 : 0.3),
+            vLineWidth: () => 0,
+            hLineColor: () => MODERN_COLORS.accent,
+            paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 3, paddingBottom: () => 3,
+          },
+        },
+      ],
+      margin: [0, 0, 0, 10],
+    },
+    {
+      columns: [
+        {
+          width: '55%',
+          stack: [
+            { text: 'Bank Details', bold: true, fontSize: 9.5, color: MODERN_COLORS.accent, margin: [0, 0, 0, 3] },
+            { text: companyName || '', fontSize: 9, color: MODERN_COLORS.textDark },
+            { text: `Bank: ${getBankName(companyBank)}`, fontSize: 9, color: MODERN_COLORS.textDark, margin: [0, 1, 0, 0] },
+            { text: `A/C: ${companyBank?.accountNumber || ''}`, fontSize: 9, color: MODERN_COLORS.textDark, margin: [0, 1, 0, 0] },
+            { text: `IFSC: ${getBankIfsc(companyBank)}`, fontSize: 9, color: MODERN_COLORS.textDark, margin: [0, 1, 0, 0] },
+          ],
+        },
+        {
+          width: '45%',
+          stack: [
+            { text: `For ${companyName || ''}`, bold: true, fontSize: 9.5, color: MODERN_COLORS.blue, alignment: 'right', margin: [0, 0, 0, 6] },
+            { image: getSignatureImage(userSignature), fit: [120, 40], alignment: 'right', margin: [0, 0, 0, 4] },
+            { text: 'Authorized Signatory', fontSize: 8.5, color: MODERN_COLORS.textMid, alignment: 'right' },
+          ],
+        },
+      ],
+      margin: [0, 0, 0, 8],
+    },
+    ...(termsAndConditions
+      ? [{ stack: [{ text: 'Terms & Conditions', bold: true, fontSize: 9.5, color: MODERN_COLORS.accent, margin: [0, 0, 0, 3] }, { ul: formatTextAsBulletPoints(termsAndConditions) }], margin: [0, 4, 0, 0] }]
+      : []),
+    { text: 'This document is computer generated and does not require signature.', fontSize: 8.5, italic: true, alignment: 'center', color: '#9ca3af', margin: [0, 8, 0, 0] },
+  ];
+};
+
+// ---- Minimal: company header ----
+const buildMinimalHeader = ({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType, docMeta }) => {
+  const LINE_COLOR = MINIMAL_COLORS.line;
+  const DARK = MINIMAL_COLORS.dark;
+  const GRAY = MINIMAL_COLORS.gray;
+  const logoNode = companyLogo?.dataUrl ? { image: companyLogo.dataUrl, fit: [80, 40], width: 80, alignment: 'right' } : null;
+
+  return [
+    {
+      columns: [
+        {
+          stack: [
+            { text: companyName || '', fontSize: 18, bold: true, color: DARK },
+            { text: companyAddress || '', fontSize: 8.5, color: GRAY, margin: [0, 3, 0, 0] },
+            { text: `GSTIN: ${companyGST || '-'}  |  Ph: ${companyPhone || ''}`, fontSize: 8.5, color: GRAY, margin: [0, 1, 0, 0] },
+          ],
+        },
+        ...(logoNode ? [logoNode] : []),
+      ],
+      margin: [0, 0, 0, 6],
+    },
+    { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 0, 0, 8] },
+    {
+      columns: [
+        {
+          width: '50%',
+          stack: [
+            { text: docType, fontSize: 13, bold: true, color: DARK, margin: [0, 0, 0, 6] },
+            ...docMeta.map(([label, value]) => ({
+              text: [{ text: `${label}: `, color: GRAY, fontSize: 9 }, { text: value || '-', fontSize: 9, color: DARK }],
+              margin: [0, 1, 0, 0],
+            })),
+          ],
+        },
+      ],
+      margin: [0, 0, 0, 10],
+    },
+    { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 0, 0, 8] },
+  ];
+};
+
+// ---- Minimal: party block (accent left-bar) ----
+const buildMinimalParty = ({ label, party }) => {
+  const LINE_COLOR = MINIMAL_COLORS.line;
+  const DARK = MINIMAL_COLORS.dark;
+  const GRAY = MINIMAL_COLORS.gray;
+  return [
+    { text: label, fontSize: 8, bold: true, color: GRAY, margin: [0, 0, 0, 3] },
+    {
+      columns: [
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 0, y2: 45, lineWidth: 2, lineColor: LINE_COLOR }], width: 8 },
+        {
+          stack: [
+            { text: party?.name || '-', fontSize: 11, bold: true, color: DARK },
+            { text: party?.address || '-', fontSize: 8.5, color: GRAY, margin: [0, 2, 0, 0] },
+            { text: `GSTIN: ${party?.gstNo || 'NA'}`, fontSize: 8.5, color: GRAY, margin: [0, 1, 0, 0] },
+          ],
+        },
+      ],
+      margin: [0, 0, 0, 8],
+    },
+  ];
+};
+
+// ---- Minimal: products table (borderless except top+header+bottom) ----
+const buildMinimalProductsTable = (rows, colWidths, headerLabels, fillerCount = 0) => {
+  const LINE_COLOR = MINIMAL_COLORS.line;
+  const GRAY = MINIMAL_COLORS.gray;
+  const fillerRows = Array.from({ length: fillerCount }).map(() => headerLabels.map(() => ({ text: ' ', fontSize: 9 })));
+
+  return {
+    table: {
+      headerRows: 1,
+      widths: colWidths,
+      body: [
+        headerLabels.map((label, idx) => ({
+          text: label,
+          fontSize: 8,
+          bold: true,
+          color: GRAY,
+          alignment: idx === headerLabels.length - 1 ? 'right' : (idx === 1 ? 'left' : 'center'),
+        })),
+        ...rows,
+        ...fillerRows,
+      ],
+    },
+    layout: {
+      hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0),
+      vLineWidth: () => 0,
+      hLineColor: () => LINE_COLOR,
+      paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 4, paddingBottom: () => 4,
+    },
+    margin: [0, 0, 0, 8],
+  };
+};
+
+// ---- Minimal: totals + footer ----
+const buildMinimalTotalsFooter = ({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }) => {
+  const LINE_COLOR = MINIMAL_COLORS.line;
+  const DARK = MINIMAL_COLORS.dark;
+  const GRAY = MINIMAL_COLORS.gray;
+  const isIGST = gstType === 'interState';
+  const taxAmount = totalAmount * (gst / 100);
+  const igstAmount = totalAmount * ((gst * 2) / 100);
+
+  const taxLines = isIGST
+    ? [{ columns: [{ text: `IGST (${gst * 2}%)`, fontSize: 9, color: GRAY }, { text: formatCurrency(igstAmount), fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] }]
+    : [
+        { columns: [{ text: `CGST (${gst}%)`, fontSize: 9, color: GRAY }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] },
+        { columns: [{ text: `SGST (${gst}%)`, fontSize: 9, color: GRAY }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] },
+      ];
+
+  return [
+    {
+      columns: [
+        { width: '*', text: '' },
+        {
+          width: '45%',
+          stack: [
+            { columns: [{ text: 'Subtotal', fontSize: 9, color: GRAY }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: DARK }] },
+            ...taxLines,
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 220, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 4, 0, 4] },
+            { columns: [{ text: 'Grand Total', fontSize: 11, bold: true, color: DARK }, { text: formatCurrency(grandTotal), fontSize: 11, bold: true, alignment: 'right', color: DARK }] },
+            { text: `(${convertToWords(grandTotal)})`, fontSize: 8, italic: true, color: GRAY, margin: [0, 2, 0, 0] },
+          ],
+        },
+      ],
+      margin: [0, 0, 0, 16],
+    },
+    { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 0, 0, 10] },
+    {
+      columns: [
+        {
+          width: '55%',
+          stack: [
+            { text: 'Bank Details', fontSize: 9, bold: true, color: DARK, margin: [0, 0, 0, 3] },
+            { text: `${getBankName(companyBank)}  |  A/C: ${companyBank?.accountNumber || ''}`, fontSize: 8.5, color: GRAY },
+            { text: `IFSC: ${getBankIfsc(companyBank)}`, fontSize: 8.5, color: GRAY, margin: [0, 1, 0, 0] },
+          ],
+        },
+        {
+          width: '45%',
+          stack: [
+            { text: `For ${companyName || ''}`, fontSize: 9, bold: true, color: DARK, alignment: 'right', margin: [0, 0, 0, 8] },
+            { image: getSignatureImage(userSignature), fit: [120, 40], alignment: 'right' },
+            { text: 'Authorized Signatory', fontSize: 8.5, color: GRAY, alignment: 'right', margin: [0, 2, 0, 0] },
+          ],
+        },
+      ],
+      margin: [0, 0, 0, 8],
+    },
+    ...(termsAndConditions
+      ? [
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 4, 0, 6] },
+          { text: 'Terms & Conditions', fontSize: 9, bold: true, color: GRAY, margin: [0, 0, 0, 4] },
+          { stack: formatTextAsBulletPoints(termsAndConditions) },
+        ]
+      : []),
+    { text: 'This document is computer generated and does not require signature.', fontSize: 8.5, italic: true, alignment: 'center', color: '#9ca3af', margin: [0, 8, 0, 0] },
+  ];
+};
+
+/* =====================================================
+   END SHARED TEMPLATE HELPERS
+   ===================================================== */
+
 const buildInvoiceDocDefinition = (data, options = {}) => {
   const {
     companyName,
@@ -705,6 +1100,8 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
     companyBank,
     invoicefor = 'Original Copy',
     userSignature,
+    companyLogo,
+    template = 'classic',
   } = data;
   const { download = true, fileName } = options;
 
@@ -712,71 +1109,103 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
   const rows = getInvoiceRows(products);
   const chunks = getInvoiceRowChunks(rows);
 
-  const content = chunks.flatMap((chunk, pageIndex) => {
-    const pageContent = [
-      ...buildInvoiceHeaderSection({
-        companyName,
-        companyAddress,
-        companyGST,
-        companyPhone,
-        billNo,
-        date,
-        challanNo,
-        challanDate,
-        invoicefor,
-        pageIndex,
-      }),
-      buildInvoicePartySection({ customer, shipToData }),
-      buildInvoiceMetaSection({
-        orderNo,
-        orderDate,
-        disDocNo,
-        deliveryDate,
-        dispatchedThrough,
-        destination,
-      }),
-      buildInvoiceProductsSection(chunk.rows, chunk.fillerRowCount),
+  const COL_WIDTHS = ['6%', '50%', '10%', '6%', '6%', '10%', '12%'];
+  const COL_LABELS = ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'AMOUNT'];
+
+  let content;
+
+  if (template === 'modern') {
+    // --- MODERN INVOICE ---
+    const headerSections = buildModernHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: `TAX INVOICE â€” ${invoicefor}` });
+    const metaCard = buildModernMetaCard([
+      ['Invoice No', `${companyName?.split(' ').map(w => w[0].toUpperCase()).join('')}/${billNo || ''}`],
+      ['Date', formatDate(date)],
+      ['Challan No', challanNo || '-'],
+      ['Challan Date', formatDate(challanDate)],
+    ]);
+    const orderCard = buildModernMetaCard([
+      ['Order No', orderNo || '-'],
+      ['Order Date', formatDate(orderDate)],
+    ]);
+    const partySection = buildModernPartySection({ leftLabel: 'BILL TO', leftParty: customer, rightLabel: 'SHIP TO', rightParty: shipToData });
+    const modernRows = rows.map((row, i) => row.map(cell => ({ ...cell, fillColor: i % 2 === 1 ? MODERN_COLORS.rowAlt : null })));
+    const productsTable = {
+      table: {
+        headerRows: 1, widths: COL_WIDTHS,
+        body: [
+          COL_LABELS.map((label, idx) => ({ text: label, bold: true, fontSize: 9, color: MODERN_COLORS.white, fillColor: MODERN_COLORS.blue, alignment: idx === COL_LABELS.length - 1 ? 'right' : 'center' })),
+          ...modernRows,
+        ],
+      },
+      layout: { hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0.3), vLineWidth: () => 0, hLineColor: () => MODERN_COLORS.border, paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 3, paddingBottom: () => 3 },
+      margin: [0, 0, 0, 8],
+    };
+    const footerSections = buildModernTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature });
+
+    content = [
+      ...headerSections,
+      { columns: [{ width: '55%', ...metaCard }, { width: '5%', text: '' }, { width: '40%', ...orderCard }], margin: [0, 0, 0, 8] },
+      partySection,
+      productsTable,
+      ...footerSections,
     ];
 
-    if (pageIndex === chunks.length - 1) {
-      pageContent.push(
-        ...buildInvoiceFooterSections({
-          companyName,
-          companyBank,
-          totalAmount,
-          gst,
-          gstType,
-          grandTotal,
-          termsAndConditions,
-          userSignature,
-        }),
-      );
-    } else {
-      pageContent.push({ text: '', pageBreak: 'after' });
-    }
+  } else if (template === 'minimal') {
+    // --- MINIMAL INVOICE ---
+    const headerSections = buildMinimalHeader({
+      companyName, companyAddress, companyGST, companyPhone, companyLogo,
+      docType: 'TAX INVOICE',
+      docMeta: [
+        ['No', `${companyName?.split(' ').map(w => w[0].toUpperCase()).join('')}/${billNo || ''}`],
+        ['Date', formatDate(date)],
+        ['Challan No', challanNo || '-'],
+        ['Order No', orderNo || '-'],
+      ],
+    });
+    const partyBlocks = [
+      ...buildMinimalParty({ label: 'BILL TO', party: customer }),
+      ...buildMinimalParty({ label: 'SHIP TO', party: shipToData }),
+    ];
+    const productsTable = buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS);
+    const footerSections = buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature });
 
-    return pageContent;
-  });
+    content = [
+      ...headerSections,
+      ...partyBlocks,
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: MINIMAL_COLORS.line }], margin: [0, 4, 0, 8] },
+      productsTable,
+      ...footerSections,
+    ];
+
+  } else {
+    // --- CLASSIC INVOICE (original multi-page logic) ---
+    content = chunks.flatMap((chunk, pageIndex) => {
+      const pageContent = [
+        ...buildInvoiceHeaderSection({ companyName, companyAddress, companyGST, companyPhone, billNo, date, challanNo, challanDate, invoicefor, pageIndex }),
+        buildInvoicePartySection({ customer, shipToData }),
+        buildInvoiceMetaSection({ orderNo, orderDate, disDocNo, deliveryDate, dispatchedThrough, destination }),
+        buildInvoiceProductsSection(chunk.rows, chunk.fillerRowCount),
+      ];
+
+      if (pageIndex === chunks.length - 1) {
+        pageContent.push(...buildInvoiceFooterSections({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }));
+      } else {
+        pageContent.push({ text: '', pageBreak: 'after' });
+      }
+      return pageContent;
+    });
+  }
 
   const docDefinition = {
     pageSize: 'A4',
     pageMargins: [20, 20, 20, 25],
-    defaultStyle: {
-      font: 'Roboto',
-      fontSize: 10.5,
-      color: COLORS.text,
-      lineHeight: 1,
-    },
+    defaultStyle: { font: 'Roboto', fontSize: 10.5, color: COLORS.text, lineHeight: 1 },
     content,
   };
 
   if (download) {
     pdfMake.createPdf(docDefinition).download(
-      fileName ||
-        `Invoice-${companyName
-          ?.split(' ')
-          .map((word) => word[0].toUpperCase())
-          .join('')}-${billNo || ''}.pdf`,
+      fileName || `Invoice-${companyName?.split(' ').map(w => w[0].toUpperCase()).join('')}-${billNo || ''}.pdf`,
     );
   }
 
@@ -784,6 +1213,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
 };
 
 export const generateInvoicePDF = (data) => buildInvoiceDocDefinition(data);
+
 
 export const generateMonthlyInvoicesPDF = ({
   invoices = [],
@@ -883,6 +1313,8 @@ export const generateQuotationPDF = (data) => {
     termsAndConditions,
     technicalSpecifications,
     userSignature,
+    companyLogo,
+    template = 'classic',
   } = data;
 
   const isIGST = gstType === 'interState';
@@ -894,7 +1326,6 @@ export const generateQuotationPDF = (data) => {
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
     const amount = qty * rate;
-
     return [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
       formatProductName(p.name),
@@ -906,402 +1337,125 @@ export const generateQuotationPDF = (data) => {
     ];
   });
 
-  const fillerRows =
-    rows.length < MIN_ROWS
-      ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-        ])
-      : [];
+  const fillerRows = rows.length < MIN_ROWS
+    ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
+        { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small },
+        { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small },
+      ])
+    : [];
 
-  const docDefinition = {
-    pageSize: 'A4',
-    pageMargins: [20, 20, 20, 25],
-    defaultStyle: {
-      font: 'Roboto',
-      fontSize: 10.5,
-      color: COLORS.text,
-      lineHeight: 1,
-    },
+  const COL_WIDTHS = ['6%', '50%', '10%', '6%', '6%', '10%', '12%'];
+  const COL_LABELS = ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'AMOUNT'];
 
-    content: [
-      {
-        text: 'QUOTATION',
-        ...FONT.title,
-        alignment: 'center',
-        margin: [0, 0, 0, 4],
-      },
+  // Extra sections (tech specs + T&C) â€” same across all templates
+  const extraSections = [
+    ...(technicalSpecifications
+      ? [{
+          stack: [
+            { text: 'TECHNICAL SPECIFICATIONS', bold: true, fontSize: 10, margin: [0, 8, 0, 4] },
+            { table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(technicalSpecifications), margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout },
+          ], margin: [0, 4, 0, 0],
+        }]
+      : []),
+  ];
 
+  let content;
+
+  if (template === 'modern') {
+    const partyCard = buildModernMetaCard([
+      ['To', customer?.name || '-'],
+      ['Address', customer?.address || '-'],
+      ['GSTIN', customer?.gstNo || 'NA'],
+    ]);
+    content = [
+      ...buildModernHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: 'QUOTATION' }),
+      { columns: [{ width: '55%', ...buildModernMetaCard([['Quotation No', quotationNo || '-'], ['Date', formatDate(date)]]) }, { width: '5%', text: '' }, { width: '40%', ...partyCard }], margin: [0, 0, 0, 8] },
+      buildModernProductsTable(rows, COL_WIDTHS, COL_LABELS, Math.max(MIN_ROWS - rows.length, 0)),
+      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...extraSections,
+    ];
+
+  } else if (template === 'minimal') {
+    content = [
+      ...buildMinimalHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: 'QUOTATION', docMeta: [['No', quotationNo || '-'], ['Date', formatDate(date)]] }),
+      ...buildMinimalParty({ label: 'TO', party: customer }),
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: MINIMAL_COLORS.line }], margin: [0, 4, 0, 8] },
+      buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS, Math.max(MIN_ROWS - rows.length, 0)),
+      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...extraSections,
+    ];
+
+  } else {
+    // Classic
+    const quotationTaxRows = isIGST
+      ? [[{}, { text: `IGST (${igstRate}%)`, ...FONT.small }, { text: formatCurrency(igstAmount), ...FONT.small, alignment: 'right' }]]
+      : [
+          [{}, { text: `CGST (${gst}%)`, ...FONT.small }, { text: formatCurrency(cgstSgstAmount), ...FONT.small, alignment: 'right' }],
+          [{}, { text: `SGST (${gst}%)`, ...FONT.small }, { text: formatCurrency(cgstSgstAmount), ...FONT.small, alignment: 'right' }],
+        ];
+
+    content = [
+      { text: 'QUOTATION', ...FONT.title, alignment: 'center', margin: [0, 0, 0, 4] },
       {
         table: {
           widths: ['60%', '20%', '20%'],
           body: [
-            [
-              {
-                stack: [
-                  {
-                    text: companyName,
-                    fontSize: 14,
-                    bold: true,
-                    color: COLORS.text,
-                  },
-                  { text: companyAddress, ...FONT.small, margin: [0, 2, 0, 0] },
-                  {
-                    text: `GSTIN: ${companyGST || '-'}`,
-                    ...FONT.small,
-                    margin: [0, 2, 0, 0],
-                  },
-                  {
-                    text: `Mobile No. ${companyPhone || ''}`,
-                    ...FONT.small,
-                    margin: [0, 2, 0, 0],
-                  },
-                ],
-                rowSpan: 2,
-              },
-              { text: 'Quotation No.', ...FONT.label },
-              { text: quotationNo || '', ...FONT.normal },
-            ],
-            [
-              {},
-              { text: 'Date', ...FONT.label },
-              { text: formatDate(date), ...FONT.normal },
-            ],
+            [{ stack: [{ text: companyName, fontSize: 14, bold: true, color: COLORS.text }, { text: companyAddress, ...FONT.small, margin: [0, 2, 0, 0] }, { text: `GSTIN: ${companyGST || '-'}`, ...FONT.small, margin: [0, 2, 0, 0] }, { text: `Mobile No. ${companyPhone || ''}`, ...FONT.small, margin: [0, 2, 0, 0] }], rowSpan: 2 }, { text: 'Quotation No.', ...FONT.label }, { text: quotationNo || '', ...FONT.normal }],
+            [{}, { text: 'Date', ...FONT.label }, { text: formatDate(date), ...FONT.normal }],
           ],
         },
-        layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-          paddingLeft: () => 4,
-          paddingRight: () => 4,
-          paddingTop: () => 3,
-          paddingBottom: () => 3,
-        },
+        layout: paddedBorderLayout,
         margin: [0, 0, 0, 8],
       },
-
       {
-        columns: [
-          {
-            width: '100%',
-            table: {
-              widths: ['100%'],
-              body: [
-                [
-                  {
-                    stack: [
-                      {
-                        text: 'To,',
-                        ...FONT.label,
-                        margin: [0, 0, 0, 2],
-                      },
-                      { text: customer?.name || '-', ...FONT.normal },
-                      {
-                        text: customer?.address || '-',
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                      {
-                        text: `GSTIN: ${customer?.gstNo || 'NA'}`,
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                    ],
-                    margin: [4, 4, 4, 4],
-                  },
-                ],
-              ],
-            },
-            layout: {
-              hLineWidth: () => 0.5,
-              vLineWidth: () => 0.5,
-              hLineColor: () => COLORS.border,
-              vLineColor: () => COLORS.border,
-            },
-          },
-        ],
+        columns: [{
+          width: '100%',
+          table: { widths: ['100%'], body: [[{ stack: [{ text: 'To,', ...FONT.label, margin: [0, 0, 0, 2] }, { text: customer?.name || '-', ...FONT.normal }, { text: customer?.address || '-', ...FONT.small, margin: [0, 2, 0, 0] }, { text: `GSTIN: ${customer?.gstNo || 'NA'}`, ...FONT.small, margin: [0, 2, 0, 0] }], margin: [4, 4, 4, 4] }]] },
+          layout: simpleBorderLayout,
+        }],
         margin: [0, 4, 0, 6],
       },
-
       {
         table: {
-          headerRows: 1,
-          widths: ['6%', '50%', '10%', '6%', '6%', '10%', '12%'],
+          headerRows: 1, widths: COL_WIDTHS,
+          body: [COL_WIDTHS.map((_, idx) => ({ text: ['Sr.No', 'Particulars', 'HSN', 'Qty', 'UOM', 'Rate', 'Amount'][idx], ...FONT.label, alignment: 'center' })), ...rows, ...fillerRows],
+        },
+        layout: invoiceTableLayout, margin: [0, 4, 0, 6],
+      },
+      {
+        table: {
+          widths: ['50%', '25%', '25%'],
           body: [
-            [
-              { text: 'Sr.No', ...FONT.label, alignment: 'center' },
-              { text: 'Particulars', ...FONT.label, alignment: 'center' },
-              { text: 'HSN', ...FONT.label, alignment: 'center' },
-              { text: 'Qty', ...FONT.label, alignment: 'center' },
-              { text: 'UOM', ...FONT.label, alignment: 'center' },
-              { text: 'Rate', ...FONT.label, alignment: 'center' },
-              { text: 'Amount', ...FONT.label, alignment: 'center' },
-            ],
-            ...rows,
-            ...fillerRows,
+            [{ text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)], rowSpan: quotationTaxRows.length + 2, ...FONT.small }, { text: 'Subtotal', ...FONT.small }, { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' }],
+            ...quotationTaxRows,
+            [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
           ],
         },
-        layout: {
-          hLineWidth: (i, node) =>
-            i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-          paddingLeft: () => 3,
-          paddingRight: () => 3,
-          paddingTop: () => 2,
-          paddingBottom: () => 2,
-        },
-        margin: [0, 4, 0, 6],
+        layout: compactBorderLayout, margin: [0, 4, 0, 8],
       },
-
-      (() => {
-        const quotationTaxRows = isIGST
-          ? [
-              [
-                {},
-                { text: `IGST (${igstRate}%)`, ...FONT.small },
-                {
-                  text: formatCurrency(igstAmount),
-                  ...FONT.small,
-                  alignment: 'right',
-                },
-              ],
-            ]
-          : [
-              [
-                {},
-                { text: `CGST (${gst}%)`, ...FONT.small },
-                {
-                  text: formatCurrency(cgstSgstAmount),
-                  ...FONT.small,
-                  alignment: 'right',
-                },
-              ],
-              [
-                {},
-                { text: `SGST (${gst}%)`, ...FONT.small },
-                {
-                  text: formatCurrency(cgstSgstAmount),
-                  ...FONT.small,
-                  alignment: 'right',
-                },
-              ],
-            ];
-
-        const quotationTotalRows = quotationTaxRows.length + 2;
-
-        return {
-          table: {
-            widths: ['50%', '25%', '25%'],
-            body: [
-              [
-                {
-                  text: [
-                    { text: 'Rupees in Words:\n', bold: true },
-                    convertToWords(grandTotal),
-                  ],
-                  rowSpan: quotationTotalRows,
-                  ...FONT.small,
-                },
-                { text: 'Subtotal', ...FONT.small },
-                {
-                  text: formatCurrency(totalAmount),
-                  ...FONT.small,
-                  alignment: 'right',
-                },
-              ],
-              ...quotationTaxRows,
-              [
-                {},
-                { text: 'Grand Total', ...FONT.label },
-                {
-                  text: formatCurrency(grandTotal),
-                  ...FONT.label,
-                  alignment: 'right',
-                },
-              ],
-            ],
-          },
-          layout: {
-            hLineWidth: () => 0.5,
-            vLineWidth: () => 0.5,
-            hLineColor: () => COLORS.border,
-            vLineColor: () => COLORS.border,
-            paddingLeft: () => 3,
-            paddingRight: () => 3,
-            paddingTop: () => 2,
-            paddingBottom: () => 2,
-          },
-          margin: [0, 4, 0, 8],
-        };
-      })(),
-
       {
         table: {
           widths: ['60%', '40%'],
-          body: [
-            [
-              {
-                stack: [
-                  { text: 'Bank Details', ...FONT.label, margin: [0, 0, 0, 2] },
-                  { text: companyName || '', ...FONT.small },
-                  {
-                    text: `Bank Name: ${getBankName(companyBank)}`,
-                    ...FONT.small,
-                    margin: [0, 1, 0, 0],
-                  },
-                  {
-                    text: `A/C No: ${companyBank?.accountNumber || ''}`,
-                    ...FONT.small,
-                    margin: [0, 1, 0, 0],
-                  },
-                  {
-                    text: `IFSC: ${getBankIfsc(companyBank)}`,
-                    ...FONT.small,
-                    margin: [0, 1, 0, 0],
-                  },
-                ],
-                margin: [4, 4, 4, 4],
-              },
-              {
-                stack: [
-                  {
-                    text: `For ${companyName || ''}`,
-                    ...FONT.label,
-                    alignment: 'right',
-                    margin: [0, 0, 0, 4],
-                  },
-                  {
-                    image: getSignatureImage(userSignature),
-                    fit: [120, 40],
-                    alignment: 'right',
-                    margin: [0, 0, 0, 0],
-                  },
-                  {
-                    text: 'Authorized Signatory',
-                    ...FONT.small,
-                    alignment: 'right',
-                  },
-                ],
-                margin: [4, 4, 4, 4],
-              },
-            ],
-          ],
+          body: [[
+            { stack: [{ text: 'Bank Details', ...FONT.label, margin: [0, 0, 0, 2] }, { text: companyName || '', ...FONT.small }, { text: `Bank Name: ${getBankName(companyBank)}`, ...FONT.small, margin: [0, 1, 0, 0] }, { text: `A/C No: ${companyBank?.accountNumber || ''}`, ...FONT.small, margin: [0, 1, 0, 0] }, { text: `IFSC: ${getBankIfsc(companyBank)}`, ...FONT.small, margin: [0, 1, 0, 0] }], margin: [4, 4, 4, 4] },
+            { stack: [{ text: `For ${companyName || ''}`, ...FONT.label, alignment: 'right', margin: [0, 0, 0, 4] }, { image: getSignatureImage(userSignature), fit: [120, 40], alignment: 'right' }, { text: 'Authorized Signatory', ...FONT.small, alignment: 'right' }], margin: [4, 4, 4, 4] },
+          ]],
         },
-        layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-        },
+        layout: simpleBorderLayout,
       },
-
-      // Technical Specifications - UPDATED
-      ...(technicalSpecifications
-        ? [
-            {
-              stack: [
-                {
-                  text: 'TECHNICAL SPECIFICATIONS',
-                  ...FONT.label,
-                  fontSize: 11,
-                  margin: [0, 8, 0, 4],
-                },
-                {
-                  table: {
-                    widths: ['100%'],
-                    body: [
-                      [
-                        {
-                          ul: formatTextAsBulletPoints(technicalSpecifications),
-                          margin: [4, 4, 4, 4],
-                        },
-                      ],
-                    ],
-                  },
-                  layout: {
-                    hLineWidth: () => 0.5,
-                    vLineWidth: () => 0.5,
-                    hLineColor: () => COLORS.border,
-                    vLineColor: () => COLORS.border,
-                  },
-                },
-              ],
-              margin: [0, 4, 0, 0],
-            },
-          ]
-        : []),
-
-      // Payment Terms & Conditions - UPDATED
+      ...extraSections,
       ...(termsAndConditions
-        ? [
-            {
-              stack: [
-                {
-                  text: 'TERMS & CONDITIONS',
-                  ...FONT.label,
-                  fontSize: 11,
-                  margin: [0, 8, 0, 4],
-                },
-                {
-                  table: {
-                    widths: ['100%'],
-                    body: [
-                      [
-                        {
-                          stack: [
-                            ...(termsAndConditions
-                              ? [
-                                  {
-                                    ul: formatTextAsBulletPoints(
-                                      termsAndConditions,
-                                    ),
-                                    margin: [0, 0, 0, 0],
-                                  },
-                                ]
-                              : []),
-                          ],
-                          margin: [4, 4, 4, 4],
-                        },
-                      ],
-                    ],
-                  },
-                  layout: {
-                    hLineWidth: () => 0.5,
-                    vLineWidth: () => 0.5,
-                    hLineColor: () => COLORS.border,
-                    vLineColor: () => COLORS.border,
-                  },
-                },
-              ],
-              margin: [0, 4, 0, 0],
-            },
-          ]
+        ? [{ stack: [{ text: 'TERMS & CONDITIONS', ...FONT.label, fontSize: 11, margin: [0, 8, 0, 4] }, { table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(termsAndConditions), margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout }], margin: [0, 4, 0, 0] }]
         : []),
-      {
-        text: 'This document is computer generated and does not require signature.',
-        ...FONT.small,
-        alignment: 'center',
-        margin: [0, 8, 0, 0],
-        italics: true,
-      },
-    ],
-  };
+      { text: 'This document is computer generated and does not require signature.', ...FONT.small, alignment: 'center', margin: [0, 8, 0, 0], italics: true },
+    ];
+  }
 
-  pdfMake.createPdf(docDefinition).download(
-    `Quotation-${companyName
-      ?.split(' ')
-      .map((word) => word[0].toUpperCase())
-      .join('')}-${quotationNo || ''}.pdf`,
-  );
+  pdfMake.createPdf({
+    pageSize: 'A4', pageMargins: [20, 20, 20, 25],
+    defaultStyle: { font: 'Roboto', fontSize: 10.5, color: COLORS.text, lineHeight: 1 },
+    content,
+  }).download(`Quotation-${companyName?.split(' ').map(w => w[0].toUpperCase()).join('')}-${quotationNo || ''}.pdf`);
 };
 
 /* ================= PURCHASE ORDER ================= */
@@ -1324,13 +1478,14 @@ export const generatePurchaseOrderPDF = (data) => {
     technicalSpecifications,
     termsAndConditions,
     userSignature,
+    companyLogo,
+    template = 'classic',
   } = data;
 
   const rows = products.map((p, i) => {
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
     const amount = qty * rate;
-
     return [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
       formatProductName(p.name),
@@ -1342,42 +1497,310 @@ export const generatePurchaseOrderPDF = (data) => {
     ];
   });
 
-  const fillerRows =
-    rows.length < MIN_ROWS
-      ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-        ])
-      : [];
+  const fillerCount = Math.max(MIN_ROWS - rows.length, 0);
+  const COL_WIDTHS = ['6%', '50%', '10%', '6%', '6%', '10%', '12%'];
+  const COL_LABELS = ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'AMOUNT'];
+
+  const extraSections = [
+    ...(technicalSpecifications
+      ? [{ stack: [{ text: 'TECHNICAL SPECIFICATIONS', bold: true, fontSize: 10, margin: [0, 8, 0, 4] }, { table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(technicalSpecifications), margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout }], margin: [0, 4, 0, 0] }]
+      : []),
+  ];
+
+  let content;
+
+  if (template === 'modern') {
+    const sellerCard = buildModernMetaCard([
+      ['To', seller?.name || '-'],
+      ['Address', seller?.address || '-'],
+      ['GSTIN', seller?.gstNo || 'NA'],
+    ]);
+    content = [
+      ...buildModernHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: 'PURCHASE ORDER' }),
+      { columns: [{ width: '55%', ...buildModernMetaCard([['PO No', poNo || '-'], ['Date', formatDate(date)]]) }, { width: '5%', text: '' }, { width: '40%', ...sellerCard }], margin: [0, 0, 0, 8] },
+      buildModernProductsTable(rows, COL_WIDTHS, COL_LABELS, fillerCount),
+      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...extraSections,
+    ];
+
+  } else if (template === 'minimal') {
+    content = [
+      ...buildMinimalHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: 'PURCHASE ORDER', docMeta: [['PO No', poNo || '-'], ['Date', formatDate(date)]] }),
+      ...buildMinimalParty({ label: 'TO (SELLER)', party: seller }),
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: MINIMAL_COLORS.line }], margin: [0, 4, 0, 8] },
+      buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS, fillerCount),
+      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...extraSections,
+    ];
+
+  } else {
+    // Classic
+    const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST (${gst}%)`;
+    const secondTaxLabel = gstType === 'interState' ? null : `SGST (${gst}%)`;
+    const taxAmount = totalAmount * (gst / 100);
+    const totalTaxAmount = gstType === 'interState' ? totalAmount * ((gst * 2) / 100) : taxAmount;
+    const fillerRows = Array.from({ length: fillerCount }).map(() => COL_WIDTHS.map(() => ({ text: ' ', ...FONT.small })));
+
+    content = [
+      { text: 'PURCHASE ORDER', ...FONT.title, alignment: 'center', margin: [0, 0, 0, 4] },
+      {
+        table: {
+          widths: ['60%', '20%', '20%'],
+          body: [
+            [{ stack: [{ text: companyName, fontSize: 14, bold: true, color: COLORS.text }, { text: companyAddress, ...FONT.small, margin: [0, 2, 0, 0] }, { text: `GSTIN: ${companyGST || '-'}`, ...FONT.small, margin: [0, 2, 0, 0] }, { text: `Mobile No. ${companyPhone || ''}`, ...FONT.small, margin: [0, 2, 0, 0] }], rowSpan: 2 }, { text: 'PO No.', ...FONT.label }, { text: poNo || '', ...FONT.normal }],
+            [{}, { text: 'Date', ...FONT.label }, { text: formatDate(date), ...FONT.normal }],
+          ],
+        },
+        layout: paddedBorderLayout, margin: [0, 0, 0, 8],
+      },
+      {
+        columns: [{ width: '100%', table: { widths: ['100%'], body: [[{ stack: [{ text: 'To,', ...FONT.label, margin: [0, 0, 0, 2] }, { text: seller?.name || '-', ...FONT.normal }, { text: seller?.address || '-', ...FONT.small, margin: [0, 2, 0, 0] }, { text: `GSTIN: ${seller?.gstNo || 'NA'}`, ...FONT.small, margin: [0, 2, 0, 0] }], margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout }],
+        margin: [0, 4, 0, 6],
+      },
+      { table: { headerRows: 1, widths: COL_WIDTHS, body: [COL_WIDTHS.map((_, idx) => ({ text: COL_LABELS[idx], ...FONT.label, alignment: 'center' })), ...rows, ...fillerRows] }, layout: invoiceTableLayout, margin: [0, 4, 0, 6] },
+      {
+        table: {
+          widths: ['50%', '25%', '25%'],
+          body: [
+            [{ text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)], rowSpan: secondTaxLabel ? 4 : 3, ...FONT.small }, { text: 'Subtotal', ...FONT.small }, { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' }],
+            [{}, { text: taxLabel, ...FONT.small }, { text: formatCurrency(totalTaxAmount), ...FONT.small, alignment: 'right' }],
+            ...(secondTaxLabel ? [[{}, { text: secondTaxLabel, ...FONT.small }, { text: formatCurrency(taxAmount), ...FONT.small, alignment: 'right' }]] : []),
+            [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
+          ],
+        },
+        layout: compactBorderLayout, margin: [0, 4, 0, 8],
+      },
+      {
+        table: {
+          widths: ['60%', '40%'],
+          body: [[
+            { stack: [{ text: 'Bank Details', ...FONT.label, margin: [0, 0, 0, 2] }, { text: companyName || '', ...FONT.small }, { text: `Bank Name: ${getBankName(companyBank)}`, ...FONT.small, margin: [0, 1, 0, 0] }, { text: `A/C No: ${companyBank?.accountNumber || ''}`, ...FONT.small, margin: [0, 1, 0, 0] }, { text: `IFSC: ${getBankIfsc(companyBank)}`, ...FONT.small, margin: [0, 1, 0, 0] }], margin: [4, 4, 4, 4] },
+            { stack: [{ text: `For ${companyName || ''}`, ...FONT.label, alignment: 'right', margin: [0, 0, 0, 4] }, { image: getSignatureImage(userSignature), fit: [120, 40], alignment: 'right' }, { text: 'Authorized Signatory', ...FONT.small, alignment: 'right' }], margin: [4, 4, 4, 4] },
+          ]],
+        },
+        layout: simpleBorderLayout,
+      },
+      ...extraSections,
+      ...(termsAndConditions ? [{ stack: [{ text: 'TERMS & CONDITIONS', ...FONT.label, fontSize: 11, margin: [0, 8, 0, 4] }, { table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(termsAndConditions), margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout }], margin: [0, 4, 0, 0] }] : []),
+      { text: 'This document is computer generated and does not require signature.', ...FONT.small, alignment: 'center', margin: [0, 8, 0, 0], italics: true },
+    ];
+  }
+
+  pdfMake.createPdf({
+    pageSize: 'A4', pageMargins: [20, 20, 20, 25],
+    defaultStyle: { font: 'Roboto', fontSize: 10.5, color: COLORS.text, lineHeight: 1 },
+    content,
+  }).download(`Purchase-Order-${companyName?.split(' ').map(w => w[0].toUpperCase()).join('')}-${poNo || ''}.pdf`);
+};
+
+/* ================= CHALLAN ================= */
+
+export const generateChallanPDF = (data, shipTo) => {
+  const {
+    companyName,
+    companyAddress,
+    companyGST,
+    companyPhone,
+    challanNo,
+    orderNo,
+    orderDate,
+    date,
+    customer,
+    products = [],
+    userSignature,
+    companyLogo,
+    template = 'classic',
+  } = data;
+
+  const shipToData = shipTo || customer;
+
+  // Challan rows have 5 columns (no rate/amount)
+  const rows = products.map((p, i) => {
+    const qty = Number(p.quantity || 0);
+    return [
+      { text: String(i + 1), ...FONT.small, alignment: 'center' },
+      formatProductName(p.name),
+      { text: p.hsn || '', ...FONT.small, alignment: 'center' },
+      { text: String(qty), ...FONT.small, alignment: 'center' },
+      { text: p.uom || '', ...FONT.small, alignment: 'center' },
+    ];
+  });
+
+  const fillerCount = Math.max(MIN_ROWS - rows.length, 0);
+  const COL_WIDTHS = ['8%', '54%', '12%', '13%', '13%'];
+  const COL_LABELS = ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM'];
+
+  // Footer signature block (same across all templates for Challan)
+  const signatureBlock = {
+    columns: [
+      {
+        width: '50%',
+        stack: [
+          { text: 'Receiver Signature', ...FONT.small, margin: [0, 0, 0, 20] },
+          { text: '___________________________', ...FONT.small },
+        ],
+      },
+      {
+        width: '50%',
+        stack: [
+          { text: `For ${companyName || ''}`, ...FONT.label, alignment: 'right', margin: [0, 0, 0, 20] },
+          { text: 'Authorized Signatory', ...FONT.small, alignment: 'right', margin: [0, 0, 0, 10] },
+          { image: getSignatureImage(userSignature), fit: [120, 40], alignment: 'right' },
+          { text: '___________________________', ...FONT.small, alignment: 'right' },
+        ],
+      },
+    ],
+    margin: [0, 8, 0, 4],
+  };
+
+  const computerGenerated = { text: 'This document is computer generated and does not require signature.', ...FONT.small, alignment: 'center', margin: [0, 8, 0, 0], italics: true };
+
+  let content;
+
+  if (template === 'modern') {
+    content = [
+      ...buildModernHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: 'DELIVERY CHALLAN' }),
+      {
+        columns: [
+          { width: '55%', ...buildModernMetaCard([['Challan No', challanNo || '-'], ['Date', formatDate(date)], ['Order No', orderNo || '-'], ['Order Date', formatDate(orderDate)]]) },
+          { width: '5%', text: '' },
+          { width: '40%', ...buildModernMetaCard([['Bill To', customer?.name || '-'], ['GSTIN', customer?.gstNo || 'NA']]) },
+        ],
+        margin: [0, 0, 0, 8],
+      },
+      buildModernPartySection({ leftLabel: 'BILL TO', leftParty: customer, rightLabel: 'SHIP TO', rightParty: shipToData }),
+      buildModernProductsTable(rows, COL_WIDTHS, COL_LABELS, fillerCount),
+      signatureBlock,
+      computerGenerated,
+    ];
+
+  } else if (template === 'minimal') {
+    content = [
+      ...buildMinimalHeader({
+        companyName, companyAddress, companyGST, companyPhone, companyLogo,
+        docType: 'DELIVERY CHALLAN',
+        docMeta: [['Challan No', challanNo || '-'], ['Date', formatDate(date)], ['Order No', orderNo || '-']],
+      }),
+      ...buildMinimalParty({ label: 'BILL TO', party: customer }),
+      ...buildMinimalParty({ label: 'SHIP TO', party: shipToData }),
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: MINIMAL_COLORS.line }], margin: [0, 4, 0, 8] },
+      buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS, fillerCount),
+      signatureBlock,
+      computerGenerated,
+    ];
+
+  } else {
+    // Classic
+    const fillerRows = Array.from({ length: fillerCount }).map(() => COL_WIDTHS.map(() => ({ text: ' ', ...FONT.small })));
+    content = [
+      { text: 'DELIVERY CHALLAN', ...FONT.title, alignment: 'center', margin: [0, 0, 0, 4] },
+      {
+        table: {
+          widths: ['60%', '20%', '20%'],
+          body: [
+            [{ stack: [{ text: companyName, fontSize: 14, bold: true, color: COLORS.text }, { text: companyAddress, ...FONT.small, margin: [0, 2, 0, 0] }, { text: `GSTIN: ${companyGST || '-'}`, ...FONT.small, margin: [0, 2, 0, 0] }, { text: `Mobile No. ${companyPhone || ''}`, ...FONT.small, margin: [0, 2, 0, 0] }], rowSpan: 4 }, { text: 'Challan No.', ...FONT.label }, { text: challanNo || '', ...FONT.normal }],
+            [{}, { text: 'Date', ...FONT.label }, { text: formatDate(date), ...FONT.normal }],
+            [{}, { text: 'Order No.', ...FONT.label }, { text: orderNo || '', ...FONT.normal }],
+            [{}, { text: 'Order Date', ...FONT.label }, { text: formatDate(orderDate), ...FONT.normal }],
+          ],
+        },
+        layout: paddedBorderLayout, margin: [0, 0, 0, 8],
+      },
+      {
+        columns: [
+          { width: '50%', table: { widths: ['100%'], body: [[{ stack: [{ text: 'BUYER (BILL TO)', ...FONT.label, margin: [0, 0, 0, 2] }, { text: customer?.name || '-', ...FONT.normal }, { text: customer?.address || '-', ...FONT.small, margin: [0, 2, 0, 0] }, { text: `GSTIN: ${customer?.gstNo || 'NA'}`, ...FONT.small, margin: [0, 2, 0, 0] }], margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout },
+          { width: '50%', table: { widths: ['100%'], body: [[{ stack: [{ text: 'CONSIGNEE (SHIP TO)', ...FONT.label, margin: [0, 0, 0, 2] }, { text: shipToData?.name || '-', ...FONT.normal }, { text: shipToData?.address || '-', ...FONT.small, margin: [0, 2, 0, 0] }, { text: `GSTIN: ${shipToData?.gstNo || 'NA'}`, ...FONT.small, margin: [0, 2, 0, 0] }], margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout },
+        ],
+        margin: [0, 4, 0, 6],
+      },
+      { table: { headerRows: 1, widths: COL_WIDTHS, body: [COL_LABELS.map(l => ({ text: l, ...FONT.label, alignment: 'center' })), ...rows, ...fillerRows] }, layout: invoiceTableLayout, margin: [0, 4, 0, 6] },
+      signatureBlock,
+      computerGenerated,
+    ];
+  }
+
+  pdfMake.createPdf({
+    pageSize: 'A4', pageMargins: [20, 20, 20, 25],
+    defaultStyle: { font: 'Roboto', fontSize: 10.5, color: COLORS.text, lineHeight: 1 },
+    content,
+  }).download(`Challan-${companyName?.split(' ').map(w => w[0].toUpperCase()).join('')}-${challanNo || ''}.pdf`);
+};
+
+/* ================= PROFORMA INVOICE ================= */
+
+export const generateProformaInvoicePDF = (data) => {
+  const {
+    companyName,
+    companyAddress,
+    companyGST,
+    companyPhone,
+    customer,
+    shipTo,
+    billNo,
+    date,
+    validUntil,
+    products = [],
+    gst,
+    gstType = 'intraState',
+    totalAmount,
+    grandTotal,
+    companyBank,
+    challanNo,
+    challanDate, // eslint-disable-line no-unused-vars
+    orderNo,
+    orderDate,
+    termsAndConditions,
+    userSignature,
+    companyLogo,
+    template = 'classic',
+  } = data;
+
+  const rows = products.map((p, i) => {
+    const qty = Number(p.quantity || 0);
+    const rate = Number(p.rate || 0);
+    const amount = qty * rate;
+    return [
+      { text: String(i + 1), ...FONT.small, alignment: 'center' },
+      formatProductName(p.name),
+      { text: p.hsn || '', ...FONT.small, alignment: 'center' },
+      { text: String(qty), ...FONT.small, alignment: 'center' },
+      { text: p.uom || 'NOS', ...FONT.small, alignment: 'center' },
+      { text: formatCurrency(rate), ...FONT.small, alignment: 'right' },
+      { text: formatCurrency(amount), ...FONT.small, alignment: 'right' },
+    ];
+  });
 
   const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST (${gst}%)`;
-  const secondTaxLabel =
-    gstType === 'interState' ? null : `SGST (${gst}%)`;
+  const secondTaxLabel = gstType === 'interState' ? null : `SGST (${gst}%)`;
   const taxAmount = totalAmount * (gst / 100);
-  const totalTaxAmount =
-    gstType === 'interState' ? totalAmount * ((gst * 2) / 100) : taxAmount;
+  const totalTaxAmount = gstType === 'interState' ? totalAmount * ((gst * 2) / 100) : taxAmount;
 
-  const docDefinition = {
-    pageSize: 'A4',
-    pageMargins: [20, 20, 20, 25],
-    defaultStyle: {
-      font: 'Roboto',
-      fontSize: 10.5,
-      color: COLORS.text,
-      lineHeight: 1,
-    },
-    content: [
-      {
-        text: 'PURCHASE ORDER',
-        ...FONT.title,
-        alignment: 'center',
-        margin: [0, 0, 0, 4],
-      },
+  const shipToData = shipTo || customer;
+
+  // ---- Logo node helper ----
+  const logoNode = companyLogo?.dataUrl
+    ? { image: companyLogo.dataUrl, fit: [80, 40] }
+    : null;
+
+  // ============================
+  // TEMPLATE: CLASSIC
+  // ============================
+  const buildClassicContent = () => {
+    const fillerRows =
+      rows.length < MIN_ROWS
+        ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+          ])
+        : [];
+
+    return [
+      { text: 'PROFORMA INVOICE', ...FONT.title, alignment: 'center', margin: [0, 0, 0, 4] },
       {
         table: {
           widths: ['60%', '20%', '20%'],
@@ -1385,33 +1808,27 @@ export const generatePurchaseOrderPDF = (data) => {
             [
               {
                 stack: [
-                  {
-                    text: companyName,
-                    fontSize: 14,
-                    bold: true,
-                    color: COLORS.text,
-                  },
+                  ...(logoNode ? [{ ...logoNode, margin: [0, 0, 0, 4] }] : []),
+                  { text: companyName, fontSize: 14, bold: true, color: COLORS.text },
                   { text: companyAddress, ...FONT.small, margin: [0, 2, 0, 0] },
-                  {
-                    text: `GSTIN: ${companyGST || '-'}`,
-                    ...FONT.small,
-                    margin: [0, 2, 0, 0],
-                  },
-                  {
-                    text: `Mobile No. ${companyPhone || ''}`,
-                    ...FONT.small,
-                    margin: [0, 2, 0, 0],
-                  },
+                  { text: `GSTIN: ${companyGST || '-'}`, ...FONT.small, margin: [0, 2, 0, 0] },
+                  { text: `Mobile No. ${companyPhone || ''}`, ...FONT.small, margin: [0, 2, 0, 0] },
                 ],
-                rowSpan: 2,
+                rowSpan: 4,
               },
-              { text: 'PO No.', ...FONT.label },
-              { text: poNo || '', ...FONT.normal },
+              { text: 'Proforma No.', ...FONT.label },
+              { text: billNo || '', ...FONT.normal },
+            ],
+            [{}, { text: 'Date', ...FONT.label }, { text: formatDate(date), ...FONT.normal }],
+            [
+              {},
+              { text: 'Valid Until', ...FONT.label },
+              { text: validUntil ? formatDate(validUntil) : '-', ...FONT.normal },
             ],
             [
               {},
-              { text: 'Date', ...FONT.label },
-              { text: formatDate(date), ...FONT.normal },
+              { text: 'Order No.', ...FONT.label },
+              { text: orderNo || '-', ...FONT.normal },
             ],
           ],
         },
@@ -1421,29 +1838,37 @@ export const generatePurchaseOrderPDF = (data) => {
       {
         columns: [
           {
-            width: '100%',
+            width: '50%',
             table: {
               widths: ['100%'],
               body: [
                 [
                   {
                     stack: [
-                      {
-                        text: 'To,',
-                        ...FONT.label,
-                        margin: [0, 0, 0, 2],
-                      },
-                      { text: seller?.name || '-', ...FONT.normal },
-                      {
-                        text: seller?.address || '-',
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                      {
-                        text: `GSTIN: ${seller?.gstNo || 'NA'}`,
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
+                      { text: 'BUYER (BILL TO)', ...FONT.label, margin: [0, 0, 0, 2] },
+                      { text: customer?.name || '-', ...FONT.normal },
+                      { text: customer?.address || '-', ...FONT.small, margin: [0, 2, 0, 0] },
+                      { text: `GSTIN: ${customer?.gstNo || 'NA'}`, ...FONT.small, margin: [0, 2, 0, 0] },
+                    ],
+                    margin: [4, 4, 4, 4],
+                  },
+                ],
+              ],
+            },
+            layout: simpleBorderLayout,
+          },
+          {
+            width: '50%',
+            table: {
+              widths: ['100%'],
+              body: [
+                [
+                  {
+                    stack: [
+                      { text: 'CONSIGNEE (SHIP TO)', ...FONT.label, margin: [0, 0, 0, 2] },
+                      { text: shipToData?.name || '-', ...FONT.normal },
+                      { text: shipToData?.address || '-', ...FONT.small, margin: [0, 2, 0, 0] },
+                      { text: `GSTIN: ${shipToData?.gstNo || 'NA'}`, ...FONT.small, margin: [0, 2, 0, 0] },
                     ],
                     margin: [4, 4, 4, 4],
                   },
@@ -1458,7 +1883,7 @@ export const generatePurchaseOrderPDF = (data) => {
       {
         table: {
           headerRows: 1,
-          widths: ['6%', '50%', '10%', '6%', '6%', '10%', '12%'],
+          widths: ['6%', '48%', '10%', '6%', '8%', '10%', '12%'],
           body: [
             [
               { text: 'Sr.No', ...FONT.label, alignment: 'center' },
@@ -1482,51 +1907,18 @@ export const generatePurchaseOrderPDF = (data) => {
           body: [
             [
               {
-                text: [
-                  { text: 'Rupees in Words:\n', bold: true },
-                  convertToWords(grandTotal),
-                ],
+                text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)],
                 rowSpan: secondTaxLabel ? 4 : 3,
                 ...FONT.small,
               },
               { text: 'Subtotal', ...FONT.small },
-              {
-                text: formatCurrency(totalAmount),
-                ...FONT.small,
-                alignment: 'right',
-              },
+              { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' },
             ],
-            [
-              {},
-              { text: taxLabel, ...FONT.small },
-              {
-                text: formatCurrency(totalTaxAmount),
-                ...FONT.small,
-                alignment: 'right',
-              },
-            ],
+            [{}, { text: taxLabel, ...FONT.small }, { text: formatCurrency(totalTaxAmount), ...FONT.small, alignment: 'right' }],
             ...(secondTaxLabel
-              ? [
-                  [
-                    {},
-                    { text: secondTaxLabel, ...FONT.small },
-                    {
-                      text: formatCurrency(taxAmount),
-                      ...FONT.small,
-                      alignment: 'right',
-                    },
-                  ],
-                ]
+              ? [[{}, { text: secondTaxLabel, ...FONT.small }, { text: formatCurrency(taxAmount), ...FONT.small, alignment: 'right' }]]
               : []),
-            [
-              {},
-              { text: 'Grand Total', ...FONT.label },
-              {
-                text: formatCurrency(grandTotal),
-                ...FONT.label,
-                alignment: 'right',
-              },
-            ],
+            [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
           ],
         },
         layout: compactBorderLayout,
@@ -1541,43 +1933,17 @@ export const generatePurchaseOrderPDF = (data) => {
                 stack: [
                   { text: 'Bank Details', ...FONT.label, margin: [0, 0, 0, 2] },
                   { text: companyName || '', ...FONT.small },
-                  {
-                    text: `Bank Name: ${getBankName(companyBank)}`,
-                    ...FONT.small,
-                    margin: [0, 1, 0, 0],
-                  },
-                  {
-                    text: `A/C No: ${companyBank?.accountNumber || ''}`,
-                    ...FONT.small,
-                    margin: [0, 1, 0, 0],
-                  },
-                  {
-                    text: `IFSC: ${getBankIfsc(companyBank)}`,
-                    ...FONT.small,
-                    margin: [0, 1, 0, 0],
-                  },
+                  { text: `Bank Name: ${getBankName(companyBank)}`, ...FONT.small, margin: [0, 1, 0, 0] },
+                  { text: `A/C No: ${companyBank?.accountNumber || ''}`, ...FONT.small, margin: [0, 1, 0, 0] },
+                  { text: `IFSC: ${getBankIfsc(companyBank)}`, ...FONT.small, margin: [0, 1, 0, 0] },
                 ],
                 margin: [4, 4, 4, 4],
               },
               {
                 stack: [
-                  {
-                    text: `For ${companyName || ''}`,
-                    ...FONT.label,
-                    alignment: 'right',
-                    margin: [0, 0, 0, 4],
-                  },
-                  {
-                    image: getSignatureImage(userSignature),
-                    fit: [120, 40],
-                    alignment: 'right',
-                    margin: [0, 0, 0, 0],
-                  },
-                  {
-                    text: 'Authorized Signatory',
-                    ...FONT.small,
-                    alignment: 'right',
-                  },
+                  { text: `For ${companyName || ''}`, ...FONT.label, alignment: 'right', margin: [0, 0, 0, 4] },
+                  { image: getSignatureImage(userSignature), fit: [120, 40], alignment: 'right' },
+                  { text: 'Authorized Signatory', ...FONT.small, alignment: 'right' },
                 ],
                 margin: [4, 4, 4, 4],
               },
@@ -1586,57 +1952,13 @@ export const generatePurchaseOrderPDF = (data) => {
         },
         layout: simpleBorderLayout,
       },
-      ...(technicalSpecifications
-        ? [
-            {
-              stack: [
-                {
-                  text: 'TECHNICAL SPECIFICATIONS',
-                  ...FONT.label,
-                  fontSize: 11,
-                  margin: [0, 8, 0, 4],
-                },
-                {
-                  table: {
-                    widths: ['100%'],
-                    body: [
-                      [
-                        {
-                          ul: formatTextAsBulletPoints(technicalSpecifications),
-                          margin: [4, 4, 4, 4],
-                        },
-                      ],
-                    ],
-                  },
-                  layout: simpleBorderLayout,
-                },
-              ],
-              margin: [0, 4, 0, 0],
-            },
-          ]
-        : []),
       ...(termsAndConditions
         ? [
             {
               stack: [
+                { text: 'TERMS & CONDITIONS', ...FONT.label, fontSize: 11, margin: [0, 8, 0, 4] },
                 {
-                  text: 'TERMS & CONDITIONS',
-                  ...FONT.label,
-                  fontSize: 11,
-                  margin: [0, 8, 0, 4],
-                },
-                {
-                  table: {
-                    widths: ['100%'],
-                    body: [
-                      [
-                        {
-                          ul: formatTextAsBulletPoints(termsAndConditions),
-                          margin: [4, 4, 4, 4],
-                        },
-                      ],
-                    ],
-                  },
+                  table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(termsAndConditions), margin: [4, 4, 4, 4] }]] },
                   layout: simpleBorderLayout,
                 },
               ],
@@ -1645,134 +1967,215 @@ export const generatePurchaseOrderPDF = (data) => {
           ]
         : []),
       {
-        text: 'This document is computer generated and does not require signature.',
+        text: 'This is a Proforma Invoice and not a Tax Invoice.',
         ...FONT.small,
         alignment: 'center',
         margin: [0, 8, 0, 0],
         italics: true,
       },
-    ],
+    ];
   };
 
-  pdfMake.createPdf(docDefinition).download(
-    `Purchase-Order-${companyName
-      ?.split(' ')
-      .map((word) => word[0].toUpperCase())
-      .join('')}-${poNo || ''}.pdf`,
-  );
-};
+  // ============================
+  // TEMPLATE: MODERN
+  // ============================
+  const buildModernContent = () => {
+    const MODERN_BLUE = '#1e3a5f';
+    const MODERN_ACCENT = '#1a56db';
+    const MODERN_LIGHT = '#eff6ff';
+    const MODERN_ROW_ALT = '#f9fafb';
 
-/* ================= CHALLAN ================= */
+    const fillerRows =
+      rows.length < MIN_ROWS
+        ? Array.from({ length: MIN_ROWS - rows.length }).map((_, i) => [
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+            { text: ' ', ...FONT.small },
+          ])
+        : [];
 
-export const generateChallanPDF = (data, shipTo) => {
-  const {
-    companyName,
-    companyAddress,
-    companyGST,
-    companyPhone,
-    challanNo,
-    orderNo,
-    orderDate,
-    date,
-    customer,
-    products = [],
-    userSignature,
-  } = data;
+    // Alternating row colors for products
+    const modernRows = rows.map((row, i) =>
+      row.map((cell) => ({
+        ...cell,
+        fillColor: i % 2 === 1 ? MODERN_ROW_ALT : null,
+      }))
+    );
+    const modernFillerRows = fillerRows.map((row, i) =>
+      row.map((cell) => ({
+        ...cell,
+        fillColor: (rows.length + i) % 2 === 1 ? MODERN_ROW_ALT : null,
+      }))
+    );
 
-  const shipToData = shipTo || customer;
-
-  const rows = products.map((p, i) => {
-    const qty = Number(p.quantity || 0);
     return [
-      { text: String(i + 1), ...FONT.small, alignment: 'center' },
-      formatProductName(p.name),
-      { text: p.hsn || '', ...FONT.small, alignment: 'center' },
-      { text: String(qty), ...FONT.small, alignment: 'center' },
-      { text: p.uom || '', ...FONT.small, alignment: 'center' },
-    ];
-  });
-
-  const fillerRows =
-    rows.length < MIN_ROWS
-      ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-          { text: ' ', ...FONT.small },
-        ])
-      : [];
-
-  const docDefinition = {
-    pageSize: 'A4',
-    pageMargins: [20, 20, 20, 25],
-    defaultStyle: {
-      font: 'Roboto',
-      fontSize: 10.5,
-      color: COLORS.text,
-      lineHeight: 1,
-    },
-
-    content: [
-      {
-        text: 'DELIVERY CHALLAN',
-        ...FONT.title,
-        alignment: 'center',
-        margin: [0, 0, 0, 4],
-      },
-
+      // Full-width dark blue header bar
       {
         table: {
-          widths: ['60%', '20%', '20%'],
+          widths: ['*'],
           body: [
             [
               {
-                stack: [
+                columns: [
+                  ...(logoNode
+                    ? [{ ...logoNode, width: 80, margin: [0, 4, 12, 4] }]
+                    : []),
                   {
-                    text: companyName,
-                    fontSize: 14,
-                    bold: true,
-                    color: COLORS.text,
-                  },
-                  { text: companyAddress, ...FONT.small, margin: [0, 2, 0, 0] },
-                  {
-                    text: `GSTIN: ${companyGST || '-'}`,
-                    ...FONT.small,
-                    margin: [0, 2, 0, 0],
-                  },
-                  {
-                    text: `Mobile No. ${companyPhone || ''}`,
-                    ...FONT.small,
-                    margin: [0, 2, 0, 0],
+                    stack: [
+                      { text: companyName || '', fontSize: 18, bold: true, color: '#ffffff' },
+                      { text: companyAddress || '', fontSize: 8.5, color: '#cbd5e1', margin: [0, 2, 0, 0] },
+                      { text: `GSTIN: ${companyGST || '-'} | Ph: ${companyPhone || ''}`, fontSize: 8.5, color: '#94a3b8', margin: [0, 2, 0, 0] },
+                    ],
                   },
                 ],
-                rowSpan: 4,
+                fillColor: MODERN_BLUE,
+                margin: [12, 10, 12, 10],
               },
-              { text: 'Challan No.', ...FONT.label },
-              { text: challanNo || '', ...FONT.normal },
-            ],
-            [
-              {},
-              { text: 'Date', ...FONT.label },
-              { text: formatDate(date), ...FONT.normal },
-            ],
-            [
-              {},
-              { text: 'Order No.', ...FONT.label },
-              { text: orderNo || '', ...FONT.normal },
-            ],
-            [
-              {},
-              { text: 'Order Date', ...FONT.label },
-              { text: formatDate(orderDate), ...FONT.normal },
             ],
           ],
         },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0 },
+        margin: [0, 0, 0, 0],
+      },
+      // Title badge row
+      {
+        columns: [
+          {
+            text: 'PROFORMA INVOICE',
+            fontSize: 13,
+            bold: true,
+            color: '#ffffff',
+            fillColor: MODERN_ACCENT,
+            margin: [8, 5, 8, 5],
+          },
+          { text: '', width: '*' },
+        ],
+        margin: [0, 0, 0, 8],
+      },
+      // Meta cards row
+      {
+        columns: [
+          {
+            width: '55%',
+            table: {
+              widths: ['*'],
+              body: [
+                [
+                  {
+                    stack: [
+                      { text: `Proforma No: `, bold: true, fontSize: 10, color: MODERN_ACCENT },
+                      { text: billNo || '-', fontSize: 11, bold: true, color: MODERN_BLUE, margin: [0, 1, 0, 4] },
+                      { text: `Date: ${formatDate(date)}`, fontSize: 9, color: '#374151' },
+                      { text: `Valid Until: ${validUntil ? formatDate(validUntil) : '-'}`, fontSize: 9, color: '#374151', margin: [0, 2, 0, 0] },
+                      ...(challanNo ? [{ text: `Challan No: ${challanNo}`, fontSize: 9, color: '#374151', margin: [0, 2, 0, 0] }] : []),
+                    ],
+                    fillColor: MODERN_LIGHT,
+                    margin: [8, 8, 8, 8],
+                  },
+                ],
+              ],
+            },
+            layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => '#bfdbfe', vLineColor: () => '#bfdbfe' },
+          },
+          { width: '5%', text: '' },
+          {
+            width: '40%',
+            table: {
+              widths: ['*'],
+              body: [
+                [
+                  {
+                    stack: [
+                      { text: 'Order Details', bold: true, fontSize: 9.5, color: MODERN_ACCENT, margin: [0, 0, 0, 4] },
+                      { text: `Order No: ${orderNo || '-'}`, fontSize: 9, color: '#374151' },
+                      { text: `Order Date: ${orderDate ? formatDate(orderDate) : '-'}`, fontSize: 9, color: '#374151', margin: [0, 2, 0, 0] },
+                    ],
+                    fillColor: MODERN_LIGHT,
+                    margin: [8, 8, 8, 8],
+                  },
+                ],
+              ],
+            },
+            layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => '#bfdbfe', vLineColor: () => '#bfdbfe' },
+          },
+        ],
+        margin: [0, 0, 0, 8],
+      },
+      // Party cards
+      {
+        columns: [
+          {
+            width: '50%',
+            table: {
+              widths: ['*'],
+              body: [
+                [
+                  {
+                    stack: [
+                      { text: 'BILL TO', fontSize: 8, bold: true, color: MODERN_ACCENT, margin: [0, 0, 0, 3] },
+                      { text: customer?.name || '-', fontSize: 11, bold: true, color: MODERN_BLUE },
+                      { text: customer?.address || '-', fontSize: 8.5, color: '#374151', margin: [0, 2, 0, 0] },
+                      { text: `GSTIN: ${customer?.gstNo || 'NA'}`, fontSize: 8.5, color: '#6b7280', margin: [0, 2, 0, 0] },
+                    ],
+                    fillColor: '#f8fafc',
+                    margin: [8, 8, 8, 8],
+                  },
+                ],
+              ],
+            },
+            layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => '#e2e8f0', vLineColor: () => '#e2e8f0' },
+          },
+          {
+            width: '50%',
+            table: {
+              widths: ['*'],
+              body: [
+                [
+                  {
+                    stack: [
+                      { text: 'SHIP TO', fontSize: 8, bold: true, color: MODERN_ACCENT, margin: [0, 0, 0, 3] },
+                      { text: shipToData?.name || '-', fontSize: 11, bold: true, color: MODERN_BLUE },
+                      { text: shipToData?.address || '-', fontSize: 8.5, color: '#374151', margin: [0, 2, 0, 0] },
+                      { text: `GSTIN: ${shipToData?.gstNo || 'NA'}`, fontSize: 8.5, color: '#6b7280', margin: [0, 2, 0, 0] },
+                    ],
+                    fillColor: '#f8fafc',
+                    margin: [8, 8, 8, 8],
+                  },
+                ],
+              ],
+            },
+            layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => '#e2e8f0', vLineColor: () => '#e2e8f0' },
+          },
+        ],
+        margin: [0, 0, 0, 8],
+      },
+      // Products table â€” no vertical lines, alternating rows
+      {
+        table: {
+          headerRows: 1,
+          widths: ['6%', '48%', '10%', '6%', '8%', '10%', '12%'],
+          body: [
+            [
+              { text: 'SR.', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
+              { text: 'PARTICULARS', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
+              { text: 'HSN', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
+              { text: 'QTY', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
+              { text: 'UOM', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
+              { text: 'RATE', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
+              { text: 'AMOUNT', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'right' },
+            ],
+            ...modernRows,
+            ...modernFillerRows,
+          ],
+        },
         layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
+          hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0.3),
+          vLineWidth: () => 0,
+          hLineColor: () => '#e2e8f0',
           paddingLeft: () => 4,
           paddingRight: () => 4,
           paddingTop: () => 3,
@@ -1780,182 +2183,280 @@ export const generateChallanPDF = (data, shipTo) => {
         },
         margin: [0, 0, 0, 8],
       },
+      // Totals summary card
+      {
+        columns: [
+          {
+            width: '55%',
+            stack: [
+              {
+                fillColor: MODERN_LIGHT,
+                table: { widths: ['*'], body: [[{ text: `Amount in Words:\n${convertToWords(grandTotal)}`, fontSize: 9, italic: true, color: MODERN_BLUE, margin: [8, 6, 8, 6] }]] },
+                layout: { hLineWidth: () => 0.5, vLineWidth: () => 0.5, hLineColor: () => '#bfdbfe', vLineColor: () => '#bfdbfe' },
+              },
+            ],
+          },
+          { width: '5%', text: '' },
+          {
+            width: '40%',
+            table: {
+              widths: ['*', 'auto'],
+              body: [
+                [{ text: 'Subtotal', fontSize: 9, color: '#374151' }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: '#374151' }],
+                [{ text: taxLabel, fontSize: 9, color: '#374151' }, { text: formatCurrency(totalTaxAmount), fontSize: 9, alignment: 'right', color: '#374151' }],
+                ...(secondTaxLabel
+                  ? [[{ text: secondTaxLabel, fontSize: 9, color: '#374151' }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: '#374151' }]]
+                  : []),
+                [
+                  { text: 'GRAND TOTAL', bold: true, fontSize: 10, color: MODERN_BLUE, fillColor: MODERN_LIGHT },
+                  { text: formatCurrency(grandTotal), bold: true, fontSize: 10, alignment: 'right', color: MODERN_BLUE, fillColor: MODERN_LIGHT },
+                ],
+              ],
+            },
+            layout: {
+              hLineWidth: (i, node) => (i === node.table.body.length - 1 ? 1 : 0.3),
+              vLineWidth: () => 0,
+              hLineColor: () => MODERN_ACCENT,
+              paddingLeft: () => 4,
+              paddingRight: () => 4,
+              paddingTop: () => 3,
+              paddingBottom: () => 3,
+            },
+          },
+        ],
+        margin: [0, 0, 0, 10],
+      },
+      // Footer bank + signature
+      {
+        columns: [
+          {
+            width: '55%',
+            stack: [
+              { text: 'Bank Details', bold: true, fontSize: 9.5, color: MODERN_ACCENT, margin: [0, 0, 0, 3] },
+              { text: companyName || '', fontSize: 9, color: '#374151' },
+              { text: `Bank: ${getBankName(companyBank)}`, fontSize: 9, color: '#374151', margin: [0, 1, 0, 0] },
+              { text: `A/C: ${companyBank?.accountNumber || ''}`, fontSize: 9, color: '#374151', margin: [0, 1, 0, 0] },
+              { text: `IFSC: ${getBankIfsc(companyBank)}`, fontSize: 9, color: '#374151', margin: [0, 1, 0, 0] },
+            ],
+          },
+          {
+            width: '45%',
+            stack: [
+              { text: `For ${companyName || ''}`, bold: true, fontSize: 9.5, color: MODERN_BLUE, alignment: 'right', margin: [0, 0, 0, 6] },
+              { image: getSignatureImage(userSignature), fit: [120, 40], alignment: 'right', margin: [0, 0, 0, 4] },
+              { text: 'Authorized Signatory', fontSize: 8.5, color: '#6b7280', alignment: 'right' },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 8],
+      },
+      ...(termsAndConditions
+        ? [{ stack: [{ text: 'Terms & Conditions', bold: true, fontSize: 9.5, color: MODERN_ACCENT, margin: [0, 0, 0, 3] }, { ul: formatTextAsBulletPoints(termsAndConditions) }], margin: [0, 4, 0, 0] }]
+        : []),
+      { text: 'This is a Proforma Invoice and not a Tax Invoice.', fontSize: 8.5, italic: true, alignment: 'center', color: '#9ca3af', margin: [0, 8, 0, 0] },
+    ];
+  };
 
+  // ============================
+  // TEMPLATE: MINIMAL
+  // ============================
+  const buildMinimalContent = () => {
+    const GRAY = '#6b7280';
+    const DARK = '#111827';
+    const LINE_COLOR = '#e5e7eb';
+
+    const fillerRows =
+      rows.length < MIN_ROWS
+        ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
+            { text: ' ', fontSize: 9 },
+            { text: ' ', fontSize: 9 },
+            { text: ' ', fontSize: 9 },
+            { text: ' ', fontSize: 9 },
+            { text: ' ', fontSize: 9 },
+            { text: ' ', fontSize: 9 },
+            { text: ' ', fontSize: 9 },
+          ])
+        : [];
+
+    const minimalTableLayout = {
+      hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0),
+      vLineWidth: () => 0,
+      hLineColor: () => LINE_COLOR,
+      paddingLeft: () => 4,
+      paddingRight: () => 4,
+      paddingTop: () => 4,
+      paddingBottom: () => 4,
+    };
+
+    return [
+      // Header â€” no borders, company left, logo right
+      {
+        columns: [
+          {
+            stack: [
+              { text: companyName || '', fontSize: 18, bold: true, color: DARK },
+              { text: companyAddress || '', fontSize: 8.5, color: GRAY, margin: [0, 3, 0, 0] },
+              { text: `GSTIN: ${companyGST || '-'}  |  Ph: ${companyPhone || ''}`, fontSize: 8.5, color: GRAY, margin: [0, 1, 0, 0] },
+            ],
+          },
+          ...(logoNode ? [{ ...logoNode, width: 80, alignment: 'right', margin: [0, 0, 0, 0] }] : []),
+        ],
+        margin: [0, 0, 0, 6],
+      },
+      // Thin horizontal rule
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 0, 0, 10] },
+      // Invoice meta â€” two columns, no boxes
       {
         columns: [
           {
             width: '50%',
-            table: {
-              widths: ['100%'],
-              body: [
-                [
-                  {
-                    stack: [
-                      {
-                        text: 'BUYER (BILL TO),',
-                        ...FONT.label,
-                        margin: [0, 0, 0, 2],
-                      },
-                      { text: customer?.name || '-', ...FONT.normal },
-                      {
-                        text: customer?.address || '-',
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                      {
-                        text: `GSTIN: ${customer?.gstNo || 'NA'}`,
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                    ],
-                    margin: [4, 4, 4, 4],
-                  },
-                ],
-              ],
-            },
-            layout: {
-              hLineWidth: () => 0.5,
-              vLineWidth: () => 0.5,
-              hLineColor: () => COLORS.border,
-              vLineColor: () => COLORS.border,
-            },
+            stack: [
+              { text: 'PROFORMA INVOICE', fontSize: 13, bold: true, color: DARK, margin: [0, 0, 0, 6] },
+              { text: [{ text: 'No: ', color: GRAY, fontSize: 9 }, { text: billNo || '-', fontSize: 9, color: DARK }] },
+              { text: [{ text: 'Date: ', color: GRAY, fontSize: 9 }, { text: formatDate(date), fontSize: 9, color: DARK }], margin: [0, 2, 0, 0] },
+              { text: [{ text: 'Valid Until: ', color: GRAY, fontSize: 9 }, { text: validUntil ? formatDate(validUntil) : '-', fontSize: 9, color: DARK }], margin: [0, 2, 0, 0] },
+            ],
           },
           {
             width: '50%',
-            table: {
-              widths: ['100%'],
-              body: [
-                [
-                  {
-                    stack: [
-                      {
-                        text: 'CONSIGNEE (SHIP TO),',
-                        ...FONT.label,
-                        margin: [0, 0, 0, 2],
-                      },
-                      { text: shipToData?.name || '-', ...FONT.normal },
-                      {
-                        text: shipToData?.address || '-',
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                      {
-                        text: `GSTIN: ${shipToData?.gstNo || 'NA'}`,
-                        ...FONT.small,
-                        margin: [0, 2, 0, 0],
-                      },
-                    ],
-                    margin: [4, 4, 4, 4],
-                  },
-                ],
-              ],
-            },
-            layout: {
-              hLineWidth: () => 0.5,
-              vLineWidth: () => 0.5,
-              hLineColor: () => COLORS.border,
-              vLineColor: () => COLORS.border,
-            },
+            stack: [
+              { text: [{ text: 'Order No: ', color: GRAY, fontSize: 9 }, { text: orderNo || '-', fontSize: 9, color: DARK }] },
+              { text: [{ text: 'Order Date: ', color: GRAY, fontSize: 9 }, { text: orderDate ? formatDate(orderDate) : '-', fontSize: 9, color: DARK }], margin: [0, 2, 0, 0] },
+              ...(challanNo ? [{ text: [{ text: 'Challan No: ', color: GRAY, fontSize: 9 }, { text: challanNo, fontSize: 9, color: DARK }], margin: [0, 2, 0, 0] }] : []),
+            ],
           },
         ],
-        margin: [0, 4, 0, 6],
+        margin: [0, 0, 0, 10],
       },
-
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 0, 0, 10] },
+      // Bill To â€” no box, left accent line
+      { text: 'BILL TO', fontSize: 8, bold: true, color: GRAY, margin: [0, 0, 0, 3] },
+      {
+        columns: [
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 0, y2: 45, lineWidth: 2, lineColor: LINE_COLOR }], width: 8 },
+          {
+            stack: [
+              { text: customer?.name || '-', fontSize: 11, bold: true, color: DARK },
+              { text: customer?.address || '-', fontSize: 8.5, color: GRAY, margin: [0, 2, 0, 0] },
+              { text: `GSTIN: ${customer?.gstNo || 'NA'}`, fontSize: 8.5, color: GRAY, margin: [0, 1, 0, 0] },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 6],
+      },
+      ...(shipToData && shipToData !== customer
+        ? [
+            { text: 'SHIP TO', fontSize: 8, bold: true, color: GRAY, margin: [0, 0, 0, 3] },
+            {
+              columns: [
+                { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 0, y2: 45, lineWidth: 2, lineColor: LINE_COLOR }], width: 8 },
+                {
+                  stack: [
+                    { text: shipToData?.name || '-', fontSize: 11, bold: true, color: DARK },
+                    { text: shipToData?.address || '-', fontSize: 8.5, color: GRAY, margin: [0, 2, 0, 0] },
+                    { text: `GSTIN: ${shipToData?.gstNo || 'NA'}`, fontSize: 8.5, color: GRAY, margin: [0, 1, 0, 0] },
+                  ],
+                },
+              ],
+              margin: [0, 0, 0, 6],
+            },
+          ]
+        : []),
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 4, 0, 8] },
+      // Products table â€” borderless
       {
         table: {
           headerRows: 1,
-          widths: ['8%', '54%', '12%', '13%', '13%'],
+          widths: ['6%', '48%', '10%', '6%', '8%', '10%', '12%'],
           body: [
             [
-              { text: 'Sr.No', ...FONT.label, alignment: 'center' },
-              { text: 'Particulars', ...FONT.label, alignment: 'center' },
-              { text: 'HSN', ...FONT.label, alignment: 'center' },
-              { text: 'Quantity', ...FONT.label, alignment: 'center' },
-              { text: 'UOM', ...FONT.label, alignment: 'center' },
+              { text: 'SR.', fontSize: 8, bold: true, color: GRAY, alignment: 'center' },
+              { text: 'PARTICULARS', fontSize: 8, bold: true, color: GRAY },
+              { text: 'HSN', fontSize: 8, bold: true, color: GRAY, alignment: 'center' },
+              { text: 'QTY', fontSize: 8, bold: true, color: GRAY, alignment: 'center' },
+              { text: 'UOM', fontSize: 8, bold: true, color: GRAY, alignment: 'center' },
+              { text: 'RATE', fontSize: 8, bold: true, color: GRAY, alignment: 'right' },
+              { text: 'AMOUNT', fontSize: 8, bold: true, color: GRAY, alignment: 'right' },
             ],
             ...rows,
             ...fillerRows,
           ],
         },
-        layout: {
-          hLineWidth: (i, node) =>
-            i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0,
-          vLineWidth: () => 0.5,
-          hLineColor: () => COLORS.border,
-          vLineColor: () => COLORS.border,
-          paddingLeft: () => 3,
-          paddingRight: () => 3,
-          paddingTop: () => 2,
-          paddingBottom: () => 2,
-        },
-        margin: [0, 4, 0, 6],
+        layout: minimalTableLayout,
+        margin: [0, 0, 0, 8],
       },
-
+      // Totals â€” right-aligned, no borders
       {
         columns: [
+          { width: '*', text: '' },
           {
-            width: '50%',
+            width: '45%',
             stack: [
-              {
-                text: 'Receiver Signature',
-                ...FONT.small,
-                margin: [0, 0, 0, 20],
-              },
-              { text: '___________________________', ...FONT.small },
-            ],
-          },
-          {
-            width: '50%',
-            stack: [
-              {
-                text: `For ${companyName || ''}`,
-                ...FONT.label,
-                alignment: 'right',
-                margin: [0, 0, 0, 20],
-              },
-              {
-                text: 'Authorized Signatory',
-                ...FONT.small,
-                alignment: 'right',
-                margin: [0, 0, 0, 10],
-              },
-              {
-                image: getSignatureImage(userSignature),
-                fit: [120, 40],
-                alignment: 'right',
-                margin: [0, 0, 0, 0],
-              },
-              {
-                text: '___________________________',
-                ...FONT.small,
-                alignment: 'right',
-              },
+              { columns: [{ text: 'Subtotal', fontSize: 9, color: GRAY }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: DARK }] },
+              { columns: [{ text: taxLabel, fontSize: 9, color: GRAY }, { text: formatCurrency(totalTaxAmount), fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] },
+              ...(secondTaxLabel
+                ? [{ columns: [{ text: secondTaxLabel, fontSize: 9, color: GRAY }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] }]
+                : []),
+              { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 220, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 4, 0, 4] },
+              { columns: [{ text: 'Grand Total', fontSize: 11, bold: true, color: DARK }, { text: formatCurrency(grandTotal), fontSize: 11, bold: true, alignment: 'right', color: DARK }] },
+              { text: `(${convertToWords(grandTotal)})`, fontSize: 8, italic: true, color: GRAY, margin: [0, 2, 0, 0] },
             ],
           },
         ],
-        margin: [0, 8, 0, 4],
+        margin: [0, 0, 0, 16],
       },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 0, 0, 10] },
+      // Footer
       {
-        text: 'This document is computer generated and does not require signature.',
-        ...FONT.small,
-        alignment: 'center',
-        margin: [0, 8, 0, 0],
-        italics: true,
+        columns: [
+          {
+            width: '55%',
+            stack: [
+              { text: 'Bank Details', fontSize: 9, bold: true, color: DARK, margin: [0, 0, 0, 3] },
+              { text: `${getBankName(companyBank)}  |  A/C: ${companyBank?.accountNumber || ''}`, fontSize: 8.5, color: GRAY },
+              { text: `IFSC: ${getBankIfsc(companyBank)}`, fontSize: 8.5, color: GRAY, margin: [0, 1, 0, 0] },
+            ],
+          },
+          {
+            width: '45%',
+            stack: [
+              { text: `For ${companyName || ''}`, fontSize: 9, bold: true, color: DARK, alignment: 'right', margin: [0, 0, 0, 8] },
+              { image: getSignatureImage(userSignature), fit: [120, 40], alignment: 'right' },
+              { text: 'Authorized Signatory', fontSize: 8.5, color: GRAY, alignment: 'right', margin: [0, 2, 0, 0] },
+            ],
+          },
+        ],
+        margin: [0, 0, 0, 8],
       },
+      ...(termsAndConditions
+        ? [
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 4, 0, 6] },
+            { text: 'Terms & Conditions', fontSize: 9, bold: true, color: GRAY, margin: [0, 0, 0, 4] },
+            { stack: formatTextAsBulletPoints(termsAndConditions) },
+          ]
+        : []),
+      { text: 'This is a Proforma Invoice and not a Tax Invoice.', fontSize: 8.5, italic: true, alignment: 'center', color: '#9ca3af', margin: [0, 10, 0, 0] },
+    ];
+  };
 
-      // {
-      //   text: 'Goods once delivered will not be taken back.',
-      //   ...FONT.small,
-      //   alignment: 'center',
-      //   margin: [0, 4, 0, 0],
-      // },
-    ],
+  // Select the right builder
+  let content;
+  if (template === 'modern') {
+    content = buildModernContent();
+  } else if (template === 'minimal') {
+    content = buildMinimalContent();
+  } else {
+    content = buildClassicContent();
+  }
+
+  const docDefinition = {
+    pageSize: 'A4',
+    pageMargins: [20, 20, 20, 25],
+    defaultStyle: { font: 'Roboto', fontSize: 10.5, color: COLORS.text, lineHeight: 1 },
+    content,
   };
 
   pdfMake.createPdf(docDefinition).download(
-    `Challan-${companyName
-      ?.split(' ')
-      .map((word) => word[0].toUpperCase())
-      .join('')}-${challanNo || ''}.pdf`,
+    `Proforma-${companyName?.split(' ').map((w) => w[0]?.toUpperCase()).join('') || 'INV'}-${billNo || ''}.pdf`,
   );
 };

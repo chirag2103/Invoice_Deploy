@@ -142,12 +142,14 @@ const PurchaseOrderForm = () => {
     technicalSpecifications,
     termsAndConditions,
     companyName: user.companyDetails?.name,
-      companyAddress: user.companyDetails?.address,
-      companyGST: user.companyDetails?.gstin,
-      companyPhone: user.companyDetails?.mobile,
-      companyBank: user.bankDetails || {},
-      userSignature: user.signature || null,
-    });
+    companyAddress: user.companyDetails?.address,
+    companyGST: user.companyDetails?.gstin,
+    companyPhone: user.companyDetails?.mobile,
+    companyBank: user.bankDetails || {},
+    userSignature: user.signature || null,
+    companyLogo: user.companyLogo || null,
+    template: user.pdfTemplate || 'classic',
+  });
 
   const savePayload = {
     seller,

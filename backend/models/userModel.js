@@ -50,6 +50,25 @@ const userSchema = new mongoose.Schema({
       default: null,
     },
   },
+  companyLogo: {
+    dataUrl: {
+      type: String,
+      default: null,
+    },
+    contentType: {
+      type: String,
+      default: null,
+    },
+    fileName: {
+      type: String,
+      default: null,
+    },
+  },
+  pdfTemplate: {
+    type: String,
+    enum: ['classic', 'modern', 'minimal'],
+    default: 'classic',
+  },
   avatar: {
     public_id: {
       type: String,
@@ -80,7 +99,6 @@ userSchema.pre('save', async function (next) {
 });
 
 userSchema.methods.getJWTToken = function () {
-  // console.log(process.env.JWT_EXPIRE);
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE,
   });
@@ -90,7 +108,6 @@ userSchema.methods.matchPassword = async function (password) {
 };
 
 userSchema.methods.getResetPasswordToken = function () {
-  // console.log('hello');
   const resetToken = crypto.randomBytes(20).toString('hex');
   this.resetPasswordToken = crypto
     .createHash('sha256')

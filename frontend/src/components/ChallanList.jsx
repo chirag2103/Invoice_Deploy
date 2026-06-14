@@ -70,7 +70,6 @@ const ChallanList = () => {
   // ---------------------------------------------------------
   const handlePrint = (challan) => {
     const shipTo = challan.shipTo ? challan.shipTo : challan.customer;
-    console.log(shipTo);
     const pdfData = {
       customer: challan.customer,
       challanNo: formatDocumentNumber(
@@ -81,13 +80,13 @@ const ChallanList = () => {
       products: challan.challanProducts,
       orderNo: challan.orderNo,
       orderDate: challan.orderDate?.split('T')[0],
-
-      // company details
       companyName: user.companyDetails?.name,
       companyAddress: user.companyDetails?.address,
       companyGST: user.companyDetails?.gstin,
       companyPhone: user.companyDetails?.mobile,
       userSignature: user.signature || null,
+      companyLogo: user.companyLogo || null,
+      template: user.pdfTemplate || 'classic',
     };
 
     generateChallanPDF(pdfData, shipTo);
@@ -105,26 +104,16 @@ const ChallanList = () => {
       orderDate: challan.orderDate,
       customerId: challan.customer._id,
       customer: challan.customer,
-
       products: challan.challanProducts.map((p) => ({
         name: p.name,
         quantity: p.quantity,
         uom: p.uom,
-        rate: 0, // user will input rate in invoice form
+        rate: 0,
       })),
     };
 
     navigate('/admin/invoice/new', { state: { fromChallan: convertData } });
   };
-
-  // ---------------------------------------------------------
-  // Delete challan (optional)
-  // ---------------------------------------------------------
-  // const handleDelete = (id) => {
-  //   if (window.confirm("Are you sure you want to delete this challan?")) {
-  //     dispatch(deleteChallan(id));
-  //   }
-  // };
 
   return (
     <div className='admin-container'>
@@ -166,7 +155,6 @@ const ChallanList = () => {
                 <th>Date</th>
                 <th>Print</th>
                 <th>Convert</th>
-                {/* <th>Delete</th> */}
               </tr>
             </thead>
 

@@ -10,6 +10,7 @@ import paymentRouter from './routes/paymentRoute.js';
 // import purchaseRouter from './routes/purchaseRoute.js';
 import purchaseInvoiceRouter from './routes/purchaseInvoiceRoute.js';
 import purchasePaymentRouter from './routes/purchasePaymentRoute.js';
+import proformaInvoiceRouter from './routes/proformaInvoiceRoute.js';
 import userRouter from './routes/userRoute.js';
 import cookieParser from 'cookie-parser';
 import errorMiddleware from './middlewares/Error.js';
@@ -36,6 +37,7 @@ app.use('/api', challanRouter);
 app.use('/api', quotationRouter);
 app.use('/api', purchaseOrderRouter);
 app.use('/api', paymentRouter);
+app.use('/api', proformaInvoiceRouter);
 // app.use('/api', purchaseRouter);
 
 // Add this to app.js, AFTER all your routes

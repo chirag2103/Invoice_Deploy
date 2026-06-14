@@ -174,6 +174,8 @@ const ChallanForm = () => {
       companyGST: user.companyDetails?.gstin,
       companyPhone: user.companyDetails?.mobile,
       userSignature: user.signature || null,
+      companyLogo: user.companyLogo || null,
+      template: user.pdfTemplate || 'classic',
     };
 
     generateChallanPDF(pdfData);
@@ -331,7 +333,7 @@ const ChallanForm = () => {
         <tbody>
           {challan.products.map((p, i) => (
             <tr key={i}>
-              {/* ✅ textarea with Tab support */}
+              {/* âœ… textarea with Tab support */}
               <td>
                 <textarea
                   className='table-input table-textarea'
@@ -436,7 +438,7 @@ const ChallanForm = () => {
 
       {/* Add Product */}
       <div className='product-input-group'>
-        {/* ✅ textarea with Tab support */}
+        {/* âœ… textarea with Tab support */}
         <div className='form-group'>
           <label className='form-label'>Product Name</label>
           <textarea
@@ -494,14 +496,14 @@ const ChallanForm = () => {
           </select>
         </div>
 
-        {/* ✅ type="button" prevents accidental submit */}
+        {/* âœ… type="button" prevents accidental submit */}
         <button type='button' className='add-btn' onClick={handleAddProduct}>
           Add
         </button>
       </div>
 
       <div className='form-actions'>
-        {/* ✅ type="button" since submit is handled manually */}
+        {/* âœ… type="button" since submit is handled manually */}
         <button type='button' className='save-challan' onClick={handleSubmit}>
           SAVE & GENERATE PDF
         </button>

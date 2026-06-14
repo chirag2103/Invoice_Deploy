@@ -34,7 +34,6 @@ const AdminSidebar = () => {
         <div className='sidebar-content'>
           <DivOne location={location} />
           <DivTwo location={location} />
-          {/* <DivThree location={location} /> */}
         </div>
       </aside>
     </>
@@ -70,6 +69,12 @@ const DivOne = ({ location }) => (
         location={location}
       />
       <Li
+        url='/admin/proforma/new'
+        text='Create Proforma'
+        Icon={AiFillFileText}
+        location={location}
+      />
+      <Li
         url='/invoices/all'
         text='Invoices'
         Icon={RiShoppingBag3Fill}
@@ -84,6 +89,12 @@ const DivOne = ({ location }) => (
       <Li
         url='/quotations/all'
         text='Quotations'
+        Icon={RiShoppingBag3Fill}
+        location={location}
+      />
+      <Li
+        url='/proformas/all'
+        text='Proforma Invoices'
         Icon={RiShoppingBag3Fill}
         location={location}
       />

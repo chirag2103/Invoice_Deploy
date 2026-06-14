@@ -85,6 +85,8 @@ const InvoiceList = () => {
       companyPhone: user.companyDetails?.mobile,
       companyBank: user.bankDetails || {},
       userSignature: user.signature || null,
+      companyLogo: user.companyLogo || null,
+      template: user.pdfTemplate || 'classic',
     });
   };
 

@@ -8,6 +8,7 @@ import customerSlice from './slices/customerSlice';
 import challanSlice from './slices/challanSlice';
 import quotationSlice from './slices/quotationSlice';
 import poSlice from './slices/poSlice';
+import proformaSlice from './slices/proformaSlice';
 import userSlice from './slices/userSlice';
 const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ const store = configureStore({
     purchaseInvoice: purchaseInvoiceSlice,
     purchasePayment: purchasePaymentSlice,
     po: poSlice,
+    proforma: proformaSlice,
   },
 });
 

@@ -2,24 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
-import { fetchQuotations } from '../slices/quotationSlice';
-import { generateQuotationPDF } from '../services/pdfGeneratorService';
+import { fetchProformaInvoices, deleteProformaInvoice } from '../slices/proformaSlice';
+import { generateProformaInvoicePDF } from '../services/pdfGeneratorService';
 import { formatDocumentNumber, formatNumberWithCommas } from '../services/helper';
 import { ListToolbar, PaginationControls } from './ListControls';
 
-const QuotationList = () => {
+const ProformaInvoiceList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const {
-    quotations,
+    proformas,
     pagination,
     loading,
     error,
     availableFinancialYears,
     currentFinancialYear,
-  } = useSelector(
-    (state) => state.quotation
-  );
+  } = useSelector((state) => state.proforma);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
@@ -49,7 +47,7 @@ const QuotationList = () => {
     }
 
     dispatch(
-      fetchQuotations({
+      fetchProformaInvoices({
         page,
         limit,
         search,
@@ -58,21 +56,26 @@ const QuotationList = () => {
     );
   }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
 
-  const handlePrint = (quotation) => {
-    generateQuotationPDF({
-      customer: quotation.customer,
-      quotationNo: formatDocumentNumber(
-        quotation.quoteNo,
-        quotation.financialYearLabel
+  const handlePrint = (proforma) => {
+    generateProformaInvoicePDF({
+      customer: proforma.customer,
+      billNo: formatDocumentNumber(
+        proforma.proformaNo,
+        proforma.financialYearLabel
       ),
-      date: quotation.date.split('T')[0],
-      products: quotation.quotationProducts,
-      gst: quotation.gst,
-      gstType: quotation.gstType || 'intraState',
-      totalAmount: quotation.invoiceTotal,
-      grandTotal: quotation.grandTotal,
-      technicalSpecifications: quotation.technicalSpecifications || [],
-      termsAndConditions: quotation.termsAndConditions || [],
+      date: proforma.date.split('T')[0],
+      products: proforma.proformaProducts,
+      gst: proforma.gst,
+      gstType: proforma.gstType || 'intraState',
+      totalAmount: proforma.invoiceTotal,
+      grandTotal: proforma.grandTotal,
+      validUntil: proforma.validUntil?.split('T')[0] || '',
+      termsAndConditions: proforma.termsAndConditions || '',
+      shipTo: proforma.shipTo || null,
+      challanNo: proforma.challanNo,
+      challanDate: proforma.challanDate?.split('T')[0],
+      orderNo: proforma.orderNo,
+      orderDate: proforma.orderDate?.split('T')[0],
       companyName: user.companyDetails?.name,
       companyAddress: user.companyDetails?.address,
       companyGST: user.companyDetails?.gstin,
@@ -84,32 +87,25 @@ const QuotationList = () => {
     });
   };
 
-  const handleConvertToInvoice = (quotation) => {
+  const handleConvertToInvoice = (proforma) => {
     navigate('/admin/invoice/new', {
-      state: { fromQuotation: true, quotation },
-    });
-  };
-
-  const handleEditQuotation = (quotation) => {
-    navigate(`/quotations/${quotation._id}/edit`, { state: { quotation } });
-  };
-
-  const handleOldPrint = (quotation) => {
-    navigate('/invoices/preview', {
       state: {
-        gst: quotation.gst,
-        invoicefor: 'Quotation',
-        billNo: formatDocumentNumber(
-          quotation.quoteNo,
-          quotation.financialYearLabel
-        ),
-        products: quotation.quotationProducts,
-        customer: quotation.customer,
-        date: quotation.date.split('T')[0],
-        grandTotal: quotation.grandTotal,
-        totalAmount: quotation.invoiceTotal,
+        fromProforma: true,
+        proforma,
       },
     });
+  };
+
+  const handleEditProforma = (proforma) => {
+    navigate(`/proformas/${proforma._id}/edit`, {
+      state: { proformaInvoice: proforma },
+    });
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm('Delete this proforma invoice?')) {
+      dispatch(deleteProformaInvoice(id));
+    }
   };
 
   return (
@@ -117,11 +113,11 @@ const QuotationList = () => {
       <AdminSidebar />
       <main className='invoice-list'>
         <div className='invoice-container'>
-          <h2>Quotation List</h2>
+          <h2>Proforma Invoice List</h2>
           <ListToolbar
             search={searchInput}
             onSearchChange={setSearchInput}
-            searchPlaceholder='Search quotations'
+            searchPlaceholder='Search proforma invoices'
             actions={
               <select
                 value={selectedFinancialYear}
@@ -144,44 +140,50 @@ const QuotationList = () => {
           <table>
             <thead>
               <tr>
-                <th>Quote No</th>
+                <th>Proforma No</th>
                 <th>Customer</th>
                 <th>Date</th>
+                <th>Valid Until</th>
                 <th>Total</th>
                 <th>Print</th>
                 <th>Convert</th>
                 <th>Edit</th>
-                <th>Old Print</th>
+                <th>Delete</th>
               </tr>
             </thead>
             <tbody>
-                {quotations.map((quotation) => (
-                  <tr key={quotation._id}>
-                    <td>
-                      {formatDocumentNumber(
-                        quotation.quoteNo,
-                        quotation.financialYearLabel
-                      )}
-                    </td>
-                  <td>{quotation.customer?.name}</td>
-                  <td>{formatDate(quotation.date.split('T')[0])}</td>
-                  <td>Rs {formatNumberWithCommas(quotation.grandTotal)}</td>
+              {proformas.map((proforma) => (
+                <tr key={proforma._id}>
                   <td>
-                    <button onClick={() => handlePrint(quotation)}>Print</button>
+                    {formatDocumentNumber(
+                      proforma.proformaNo,
+                      proforma.financialYearLabel
+                    )}
+                  </td>
+                  <td>{proforma.customer?.name}</td>
+                  <td>{formatDate(proforma.date.split('T')[0])}</td>
+                  <td>
+                    {proforma.validUntil
+                      ? formatDate(proforma.validUntil.split('T')[0])
+                      : '-'}
+                  </td>
+                  <td>Rs {formatNumberWithCommas(proforma.grandTotal)}</td>
+                  <td>
+                    <button onClick={() => handlePrint(proforma)}>Print</button>
                   </td>
                   <td>
-                    <button onClick={() => handleConvertToInvoice(quotation)}>
-                      Convert
+                    <button onClick={() => handleConvertToInvoice(proforma)}>
+                      → Invoice
                     </button>
                   </td>
                   <td>
-                    <button onClick={() => handleEditQuotation(quotation)}>
+                    <button onClick={() => handleEditProforma(proforma)}>
                       Edit
                     </button>
                   </td>
                   <td>
-                    <button onClick={() => handleOldPrint(quotation)}>
-                      Old Print
+                    <button onClick={() => handleDelete(proforma._id)}>
+                      Delete
                     </button>
                   </td>
                 </tr>
@@ -202,4 +204,4 @@ const QuotationList = () => {
   );
 };
 
-export default QuotationList;
+export default ProformaInvoiceList;

@@ -32,6 +32,9 @@ import SellerPayments from './pages/sellerPayments';
 import PurchaseTransaction from './pages/PurchaseTransactions';
 import PurchaseOrderForm from './components/PurchaseOrderForm';
 import PurchaseOrderList from './components/PurchaseOrderList';
+import ProformaInvoiceForm from './components/ProformaInvoiceForm';
+import ProformaInvoiceList from './components/ProformaInvoiceList';
+import CreateProformaInvoice from './pages/CreateProformaInvoice';
 import Profile from './pages/Profile';
 
 function App() {
@@ -289,6 +292,38 @@ function App() {
           element={
             <ProtectedRoute>
               <PurchaseOrderForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/admin/proforma/new'
+          element={
+            <ProtectedRoute>
+              <CreateProformaInvoice />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/proformas/new'
+          element={
+            <ProtectedRoute>
+              <ProformaInvoiceForm />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/proformas/all'
+          element={
+            <ProtectedRoute>
+              <ProformaInvoiceList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/proformas/:proformaId/edit'
+          element={
+            <ProtectedRoute>
+              <ProformaInvoiceForm />
             </ProtectedRoute>
           }
         />

@@ -59,6 +59,40 @@ const normalizeSignature = (signature) => {
   };
 };
 
+const normalizeLogo = (logo) => {
+  if (!logo) return null;
+  if (logo === null) return null;
+
+  const dataUrl = String(logo.dataUrl || '').trim();
+  if (!dataUrl) return null;
+
+  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) {
+    throw new ErrorHandler('Logo must be a valid image data URL', 400);
+  }
+
+  const contentType =
+    match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1].toLowerCase();
+
+  if (!SIGNATURE_MIME_TYPES.has(contentType)) {
+    throw new ErrorHandler('Logo image must be PNG, JPG, JPEG, or WEBP', 400);
+  }
+
+  const imageBuffer = Buffer.from(match[2], 'base64');
+  if (!imageBuffer.length) {
+    throw new ErrorHandler('Logo image is empty', 400);
+  }
+  if (imageBuffer.length > MAX_SIGNATURE_SIZE_BYTES) {
+    throw new ErrorHandler('Logo image must be 1 MB or smaller', 400);
+  }
+
+  return {
+    dataUrl,
+    contentType,
+    fileName: logo.fileName || 'logo',
+  };
+};
+
 export const registerUser = catchAsyncError(async (req, res, next) => {
   const {
     name,
@@ -68,6 +102,8 @@ export const registerUser = catchAsyncError(async (req, res, next) => {
     bankDetails,
     avatar,
     signature,
+    companyLogo,
+    pdfTemplate,
   } = req.body;
 
   const existingUser = await User.findOne({ email });
@@ -83,6 +119,8 @@ export const registerUser = catchAsyncError(async (req, res, next) => {
     companyDetails,
     bankDetails,
     signature: normalizeSignature(signature),
+    companyLogo: normalizeLogo(companyLogo),
+    pdfTemplate: pdfTemplate || 'classic',
     avatar: {
       public_id: avatar?.public_id || 'default_avatar_id',
       url: avatar?.url || 'default_avatar_url',
@@ -221,6 +259,14 @@ export const updateProfile = catchAsyncError(async (req, res, next) => {
     companyDetails: req.body.companyDetails,
     bankDetails: req.body.bankDetails,
   };
+
+  if (Object.prototype.hasOwnProperty.call(req.body, 'companyLogo')) {
+    newUserData.companyLogo = normalizeLogo(req.body.companyLogo);
+  }
+
+  if (req.body.pdfTemplate) {
+    newUserData.pdfTemplate = req.body.pdfTemplate;
+  }
 
   if (Object.prototype.hasOwnProperty.call(req.body, 'signature')) {
     newUserData.signature = normalizeSignature(req.body.signature);
