@@ -32,17 +32,13 @@ const ChallanForm = () => {
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // -----------------------------
   // Ship To State
-  // -----------------------------
   const [sameAsBillTo, setSameAsBillTo] = useState(true);
   const [shipToName, setShipToName] = useState('');
   const [shipToAddress, setShipToAddress] = useState('');
   const [shipToGst, setShipToGst] = useState('');
 
-  // -----------------------------
   // New Product State
-  // -----------------------------
   const [newProduct, setNewProduct] = useState({
     name: '',
     hsn: '',
@@ -50,33 +46,16 @@ const ChallanForm = () => {
     uom: 'NOS',
   });
 
-  // ref for the add-product textarea
-  const nameTextareaRef = useRef(null);
+  const addBtnRef = useRef(null);
 
-  // -----------------------------
-  // Tab handler for add-product textarea
-  // -----------------------------
+  // Disable Tab on product name textarea
   const handleNewProductNameKeyDown = (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
-      const textarea = e.target;
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newValue =
-        newProduct.name.substring(0, start) +
-        '    ' +
-        newProduct.name.substring(end);
-      setNewProduct({ ...newProduct, name: newValue });
-      requestAnimationFrame(() => {
-        textarea.selectionStart = start + 4;
-        textarea.selectionEnd = start + 4;
-      });
     }
   };
 
-  // -----------------------------
   // Initial Load
-  // -----------------------------
   useEffect(() => {
     dispatch(fetchCustomers());
   }, [dispatch]);
@@ -87,9 +66,7 @@ const ChallanForm = () => {
     }
   }, [dispatch, challan.challanDate]);
 
-  // -----------------------------
-  // Auto-fill Ship To
-  // -----------------------------
+  // Auto-fill Ship To from customer
   useEffect(() => {
     if (sameAsBillTo && challan.customer) {
       const cust = customers.find((c) => c._id === challan.customer);
@@ -101,9 +78,7 @@ const ChallanForm = () => {
     }
   }, [sameAsBillTo, challan.customer, customers]);
 
-  // -----------------------------
   // Handlers
-  // -----------------------------
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.quantity) {
       alert('Enter product name and quantity.');
@@ -130,9 +105,7 @@ const ChallanForm = () => {
     }
   };
 
-  // -----------------------------
   // Submit
-  // -----------------------------
   const handleSubmit = async () => {
     if (!challan.customer || challan.products.length === 0) {
       alert('Select customer and add at least one product.');
@@ -182,19 +155,19 @@ const ChallanForm = () => {
     navigate('/challans/all');
   };
 
-  // -----------------------------
   // UI
-  // -----------------------------
   return (
     <div className='invoice-container'>
       <h2 className='invoice-header'>Delivery Challan</h2>
 
-      {/* NOTE: using div not form since submit is manual via button */}
       <div
         className='invoice-form'
         onKeyDown={(e) => {
           if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
             e.preventDefault();
+            if (document.activeElement === addBtnRef.current) {
+              handleAddProduct();
+            }
           }
         }}
       >
@@ -333,7 +306,6 @@ const ChallanForm = () => {
         <tbody>
           {challan.products.map((p, i) => (
             <tr key={i}>
-              {/* âœ… textarea with Tab support */}
               <td>
                 <textarea
                   className='table-input table-textarea'
@@ -347,27 +319,7 @@ const ChallanForm = () => {
                       }),
                     )
                   }
-                  onKeyDown={(e) => {
-                    if (e.key === 'Tab') {
-                      e.preventDefault();
-                      const start = e.target.selectionStart;
-                      const end = e.target.selectionEnd;
-                      const newValue =
-                        p.name.substring(0, start) +
-                        '    ' +
-                        p.name.substring(end);
-                      dispatch(
-                        updateChallanProduct({
-                          index: i,
-                          updatedFields: { name: newValue },
-                        }),
-                      );
-                      requestAnimationFrame(() => {
-                        e.target.selectionStart = start + 4;
-                        e.target.selectionEnd = start + 4;
-                      });
-                    }
-                  }}
+                  onKeyDown={(e) => { if (e.key === 'Tab') e.preventDefault(); }}
                 />
               </td>
 
@@ -438,13 +390,11 @@ const ChallanForm = () => {
 
       {/* Add Product */}
       <div className='product-input-group'>
-        {/* âœ… textarea with Tab support */}
         <div className='form-group'>
           <label className='form-label'>Product Name</label>
           <textarea
-            ref={nameTextareaRef}
             className='form-input product-name-textarea'
-            placeholder={'Product name\n    Tab to indent details'}
+            placeholder='Product name'
             value={newProduct.name}
             rows={4}
             onChange={(e) =>
@@ -496,16 +446,14 @@ const ChallanForm = () => {
           </select>
         </div>
 
-        {/* âœ… type="button" prevents accidental submit */}
-        <button type='button' className='add-btn' onClick={handleAddProduct}>
+        <button ref={addBtnRef} type='button' className='add-btn' onClick={handleAddProduct}>
           Add
         </button>
       </div>
 
       <div className='form-actions'>
-        {/* âœ… type="button" since submit is handled manually */}
         <button type='button' className='save-challan' onClick={handleSubmit}>
-          SAVE & GENERATE PDF
+          SAVE &amp; GENERATE PDF
         </button>
       </div>
     </div>

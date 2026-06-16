@@ -4,6 +4,7 @@ const productSchema = mongoose.Schema({
   name: { type: String, required: true },
   quantity: { type: Number, required: true },
   rate: { type: Number, required: true },
+  discount: { type: Number, default: 0 }, // line-level discount %
   uom: { type: String, default: 'NOS' },
   hsn: {
     type: String,
@@ -55,6 +56,7 @@ const invoiceSchema = mongoose.Schema({
   orderDate: Date,
   invoiceProducts: [productSchema],
   invoiceTotal: Number,
+  invoiceDiscount: { type: Number, default: 0 }, // invoice-level flat discount ₹
   grandTotal: Number,
   date: {
     type: Date,

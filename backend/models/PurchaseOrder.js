@@ -4,6 +4,7 @@ const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   quantity: { type: Number, required: true },
   rate: { type: Number, required: true },
+  discount: { type: Number, default: 0 },
   uom: { type: String, default: 'NOS' },
   hsn: {
     type: String,
@@ -46,6 +47,7 @@ const purchaseOrderSchema = new mongoose.Schema({
     default: 'intraState',
   },
   invoiceTotal: Number,
+  invoiceDiscount: { type: Number, default: 0 },
   grandTotal: Number,
   termsAndConditions: { type: String, default: '' },
   technicalSpecifications: { type: String, default: '' },

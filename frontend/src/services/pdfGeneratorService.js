@@ -232,23 +232,27 @@ const createInvoiceFillerRows = (count) =>
     { text: ' ', ...FONT.small },
     { text: ' ', ...FONT.small },
     { text: ' ', ...FONT.small },
+    { text: ' ', ...FONT.small },
   ]);
 
-const getInvoiceRows = (products = []) =>
+const getInvoiceRows = (products = [], hasDiscount = false) =>
   products.map((p, i) => {
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
-    const amount = qty * rate;
+    const disc = Number(p.discount || 0);
+    const amount = qty * rate * (1 - disc / 100);
 
-    return [
+    const row = [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
       formatProductName(p.name),
       { text: p.hsn || '', ...FONT.small, alignment: 'center' },
       { text: String(qty), ...FONT.small, alignment: 'center' },
       { text: p.uom || '', ...FONT.small, alignment: 'center' },
       { text: formatCurrency(rate), ...FONT.small, alignment: 'center' },
-      { text: formatCurrency(amount), ...FONT.small, alignment: 'center' },
     ];
+    if (hasDiscount) row.push({ text: disc > 0 ? `${disc}%` : '-', ...FONT.small, alignment: 'center' });
+    row.push({ text: formatCurrency(amount), ...FONT.small, alignment: 'center' });
+    return row;
   });
 
 const getInvoiceRowChunks = (rows) => {
@@ -470,10 +474,12 @@ const buildInvoiceMetaSection = ({
   margin: [0, 4, 0, 6],
 });
 
-const buildInvoiceProductsSection = (rows, fillerRowCount = 0) => ({
+const buildInvoiceProductsSection = (rows, fillerRowCount = 0, hasDiscount = false) => ({
   table: {
     headerRows: 1,
-    widths: ['6%', '50%', '10%', '6%', '6%', '10%', '12%'],
+    widths: hasDiscount
+      ? ['6%', '43%', '9%', '6%', '6%', '9%', '9%', '12%']
+      : ['6%', '50%', '10%', '6%', '6%', '10%', '12%'],
     body: [
       [
         { text: 'Sr.No', ...FONT.label, alignment: 'center' },
@@ -482,6 +488,7 @@ const buildInvoiceProductsSection = (rows, fillerRowCount = 0) => ({
         { text: 'Qty', ...FONT.label, alignment: 'center' },
         { text: 'UOM', ...FONT.label, alignment: 'center' },
         { text: 'Rate', ...FONT.label, alignment: 'center' },
+        ...(hasDiscount ? [{ text: 'Disc%', ...FONT.label, alignment: 'center' }] : []),
         { text: 'Amount', ...FONT.label, alignment: 'center' },
       ],
       ...rows,
@@ -496,6 +503,7 @@ const buildInvoiceFooterSections = ({
   companyName,
   companyBank,
   totalAmount,
+  invoiceDiscount = 0,
   gst,
   gstType = 'intraState',
   grandTotal,
@@ -503,9 +511,18 @@ const buildInvoiceFooterSections = ({
   userSignature,
 }) => {
   const isIGST = gstType === 'interState';
+  const taxable = Math.max(Number(totalAmount || 0) - Number(invoiceDiscount || 0), 0);
   const igstRate = gst * 2;
-  const igstAmount = totalAmount * (igstRate / 100);
-  const cgstSgstAmount = totalAmount * (gst / 100);
+  const igstAmount = taxable * (igstRate / 100);
+  const cgstSgstAmount = taxable * (gst / 100);
+
+  const discountRow = invoiceDiscount > 0
+    ? [[
+        {},
+        { text: 'Discount', ...FONT.small },
+        { text: `- ${formatCurrency(invoiceDiscount)}`, ...FONT.small, alignment: 'right' },
+      ]]
+    : [];
 
   const taxRows = isIGST
     ? [
@@ -540,7 +557,7 @@ const buildInvoiceFooterSections = ({
         ],
       ];
 
-  const totalRows = taxRows.length + 2; // subtotal + tax rows + grand total
+  const totalRows = discountRow.length + taxRows.length + 2; // subtotal + discount + tax rows + grand total
 
   return [
   {
@@ -563,6 +580,7 @@ const buildInvoiceFooterSections = ({
             alignment: 'right',
           },
         ],
+        ...discountRow,
         ...taxRows,
         [
           {},
@@ -831,16 +849,20 @@ const buildModernProductsTable = (rows, colWidths, headerLabels, fillerCount = 0
 };
 
 // ---- Modern: totals + footer ----
-const buildModernTotalsFooter = ({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }) => {
+const buildModernTotalsFooter = ({ companyName, companyBank, totalAmount, invoiceDiscount = 0, gst, gstType, grandTotal, termsAndConditions, userSignature }) => {
   const isIGST = gstType === 'interState';
-  const taxAmount = totalAmount * (gst / 100);
-  const igstAmount = totalAmount * ((gst * 2) / 100);
+  const taxable = Math.max(Number(totalAmount || 0) - Number(invoiceDiscount || 0), 0);
+  const taxAmount = taxable * (gst / 100);
+  const igstAmount = taxable * ((gst * 2) / 100);
   const taxRows = isIGST
     ? [[{ text: `IGST (${gst * 2}%)`, fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(igstAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }]]
     : [
         [{ text: `CGST (${gst}%)`, fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }],
         [{ text: `SGST (${gst}%)`, fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }],
       ];
+  const discountRows = invoiceDiscount > 0
+    ? [[{ text: 'Discount', fontSize: 9, color: MODERN_COLORS.textDark }, { text: `- ${formatCurrency(invoiceDiscount)}`, fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }]]
+    : [];
 
   return [
     {
@@ -860,6 +882,7 @@ const buildModernTotalsFooter = ({ companyName, companyBank, totalAmount, gst, g
             widths: ['*', 'auto'],
             body: [
               [{ text: 'Subtotal', fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }],
+              ...discountRows,
               ...taxRows,
               [
                 { text: 'GRAND TOTAL', bold: true, fontSize: 10, color: MODERN_COLORS.blue, fillColor: MODERN_COLORS.light },
@@ -1004,13 +1027,18 @@ const buildMinimalProductsTable = (rows, colWidths, headerLabels, fillerCount = 
 };
 
 // ---- Minimal: totals + footer ----
-const buildMinimalTotalsFooter = ({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }) => {
+const buildMinimalTotalsFooter = ({ companyName, companyBank, totalAmount, invoiceDiscount = 0, gst, gstType, grandTotal, termsAndConditions, userSignature }) => {
   const LINE_COLOR = MINIMAL_COLORS.line;
   const DARK = MINIMAL_COLORS.dark;
   const GRAY = MINIMAL_COLORS.gray;
   const isIGST = gstType === 'interState';
-  const taxAmount = totalAmount * (gst / 100);
-  const igstAmount = totalAmount * ((gst * 2) / 100);
+  const taxable = Math.max(Number(totalAmount || 0) - Number(invoiceDiscount || 0), 0);
+  const taxAmount = taxable * (gst / 100);
+  const igstAmount = taxable * ((gst * 2) / 100);
+
+  const discountLine = invoiceDiscount > 0
+    ? [{ columns: [{ text: 'Discount', fontSize: 9, color: GRAY }, { text: `- ${formatCurrency(invoiceDiscount)}`, fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] }]
+    : [];
 
   const taxLines = isIGST
     ? [{ columns: [{ text: `IGST (${gst * 2}%)`, fontSize: 9, color: GRAY }, { text: formatCurrency(igstAmount), fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] }]
@@ -1027,6 +1055,7 @@ const buildMinimalTotalsFooter = ({ companyName, companyBank, totalAmount, gst, 
           width: '45%',
           stack: [
             { columns: [{ text: 'Subtotal', fontSize: 9, color: GRAY }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: DARK }] },
+            ...discountLine,
             ...taxLines,
             { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 220, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 4, 0, 4] },
             { columns: [{ text: 'Grand Total', fontSize: 11, bold: true, color: DARK }, { text: formatCurrency(grandTotal), fontSize: 11, bold: true, alignment: 'right', color: DARK }] },
@@ -1093,6 +1122,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
     shipTo,
     products = [],
     totalAmount,
+    invoiceDiscount = 0,
     termsAndConditions,
     gst,
     gstType = 'intraState',
@@ -1106,11 +1136,16 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
   const { download = true, fileName } = options;
 
   const shipToData = shipTo || customer;
-  const rows = getInvoiceRows(products);
+  const hasDiscount = products.some(p => Number(p.discount) > 0);
+  const rows = getInvoiceRows(products, hasDiscount);
   const chunks = getInvoiceRowChunks(rows);
 
-  const COL_WIDTHS = ['6%', '50%', '10%', '6%', '6%', '10%', '12%'];
-  const COL_LABELS = ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'AMOUNT'];
+  const COL_WIDTHS = hasDiscount
+    ? ['6%', '43%', '9%', '6%', '6%', '9%', '9%', '12%']
+    : ['6%', '50%', '10%', '6%', '6%', '10%', '12%'];
+  const COL_LABELS = hasDiscount
+    ? ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'DISC%', 'AMOUNT']
+    : ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'AMOUNT'];
 
   let content;
 
@@ -1140,7 +1175,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
       layout: { hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0.3), vLineWidth: () => 0, hLineColor: () => MODERN_COLORS.border, paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 3, paddingBottom: () => 3 },
       margin: [0, 0, 0, 8],
     };
-    const footerSections = buildModernTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature });
+    const footerSections = buildModernTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature });
 
     content = [
       ...headerSections,
@@ -1167,7 +1202,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
       ...buildMinimalParty({ label: 'SHIP TO', party: shipToData }),
     ];
     const productsTable = buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS);
-    const footerSections = buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature });
+    const footerSections = buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature });
 
     content = [
       ...headerSections,
@@ -1184,11 +1219,11 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
         ...buildInvoiceHeaderSection({ companyName, companyAddress, companyGST, companyPhone, billNo, date, challanNo, challanDate, invoicefor, pageIndex }),
         buildInvoicePartySection({ customer, shipToData }),
         buildInvoiceMetaSection({ orderNo, orderDate, disDocNo, deliveryDate, dispatchedThrough, destination }),
-        buildInvoiceProductsSection(chunk.rows, chunk.fillerRowCount),
+        buildInvoiceProductsSection(chunk.rows, chunk.fillerRowCount, hasDiscount),
       ];
 
       if (pageIndex === chunks.length - 1) {
-        pageContent.push(...buildInvoiceFooterSections({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }));
+        pageContent.push(...buildInvoiceFooterSections({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }));
       } else {
         pageContent.push({ text: '', pageBreak: 'after' });
       }
@@ -1317,35 +1352,43 @@ export const generateQuotationPDF = (data) => {
     template = 'classic',
   } = data;
 
+  const invoiceDiscount = Number(data.invoiceDiscount || 0);
+  const hasDiscount = products.some(p => Number(p.discount) > 0);
   const isIGST = gstType === 'interState';
+  const taxable = Math.max(Number(totalAmount || 0) - invoiceDiscount, 0);
   const igstRate = gst * 2;
-  const igstAmount = totalAmount * (igstRate / 100);
-  const cgstSgstAmount = totalAmount * (gst / 100);
+  const igstAmount = taxable * (igstRate / 100);
+  const cgstSgstAmount = taxable * (gst / 100);
 
   const rows = products.map((p, i) => {
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
-    const amount = qty * rate;
-    return [
+    const disc = Number(p.discount || 0);
+    const amount = qty * rate * (1 - disc / 100);
+    const row = [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
       formatProductName(p.name),
       { text: p.hsn || '', ...FONT.small, alignment: 'center' },
       { text: String(qty), ...FONT.small, alignment: 'center' },
       { text: p.uom || '', ...FONT.small, alignment: 'center' },
       { text: formatCurrency(rate), ...FONT.small, alignment: 'center' },
-      { text: formatCurrency(amount), ...FONT.small, alignment: 'center' },
     ];
+    if (hasDiscount) row.push({ text: disc > 0 ? `${disc}%` : '-', ...FONT.small, alignment: 'center' });
+    row.push({ text: formatCurrency(amount), ...FONT.small, alignment: 'center' });
+    return row;
   });
 
+  const numCols = hasDiscount ? 8 : 7;
   const fillerRows = rows.length < MIN_ROWS
-    ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
-        { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small },
-        { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small }, { text: ' ', ...FONT.small },
-      ])
+    ? Array.from({ length: MIN_ROWS - rows.length }).map(() => Array(numCols).fill({ text: ' ', ...FONT.small }))
     : [];
 
-  const COL_WIDTHS = ['6%', '50%', '10%', '6%', '6%', '10%', '12%'];
-  const COL_LABELS = ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'AMOUNT'];
+  const COL_WIDTHS = hasDiscount
+    ? ['6%', '43%', '9%', '6%', '6%', '9%', '9%', '12%']
+    : ['6%', '50%', '10%', '6%', '6%', '10%', '12%'];
+  const COL_LABELS = hasDiscount
+    ? ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'DISC%', 'AMOUNT']
+    : ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'AMOUNT'];
 
   // Extra sections (tech specs + T&C) â€” same across all templates
   const extraSections = [
@@ -1371,7 +1414,7 @@ export const generateQuotationPDF = (data) => {
       ...buildModernHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: 'QUOTATION' }),
       { columns: [{ width: '55%', ...buildModernMetaCard([['Quotation No', quotationNo || '-'], ['Date', formatDate(date)]]) }, { width: '5%', text: '' }, { width: '40%', ...partyCard }], margin: [0, 0, 0, 8] },
       buildModernProductsTable(rows, COL_WIDTHS, COL_LABELS, Math.max(MIN_ROWS - rows.length, 0)),
-      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
       ...extraSections,
     ];
 
@@ -1381,18 +1424,21 @@ export const generateQuotationPDF = (data) => {
       ...buildMinimalParty({ label: 'TO', party: customer }),
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: MINIMAL_COLORS.line }], margin: [0, 4, 0, 8] },
       buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS, Math.max(MIN_ROWS - rows.length, 0)),
-      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
       ...extraSections,
     ];
 
   } else {
-    // Classic
+    const discountRows = invoiceDiscount > 0
+      ? [[{}, { text: 'Discount', ...FONT.small }, { text: `- ${formatCurrency(invoiceDiscount)}`, ...FONT.small, alignment: 'right' }]]
+      : [];
     const quotationTaxRows = isIGST
       ? [[{}, { text: `IGST (${igstRate}%)`, ...FONT.small }, { text: formatCurrency(igstAmount), ...FONT.small, alignment: 'right' }]]
       : [
           [{}, { text: `CGST (${gst}%)`, ...FONT.small }, { text: formatCurrency(cgstSgstAmount), ...FONT.small, alignment: 'right' }],
           [{}, { text: `SGST (${gst}%)`, ...FONT.small }, { text: formatCurrency(cgstSgstAmount), ...FONT.small, alignment: 'right' }],
         ];
+    const totalRowCount = discountRows.length + quotationTaxRows.length + 2;
 
     content = [
       { text: 'QUOTATION', ...FONT.title, alignment: 'center', margin: [0, 0, 0, 4] },
@@ -1418,7 +1464,7 @@ export const generateQuotationPDF = (data) => {
       {
         table: {
           headerRows: 1, widths: COL_WIDTHS,
-          body: [COL_WIDTHS.map((_, idx) => ({ text: ['Sr.No', 'Particulars', 'HSN', 'Qty', 'UOM', 'Rate', 'Amount'][idx], ...FONT.label, alignment: 'center' })), ...rows, ...fillerRows],
+          body: [COL_LABELS.map(label => ({ text: label, ...FONT.label, alignment: 'center' })), ...rows, ...fillerRows],
         },
         layout: invoiceTableLayout, margin: [0, 4, 0, 6],
       },
@@ -1426,7 +1472,8 @@ export const generateQuotationPDF = (data) => {
         table: {
           widths: ['50%', '25%', '25%'],
           body: [
-            [{ text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)], rowSpan: quotationTaxRows.length + 2, ...FONT.small }, { text: 'Subtotal', ...FONT.small }, { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' }],
+            [{ text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)], rowSpan: totalRowCount, ...FONT.small }, { text: 'Subtotal', ...FONT.small }, { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' }],
+            ...discountRows,
             ...quotationTaxRows,
             [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
           ],
@@ -1482,24 +1529,35 @@ export const generatePurchaseOrderPDF = (data) => {
     template = 'classic',
   } = data;
 
+  const invoiceDiscount = Number(data.invoiceDiscount || 0);
+  const hasDiscount = products.some(p => Number(p.discount) > 0);
+
   const rows = products.map((p, i) => {
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
-    const amount = qty * rate;
-    return [
+    const disc = Number(p.discount || 0);
+    const amount = qty * rate * (1 - disc / 100);
+    const row = [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
       formatProductName(p.name),
       { text: p.hsn || '', ...FONT.small, alignment: 'center' },
       { text: String(qty), ...FONT.small, alignment: 'center' },
       { text: p.uom || '', ...FONT.small, alignment: 'center' },
       { text: formatCurrency(rate), ...FONT.small, alignment: 'center' },
-      { text: formatCurrency(amount), ...FONT.small, alignment: 'center' },
     ];
+    if (hasDiscount) row.push({ text: disc > 0 ? `${disc}%` : '-', ...FONT.small, alignment: 'center' });
+    row.push({ text: formatCurrency(amount), ...FONT.small, alignment: 'center' });
+    return row;
   });
 
+  const numCols = hasDiscount ? 8 : 7;
   const fillerCount = Math.max(MIN_ROWS - rows.length, 0);
-  const COL_WIDTHS = ['6%', '50%', '10%', '6%', '6%', '10%', '12%'];
-  const COL_LABELS = ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'AMOUNT'];
+  const COL_WIDTHS = hasDiscount
+    ? ['6%', '43%', '9%', '6%', '6%', '9%', '9%', '12%']
+    : ['6%', '50%', '10%', '6%', '6%', '10%', '12%'];
+  const COL_LABELS = hasDiscount
+    ? ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'DISC%', 'AMOUNT']
+    : ['SR.', 'PARTICULARS', 'HSN', 'QTY', 'UOM', 'RATE', 'AMOUNT'];
 
   const extraSections = [
     ...(technicalSpecifications
@@ -1519,7 +1577,7 @@ export const generatePurchaseOrderPDF = (data) => {
       ...buildModernHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: 'PURCHASE ORDER' }),
       { columns: [{ width: '55%', ...buildModernMetaCard([['PO No', poNo || '-'], ['Date', formatDate(date)]]) }, { width: '5%', text: '' }, { width: '40%', ...sellerCard }], margin: [0, 0, 0, 8] },
       buildModernProductsTable(rows, COL_WIDTHS, COL_LABELS, fillerCount),
-      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
       ...extraSections,
     ];
 
@@ -1529,17 +1587,20 @@ export const generatePurchaseOrderPDF = (data) => {
       ...buildMinimalParty({ label: 'TO (SELLER)', party: seller }),
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: MINIMAL_COLORS.line }], margin: [0, 4, 0, 8] },
       buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS, fillerCount),
-      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
       ...extraSections,
     ];
 
   } else {
     // Classic
+    const taxable = Math.max(Number(totalAmount || 0) - invoiceDiscount, 0);
     const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST (${gst}%)`;
     const secondTaxLabel = gstType === 'interState' ? null : `SGST (${gst}%)`;
-    const taxAmount = totalAmount * (gst / 100);
-    const totalTaxAmount = gstType === 'interState' ? totalAmount * ((gst * 2) / 100) : taxAmount;
-    const fillerRows = Array.from({ length: fillerCount }).map(() => COL_WIDTHS.map(() => ({ text: ' ', ...FONT.small })));
+    const taxAmount = taxable * (gst / 100);
+    const totalTaxAmount = gstType === 'interState' ? taxable * ((gst * 2) / 100) : taxAmount;
+    const fillerRows = Array.from({ length: fillerCount }).map(() => Array(numCols).fill({ text: ' ', ...FONT.small }));
+    const discountRow = invoiceDiscount > 0 ? [[{}, { text: 'Discount', ...FONT.small }, { text: `- ${formatCurrency(invoiceDiscount)}`, ...FONT.small, alignment: 'right' }]] : [];
+    const totalRowCount = (discountRow.length) + (secondTaxLabel ? 2 : 1) + 2;
 
     content = [
       { text: 'PURCHASE ORDER', ...FONT.title, alignment: 'center', margin: [0, 0, 0, 4] },
@@ -1557,12 +1618,13 @@ export const generatePurchaseOrderPDF = (data) => {
         columns: [{ width: '100%', table: { widths: ['100%'], body: [[{ stack: [{ text: 'To,', ...FONT.label, margin: [0, 0, 0, 2] }, { text: seller?.name || '-', ...FONT.normal }, { text: seller?.address || '-', ...FONT.small, margin: [0, 2, 0, 0] }, { text: `GSTIN: ${seller?.gstNo || 'NA'}`, ...FONT.small, margin: [0, 2, 0, 0] }], margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout }],
         margin: [0, 4, 0, 6],
       },
-      { table: { headerRows: 1, widths: COL_WIDTHS, body: [COL_WIDTHS.map((_, idx) => ({ text: COL_LABELS[idx], ...FONT.label, alignment: 'center' })), ...rows, ...fillerRows] }, layout: invoiceTableLayout, margin: [0, 4, 0, 6] },
+      { table: { headerRows: 1, widths: COL_WIDTHS, body: [COL_LABELS.map((lbl) => ({ text: lbl, ...FONT.label, alignment: 'center' })), ...rows, ...fillerRows] }, layout: invoiceTableLayout, margin: [0, 4, 0, 6] },
       {
         table: {
           widths: ['50%', '25%', '25%'],
           body: [
-            [{ text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)], rowSpan: secondTaxLabel ? 4 : 3, ...FONT.small }, { text: 'Subtotal', ...FONT.small }, { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' }],
+            [{ text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)], rowSpan: totalRowCount, ...FONT.small }, { text: 'Subtotal', ...FONT.small }, { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' }],
+            ...discountRow,
             [{}, { text: taxLabel, ...FONT.small }, { text: formatCurrency(totalTaxAmount), ...FONT.small, alignment: 'right' }],
             ...(secondTaxLabel ? [[{}, { text: secondTaxLabel, ...FONT.small }, { text: formatCurrency(taxAmount), ...FONT.small, alignment: 'right' }]] : []),
             [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
@@ -1755,25 +1817,32 @@ export const generateProformaInvoicePDF = (data) => {
     template = 'classic',
   } = data;
 
+  const invoiceDiscount = Number(data.invoiceDiscount || 0);
+  const hasDiscount = products.some(p => Number(p.discount) > 0);
+
   const rows = products.map((p, i) => {
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
-    const amount = qty * rate;
-    return [
+    const disc = Number(p.discount || 0);
+    const amount = qty * rate * (1 - disc / 100);
+    const row = [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
       formatProductName(p.name),
       { text: p.hsn || '', ...FONT.small, alignment: 'center' },
       { text: String(qty), ...FONT.small, alignment: 'center' },
       { text: p.uom || 'NOS', ...FONT.small, alignment: 'center' },
       { text: formatCurrency(rate), ...FONT.small, alignment: 'right' },
-      { text: formatCurrency(amount), ...FONT.small, alignment: 'right' },
     ];
+    if (hasDiscount) row.push({ text: disc > 0 ? `${disc}%` : '-', ...FONT.small, alignment: 'center' });
+    row.push({ text: formatCurrency(amount), ...FONT.small, alignment: 'right' });
+    return row;
   });
 
+  const taxable = Math.max(Number(totalAmount || 0) - invoiceDiscount, 0);
   const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST (${gst}%)`;
   const secondTaxLabel = gstType === 'interState' ? null : `SGST (${gst}%)`;
-  const taxAmount = totalAmount * (gst / 100);
-  const totalTaxAmount = gstType === 'interState' ? totalAmount * ((gst * 2) / 100) : taxAmount;
+  const taxAmount = taxable * (gst / 100);
+  const totalTaxAmount = gstType === 'interState' ? taxable * ((gst * 2) / 100) : taxAmount;
 
   const shipToData = shipTo || customer;
 
@@ -1788,15 +1857,9 @@ export const generateProformaInvoicePDF = (data) => {
   const buildClassicContent = () => {
     const fillerRows =
       rows.length < MIN_ROWS
-        ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
-            { text: ' ', ...FONT.small },
-            { text: ' ', ...FONT.small },
-            { text: ' ', ...FONT.small },
-            { text: ' ', ...FONT.small },
-            { text: ' ', ...FONT.small },
-            { text: ' ', ...FONT.small },
-            { text: ' ', ...FONT.small },
-          ])
+        ? Array.from({ length: MIN_ROWS - rows.length }).map(() =>
+            Array(hasDiscount ? 8 : 7).fill({ text: ' ', ...FONT.small })
+          )
         : [];
 
     return [
@@ -1883,7 +1946,9 @@ export const generateProformaInvoicePDF = (data) => {
       {
         table: {
           headerRows: 1,
-          widths: ['6%', '48%', '10%', '6%', '8%', '10%', '12%'],
+          widths: hasDiscount
+            ? ['6%', '41%', '9%', '6%', '8%', '9%', '9%', '12%']
+            : ['6%', '48%', '10%', '6%', '8%', '10%', '12%'],
           body: [
             [
               { text: 'Sr.No', ...FONT.label, alignment: 'center' },
@@ -1892,6 +1957,7 @@ export const generateProformaInvoicePDF = (data) => {
               { text: 'Qty', ...FONT.label, alignment: 'center' },
               { text: 'UOM', ...FONT.label, alignment: 'center' },
               { text: 'Rate', ...FONT.label, alignment: 'center' },
+              ...(hasDiscount ? [{ text: 'Disc%', ...FONT.label, alignment: 'center' }] : []),
               { text: 'Amount', ...FONT.label, alignment: 'center' },
             ],
             ...rows,
@@ -1904,22 +1970,18 @@ export const generateProformaInvoicePDF = (data) => {
       {
         table: {
           widths: ['50%', '25%', '25%'],
-          body: [
-            [
-              {
-                text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)],
-                rowSpan: secondTaxLabel ? 4 : 3,
-                ...FONT.small,
-              },
-              { text: 'Subtotal', ...FONT.small },
-              { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' },
-            ],
-            [{}, { text: taxLabel, ...FONT.small }, { text: formatCurrency(totalTaxAmount), ...FONT.small, alignment: 'right' }],
-            ...(secondTaxLabel
-              ? [[{}, { text: secondTaxLabel, ...FONT.small }, { text: formatCurrency(taxAmount), ...FONT.small, alignment: 'right' }]]
-              : []),
-            [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
-          ],
+          body: (() => {
+            const discRow = invoiceDiscount > 0 ? [[{}, { text: 'Discount', ...FONT.small }, { text: `- ${formatCurrency(invoiceDiscount)}`, ...FONT.small, alignment: 'right' }]] : [];
+            const span = discRow.length + (secondTaxLabel ? 2 : 1) + 2;
+            return [
+              [{ text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)], rowSpan: span, ...FONT.small },
+               { text: 'Subtotal', ...FONT.small }, { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' }],
+              ...discRow,
+              [{}, { text: taxLabel, ...FONT.small }, { text: formatCurrency(totalTaxAmount), ...FONT.small, alignment: 'right' }],
+              ...(secondTaxLabel ? [[{}, { text: secondTaxLabel, ...FONT.small }, { text: formatCurrency(taxAmount), ...FONT.small, alignment: 'right' }]] : []),
+              [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
+            ];
+          })(),
         },
         layout: compactBorderLayout,
         margin: [0, 4, 0, 8],
@@ -2153,11 +2215,13 @@ export const generateProformaInvoicePDF = (data) => {
         ],
         margin: [0, 0, 0, 8],
       },
-      // Products table â€” no vertical lines, alternating rows
+      // Products table – no vertical lines, alternating rows
       {
         table: {
           headerRows: 1,
-          widths: ['6%', '48%', '10%', '6%', '8%', '10%', '12%'],
+          widths: hasDiscount
+            ? ['6%', '41%', '9%', '6%', '8%', '9%', '9%', '12%']
+            : ['6%', '48%', '10%', '6%', '8%', '10%', '12%'],
           body: [
             [
               { text: 'SR.', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
@@ -2166,6 +2230,7 @@ export const generateProformaInvoicePDF = (data) => {
               { text: 'QTY', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
               { text: 'UOM', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
               { text: 'RATE', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' },
+              ...(hasDiscount ? [{ text: 'DISC%', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'center' }] : []),
               { text: 'AMOUNT', bold: true, fontSize: 9, color: '#ffffff', fillColor: MODERN_BLUE, alignment: 'right' },
             ],
             ...modernRows,
@@ -2203,6 +2268,7 @@ export const generateProformaInvoicePDF = (data) => {
               widths: ['*', 'auto'],
               body: [
                 [{ text: 'Subtotal', fontSize: 9, color: '#374151' }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: '#374151' }],
+                ...(invoiceDiscount > 0 ? [[{ text: 'Discount', fontSize: 9, color: '#374151' }, { text: `- ${formatCurrency(invoiceDiscount)}`, fontSize: 9, alignment: 'right', color: '#374151' }]] : []),
                 [{ text: taxLabel, fontSize: 9, color: '#374151' }, { text: formatCurrency(totalTaxAmount), fontSize: 9, alignment: 'right', color: '#374151' }],
                 ...(secondTaxLabel
                   ? [[{ text: secondTaxLabel, fontSize: 9, color: '#374151' }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: '#374151' }]]
@@ -2267,15 +2333,9 @@ export const generateProformaInvoicePDF = (data) => {
 
     const fillerRows =
       rows.length < MIN_ROWS
-        ? Array.from({ length: MIN_ROWS - rows.length }).map(() => [
-            { text: ' ', fontSize: 9 },
-            { text: ' ', fontSize: 9 },
-            { text: ' ', fontSize: 9 },
-            { text: ' ', fontSize: 9 },
-            { text: ' ', fontSize: 9 },
-            { text: ' ', fontSize: 9 },
-            { text: ' ', fontSize: 9 },
-          ])
+        ? Array.from({ length: MIN_ROWS - rows.length }).map(() =>
+            Array(hasDiscount ? 8 : 7).fill({ text: ' ', fontSize: 9 })
+          )
         : [];
 
     const minimalTableLayout = {
@@ -2363,11 +2423,13 @@ export const generateProformaInvoicePDF = (data) => {
           ]
         : []),
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 4, 0, 8] },
-      // Products table â€” borderless
+      // Products table — borderless
       {
         table: {
           headerRows: 1,
-          widths: ['6%', '48%', '10%', '6%', '8%', '10%', '12%'],
+          widths: hasDiscount
+            ? ['6%', '41%', '9%', '6%', '8%', '9%', '9%', '12%']
+            : ['6%', '48%', '10%', '6%', '8%', '10%', '12%'],
           body: [
             [
               { text: 'SR.', fontSize: 8, bold: true, color: GRAY, alignment: 'center' },
@@ -2376,6 +2438,7 @@ export const generateProformaInvoicePDF = (data) => {
               { text: 'QTY', fontSize: 8, bold: true, color: GRAY, alignment: 'center' },
               { text: 'UOM', fontSize: 8, bold: true, color: GRAY, alignment: 'center' },
               { text: 'RATE', fontSize: 8, bold: true, color: GRAY, alignment: 'right' },
+              ...(hasDiscount ? [{ text: 'DISC%', fontSize: 8, bold: true, color: GRAY, alignment: 'center' }] : []),
               { text: 'AMOUNT', fontSize: 8, bold: true, color: GRAY, alignment: 'right' },
             ],
             ...rows,
@@ -2385,7 +2448,7 @@ export const generateProformaInvoicePDF = (data) => {
         layout: minimalTableLayout,
         margin: [0, 0, 0, 8],
       },
-      // Totals â€” right-aligned, no borders
+      // Totals — right-aligned, no borders
       {
         columns: [
           { width: '*', text: '' },
@@ -2393,6 +2456,7 @@ export const generateProformaInvoicePDF = (data) => {
             width: '45%',
             stack: [
               { columns: [{ text: 'Subtotal', fontSize: 9, color: GRAY }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: DARK }] },
+              ...(invoiceDiscount > 0 ? [{ columns: [{ text: 'Discount', fontSize: 9, color: GRAY }, { text: `- ${formatCurrency(invoiceDiscount)}`, fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] }] : []),
               { columns: [{ text: taxLabel, fontSize: 9, color: GRAY }, { text: formatCurrency(totalTaxAmount), fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] },
               ...(secondTaxLabel
                 ? [{ columns: [{ text: secondTaxLabel, fontSize: 9, color: GRAY }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] }]

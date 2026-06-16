@@ -4,6 +4,7 @@ import {
   setCustomer,
   setGst,
   setGstType,
+  setInvoiceDiscount,
   addProduct,
   removeProduct,
   fetchProformaNo,
@@ -30,23 +31,7 @@ const ProformaInvoiceForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const nameTextareaRef = useRef(null);
-
-  const handleNameKeyDown = (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const textarea = e.target;
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newValue = name.substring(0, start) + '    ' + name.substring(end);
-      setName(newValue);
-      requestAnimationFrame(() => {
-        textarea.selectionStart = start + 4;
-        textarea.selectionEnd = start + 4;
-      });
-    }
-  };
+  const addBtnRef = useRef(null);
 
   const isEdit = Boolean(location.state?.proformaInvoice);
   const proformaToEdit = location.state?.proformaInvoice;
@@ -67,6 +52,7 @@ const ProformaInvoiceForm = () => {
     gstType,
     products,
     totalAmount,
+    invoiceDiscount,
     grandTotal,
   } = useSelector((state) => state.proforma);
 
@@ -83,6 +69,7 @@ const ProformaInvoiceForm = () => {
   const [hsn, setHsn] = useState('');
   const [quantity, setQuantity] = useState(0);
   const [rate, setRate] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [uom, setUom] = useState('NOS');
 
   // Ship To
@@ -97,7 +84,6 @@ const ProformaInvoiceForm = () => {
   // ---------------- INITIAL LOAD ----------------
   useEffect(() => {
     dispatch(fetchCustomers());
-
     if (isFromQuotation && quotationData) {
       dispatch(setCustomer(quotationData.customer));
       dispatch(setGst(quotationData.gst));
@@ -108,9 +94,7 @@ const ProformaInvoiceForm = () => {
   }, [dispatch, isEdit, isFromQuotation, quotationData]);
 
   useEffect(() => {
-    if (!isEdit && date) {
-      dispatch(fetchProformaNo(date));
-    }
+    if (!isEdit && date) dispatch(fetchProformaNo(date));
   }, [dispatch, isEdit, date]);
 
   // ---------------- EDIT MODE ----------------
@@ -120,7 +104,7 @@ const ProformaInvoiceForm = () => {
       dispatch(setGst(proformaToEdit.gst));
       dispatch(setGstType(proformaToEdit.gstType || 'intraState'));
       proformaToEdit.proformaProducts.forEach((p) => dispatch(addProduct(p)));
-
+      dispatch(setInvoiceDiscount(proformaToEdit.invoiceDiscount || 0));
       setDate(parseDate(proformaToEdit.date));
       setChallanNo(proformaToEdit.challanNo || '');
       setChallanDate(parseDate(proformaToEdit.challanDate));
@@ -128,7 +112,6 @@ const ProformaInvoiceForm = () => {
       setOrderDate(parseDate(proformaToEdit.orderDate));
       setValidUntil(parseDate(proformaToEdit.validUntil) || '');
       setTermsAndConditions(proformaToEdit.termsAndConditions || '');
-
       if (proformaToEdit.shipTo) {
         setSameAsBillTo(false);
         setShipToName(proformaToEdit.shipTo.name || '');
@@ -138,12 +121,8 @@ const ProformaInvoiceForm = () => {
     }
   }, [dispatch, isEdit, proformaToEdit]);
 
-  // ---------------- CLEANUP ----------------
-  useEffect(() => {
-    return () => dispatch(clearAllData());
-  }, [dispatch]);
+  useEffect(() => { return () => dispatch(clearAllData()); }, [dispatch]);
 
-  // ---------------- SHIP TO SYNC ----------------
   useEffect(() => {
     if (sameAsBillTo && customer) {
       setShipToName(customer.name || '');
@@ -159,172 +138,86 @@ const ProformaInvoiceForm = () => {
   };
 
   const handleAddProduct = () => {
-    if (!name || quantity <= 0 || rate < 0) {
-      alert('Enter valid product details');
-      return;
-    }
-    dispatch(addProduct({ name, hsn, quantity, rate, uom }));
-    setName('');
-    setHsn('');
-    setQuantity(0);
-    setRate(0);
-    setUom('NOS');
+    if (!name || quantity <= 0 || rate < 0) { alert('Enter valid product details'); return; }
+    dispatch(addProduct({ name, hsn, quantity, rate, discount, uom }));
+    setName(''); setHsn(''); setQuantity(0); setRate(0); setDiscount(0); setUom('NOS');
   };
 
-  const handleRemoveProduct = (index) => {
-    dispatch(removeProduct(index));
-  };
+  const handleRemoveProduct = (index) => dispatch(removeProduct(index));
+
+  const getPdfExtras = () => ({
+    companyName: user.companyDetails?.name,
+    companyAddress: user.companyDetails?.address,
+    companyGST: user.companyDetails?.gstin,
+    companyPhone: user.companyDetails?.mobile,
+    companyBank: user.bankDetails || {},
+    userSignature: user.signature || null,
+    companyLogo: user.companyLogo || null,
+    template: user.pdfTemplate || 'classic',
+  });
+
+  const buildPdfPayload = (overrides = {}) => ({
+    customer, products, gst, gstType,
+    totalAmount, invoiceDiscount, grandTotal,
+    date, challanNo, challanDate, orderNo, orderDate, validUntil, termsAndConditions,
+    ...getPdfExtras(), ...overrides,
+  });
 
   // ---------------- SAVE ----------------
   const handleGenerateProforma = async () => {
-    if (!customer || products.length === 0 || !date) {
-      alert('Incomplete proforma data');
-      return;
-    }
+    if (!customer || products.length === 0 || !date) { alert('Incomplete proforma data'); return; }
     setSaving(true);
     try {
       const payload = {
-        customer: customer._id,
-        gst,
-        gstType,
+        customer: customer._id, gst, gstType,
         proformaProducts: products,
-        invoiceTotal: totalAmount,
-        grandTotal,
-        date,
-        challanNo,
-        challanDate,
-        orderNo,
-        orderDate,
-        validUntil,
-        termsAndConditions,
-        shipTo: sameAsBillTo
-          ? null
-          : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
+        invoiceTotal: totalAmount, invoiceDiscount, grandTotal, date,
+        challanNo, challanDate, orderNo, orderDate, validUntil, termsAndConditions,
+        shipTo: sameAsBillTo ? null : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
       };
-
       const { data } = await api.post(`${apiUrl}/api/proforma/new`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const savedProforma = data.proforma;
-
-      generateProformaInvoicePDF({
-        customer,
+      generateProformaInvoicePDF(buildPdfPayload({
         shipTo: payload.shipTo,
-        billNo: formatDocumentNumber(
-          savedProforma.proformaNo,
-          savedProforma.financialYearLabel
-        ),
-        products,
-        gst,
-        gstType,
-        totalAmount,
-        grandTotal,
-        date,
-        challanNo,
-        challanDate,
-        orderNo,
-        orderDate,
-        validUntil,
-        termsAndConditions,
-        companyName: user.companyDetails?.name,
-        companyAddress: user.companyDetails?.address,
-        companyGST: user.companyDetails?.gstin,
-        companyPhone: user.companyDetails?.mobile,
-        companyBank: user.bankDetails || {},
-        userSignature: user.signature || null,
-        companyLogo: user.companyLogo || null,
-        template: user.pdfTemplate || 'classic',
-      });
-
+        billNo: formatDocumentNumber(savedProforma.proformaNo, savedProforma.financialYearLabel),
+      }));
       navigate('/proformas/all');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const handleSaveProforma = async () => {
-    if (!isEdit || !proformaToEdit) {
-      alert('Nothing to save');
-      return;
-    }
-    if (!customer || products.length === 0 || !date) {
-      alert('Incomplete proforma data');
-      return;
-    }
-
+    if (!isEdit || !proformaToEdit) { alert('Nothing to save'); return; }
+    if (!customer || products.length === 0 || !date) { alert('Incomplete proforma data'); return; }
     setSaving(true);
     try {
       const payload = {
-        customer: customer._id,
-        gst,
-        gstType,
+        customer: customer._id, gst, gstType,
         proformaProducts: products,
-        invoiceTotal: totalAmount,
-        grandTotal,
-        date,
-        challanNo,
-        challanDate,
-        orderNo,
-        orderDate,
-        validUntil,
-        termsAndConditions,
-        shipTo: sameAsBillTo
-          ? null
-          : {
-              name: shipToName,
-              address: shipToAddress,
-              gstNo: shipToGst,
-            },
+        invoiceTotal: totalAmount, invoiceDiscount, grandTotal, date,
+        challanNo, challanDate, orderNo, orderDate, validUntil, termsAndConditions,
+        shipTo: sameAsBillTo ? null : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
       };
-
-      const { data } = await api.put(
-        `${apiUrl}/api/proforma/${proformaToEdit._id}`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      const savedProforma = data.proforma;
-
-      generateProformaInvoicePDF({
-        customer,
-        shipTo: payload.shipTo,
-        billNo: formatDocumentNumber(
-          savedProforma.proformaNo,
-          savedProforma.financialYearLabel
-        ),
-        products,
-        gst,
-        gstType,
-        totalAmount,
-        grandTotal,
-        date,
-        challanNo,
-        challanDate,
-        orderNo,
-        orderDate,
-        validUntil,
-        termsAndConditions,
-        companyName: user.companyDetails?.name,
-        companyAddress: user.companyDetails?.address,
-        companyGST: user.companyDetails?.gstin,
-        companyPhone: user.companyDetails?.mobile,
-        companyBank: user.bankDetails || {},
-        userSignature: user.signature || null,
-        companyLogo: user.companyLogo || null,
-        template: user.pdfTemplate || 'classic',
+      const { data } = await api.put(`${apiUrl}/api/proforma/${proformaToEdit._id}`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
+      const savedProforma = data.proforma;
+      generateProformaInvoicePDF(buildPdfPayload({
+        shipTo: payload.shipTo,
+        billNo: formatDocumentNumber(savedProforma.proformaNo, savedProforma.financialYearLabel),
+      }));
       navigate('/proformas/all');
     } catch (err) {
       console.error('Update proforma failed', err);
       alert('Failed to update proforma invoice');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
+
+  const calcLineAmt = (p) => Number(p.quantity) * Number(p.rate) * (1 - (Number(p.discount) || 0) / 100);
+  const taxable = Math.max(totalAmount - (invoiceDiscount || 0), 0);
+  const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST+SGST (${gst}%+${gst}%)`;
+  const taxAmt = taxable * (gst * 2) / 100;
 
   return (
     <div className='invoice-container'>
@@ -336,461 +229,229 @@ const ProformaInvoiceForm = () => {
         className='invoice-form'
         onSubmit={(e) => e.preventDefault()}
         onKeyDown={(e) => {
-          if (
-            e.key === 'Enter' &&
-            e.target.tagName !== 'TEXTAREA'
-          ) {
-            e.preventDefault();
+          if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            if (e.target === addBtnRef.current) {
+              e.preventDefault();
+              handleAddProduct();
+            } else {
+              e.preventDefault();
+            }
           }
         }}
       >
         {/* Customer */}
         <div className='form-group'>
           <label className='form-label'>Customer:</label>
-          <select
-            className='form-select'
-            value={customer?._id || ''}
-            onChange={handleCustomerChange}
-          >
+          <select className='form-select' value={customer?._id || ''} onChange={handleCustomerChange}>
             <option value=''>Select</option>
-            {customersLoading ? (
-              <option>Loading...</option>
-            ) : customersError ? (
-              <option>Error</option>
-            ) : (
-              customers.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.name}
-                </option>
-              ))
-            )}
+            {customersLoading ? <option>Loading...</option>
+              : customersError ? <option>Error</option>
+              : customers.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
           </select>
         </div>
-        {/* Ship To Same as Bill To */}
+
+        {/* Ship To */}
         <div className='form-group checkbox-group'>
           <label className='checkbox-label'>
-            <input
-              type='checkbox'
-              checked={sameAsBillTo}
-              onChange={(e) => setSameAsBillTo(e.target.checked)}
-            />
+            <input type='checkbox' checked={sameAsBillTo} onChange={(e) => setSameAsBillTo(e.target.checked)} />
             Ship To same as Bill To
           </label>
         </div>
         {!sameAsBillTo && (
           <>
             <h3 className='products-header'>Ship To (Optional)</h3>
-
             <div className='form-group'>
               <label className='form-label'>Ship To Name</label>
-              <input
-                type='text'
-                className='form-input'
-                value={shipToName}
-                onChange={(e) => setShipToName(e.target.value)}
-              />
+              <input type='text' className='form-input' value={shipToName} onChange={(e) => setShipToName(e.target.value)} />
             </div>
-
             <div className='form-group'>
               <label className='form-label'>Ship To Address</label>
-              <textarea
-                className='form-input'
-                value={shipToAddress}
-                onChange={(e) => setShipToAddress(e.target.value)}
-              />
+              <textarea className='form-input' value={shipToAddress} onChange={(e) => setShipToAddress(e.target.value)} />
             </div>
-
             <div className='form-group'>
               <label className='form-label'>Ship To GST No</label>
-              <input
-                type='text'
-                className='form-input'
-                value={shipToGst}
-                onChange={(e) => setShipToGst(e.target.value)}
-              />
+              <input type='text' className='form-input' value={shipToGst} onChange={(e) => setShipToGst(e.target.value)} />
             </div>
           </>
         )}
-        {/* Financial Year */}
+
+        {/* Doc Info */}
         <div className='form-group'>
           <label className='form-label'>Financial Year</label>
-          <input
-            type='text'
-            className='form-input'
-            value={
-              isEdit
-                ? proformaToEdit.financialYearLabel || getFinancialYearFromDate(date)
-                : financialYearLabel || getFinancialYearFromDate(date)
-            }
-            disabled
-          />
+          <input type='text' className='form-input'
+            value={isEdit ? proformaToEdit.financialYearLabel || getFinancialYearFromDate(date) : financialYearLabel || getFinancialYearFromDate(date)}
+            disabled />
         </div>
-        {/* Proforma No */}
         <div className='form-group'>
           <label className='form-label'>Proforma No</label>
-          <input
-            type='text'
-            className='form-input'
-            value={
-              isEdit
-                ? formatDocumentNumber(
-                    proformaToEdit.proformaNo,
-                    proformaToEdit.financialYearLabel
-                  )
-                : formatDocumentNumber(
-                    proformaNo,
-                    financialYearLabel || getFinancialYearFromDate(date)
-                  )
-            }
-            disabled
-          />
+          <input type='text' className='form-input'
+            value={isEdit ? formatDocumentNumber(proformaToEdit.proformaNo, proformaToEdit.financialYearLabel) : formatDocumentNumber(proformaNo, financialYearLabel || getFinancialYearFromDate(date))}
+            disabled />
         </div>
-        {/* Date */}
         <div className='form-group'>
           <label className='form-label'>Date:</label>
-          <input
-            type='date'
-            className='form-input'
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            style={{ width: '10rem' }}
-          />
+          <input type='date' className='form-input' value={date} onChange={(e) => setDate(e.target.value)} style={{ width: '10rem' }} />
         </div>
-        {/* Valid Until */}
         <div className='form-group'>
           <label className='form-label'>Valid Until:</label>
-          <input
-            type='date'
-            className='form-input'
-            value={validUntil}
-            onChange={(e) => setValidUntil(e.target.value)}
-            style={{ width: '10rem' }}
-          />
+          <input type='date' className='form-input' value={validUntil} onChange={(e) => setValidUntil(e.target.value)} style={{ width: '10rem' }} />
         </div>
-        {/* GST Type */}
+
+        {/* GST */}
         <div className='form-group'>
           <label className='form-label'>GST Type</label>
-          <select
-            className='form-select'
-            value={gstType}
-            onChange={(e) => dispatch(setGstType(e.target.value))}
-          >
+          <select className='form-select' value={gstType} onChange={(e) => dispatch(setGstType(e.target.value))}>
             <option value='intraState'>CGST + SGST (Intra-State)</option>
             <option value='interState'>IGST (Inter-State)</option>
           </select>
         </div>
-        {/* GST */}
         <div className='form-group'>
           <label className='form-label'>GST Rate</label>
-          <select
-            className='form-select'
-            value={gst}
-            onChange={(e) => dispatch(setGst(Number(e.target.value)))}
-          >
+          <select className='form-select' value={gst} onChange={(e) => dispatch(setGst(Number(e.target.value)))}>
             <option value=''>Select</option>
-            {gstType === 'interState' ? (
-              <>
-                <option value={6}>12% (IGST)</option>
-                <option value={9}>18% (IGST)</option>
-              </>
-            ) : (
-              <>
-                <option value={6}>6% + 6% (CGST + SGST)</option>
-                <option value={9}>9% + 9% (CGST + SGST)</option>
-              </>
-            )}
+            {gstType === 'interState'
+              ? <><option value={6}>12% (IGST)</option><option value={9}>18% (IGST)</option></>
+              : <><option value={6}>6% + 6% (CGST + SGST)</option><option value={9}>9% + 9% (CGST + SGST)</option></>}
           </select>
         </div>
-        {/* Challan No */}
+
+        {/* Challan / Order */}
         <div className='form-group'>
           <label className='form-label'>Challan No</label>
-          <input
-            type='text'
-            className='form-input'
-            value={challanNo}
-            onChange={(e) => setChallanNo(e.target.value)}
-          />
+          <input type='text' className='form-input' value={challanNo} onChange={(e) => setChallanNo(e.target.value)} />
         </div>
-        {/* Challan Date */}
         <div className='form-group'>
           <label className='form-label'>Challan Date</label>
-          <input
-            type='date'
-            className='form-input'
-            value={challanDate}
-            onChange={(e) => setChallanDate(e.target.value)}
-            style={{ width: '10rem' }}
-          />
+          <input type='date' className='form-input' value={challanDate} onChange={(e) => setChallanDate(e.target.value)} style={{ width: '10rem' }} />
         </div>
-        {/* Order No */}
         <div className='form-group'>
           <label className='form-label'>Order No:</label>
-          <input
-            type='text'
-            className='form-input'
-            value={orderNo}
-            onChange={(e) => setOrderNo(e.target.value)}
-          />
+          <input type='text' className='form-input' value={orderNo} onChange={(e) => setOrderNo(e.target.value)} />
         </div>
-        {/* Order Date */}
         <div className='form-group'>
           <label className='form-label'>Order Date:</label>
-          <input
-            type='date'
-            className='form-input'
-            value={orderDate}
-            onChange={(e) => setOrderDate(e.target.value)}
-            style={{ width: '10rem' }}
-          />
+          <input type='date' className='form-input' value={orderDate} onChange={(e) => setOrderDate(e.target.value)} style={{ width: '10rem' }} />
         </div>
-        {/* Products */}
+
+        {/* Products Table */}
         <h3 className='products-header'>Products</h3>
         {products.length > 0 ? (
           <table className='products-table'>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>HSN</th>
-                <th>Qty</th>
-                <th>UOM</th>
-                <th>Rate</th>
-                <th>Amount</th>
-                <th></th>
+                <th>Name</th><th>HSN</th><th>Qty</th><th>UOM</th><th>Rate</th><th>Disc %</th><th>Amount</th><th></th>
               </tr>
             </thead>
             <tbody>
               {products.map((product, index) => (
                 <tr key={index}>
                   <td>
-                    <textarea
-                      value={product.name}
-                      onChange={(e) =>
-                        dispatch(
-                          updateProduct({
-                            index,
-                            updatedFields: { name: e.target.value },
-                          }),
-                        )
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === 'Tab') {
-                          e.preventDefault();
-                          const start = e.target.selectionStart;
-                          const end = e.target.selectionEnd;
-                          const currentVal = product.name;
-                          const newValue =
-                            currentVal.substring(0, start) +
-                            '    ' +
-                            currentVal.substring(end);
-                          dispatch(
-                            updateProduct({
-                              index,
-                              updatedFields: { name: newValue },
-                            }),
-                          );
-                          requestAnimationFrame(() => {
-                            e.target.selectionStart = start + 4;
-                            e.target.selectionEnd = start + 4;
-                          });
-                        }
-                      }}
-                      className='table-input table-textarea'
-                      rows={3}
-                    />
+                    <textarea value={product.name}
+                      onChange={(e) => dispatch(updateProduct({ index, updatedFields: { name: e.target.value } }))}
+                      className='table-input table-textarea' rows={3} />
                   </td>
-
                   <td>
-                    <input
-                      type='text'
-                      value={product.hsn || ''}
-                      onChange={(e) =>
-                        dispatch(
-                          updateProduct({
-                            index,
-                            updatedFields: { hsn: e.target.value },
-                          }),
-                        )
-                      }
-                      className='table-input'
-                    />
+                    <input type='text' value={product.hsn || ''}
+                      onChange={(e) => dispatch(updateProduct({ index, updatedFields: { hsn: e.target.value } }))}
+                      className='table-input' />
                   </td>
-
                   <td>
-                    <input
-                      type='number'
-                      value={product.quantity}
-                      onChange={(e) =>
-                        dispatch(
-                          updateProduct({
-                            index,
-                            updatedFields: { quantity: Number(e.target.value) },
-                          }),
-                        )
-                      }
-                      className='table-input'
-                    />
+                    <input type='number' value={product.quantity}
+                      onChange={(e) => dispatch(updateProduct({ index, updatedFields: { quantity: Number(e.target.value) } }))}
+                      className='table-input' />
                   </td>
-
                   <td>
-                    <select
-                      value={product.uom}
-                      onChange={(e) =>
-                        dispatch(
-                          updateProduct({
-                            index,
-                            updatedFields: { uom: e.target.value },
-                          }),
-                        )
-                      }
-                      className='table-select'
-                    >
-                      {uomList.map((uom) => (
-                        <option key={uom} value={uom}>
-                          {uom}
-                        </option>
-                      ))}
+                    <select value={product.uom}
+                      onChange={(e) => dispatch(updateProduct({ index, updatedFields: { uom: e.target.value } }))}
+                      className='table-select'>
+                      {uomList.map((u) => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </td>
-
                   <td>
-                    <input
-                      type='number'
-                      value={product.rate}
-                      onChange={(e) =>
-                        dispatch(
-                          updateProduct({
-                            index,
-                            updatedFields: { rate: Number(e.target.value) },
-                          }),
-                        )
-                      }
-                      className='table-input'
-                    />
+                    <input type='number' value={product.rate}
+                      onChange={(e) => dispatch(updateProduct({ index, updatedFields: { rate: Number(e.target.value) } }))}
+                      className='table-input' />
                   </td>
-
-                  <td>₹{(product.quantity * product.rate).toFixed(2)}</td>
-
                   <td>
-                    <button
-                      type='button'
-                      className='remove-btn'
-                      onClick={() => handleRemoveProduct(index)}
-                    >
-                      Remove
-                    </button>
+                    <input type='number' value={product.discount ?? 0} min={0} max={100}
+                      onChange={(e) => dispatch(updateProduct({ index, updatedFields: { discount: Number(e.target.value) } }))}
+                      className='table-input' style={{ width: '3.5rem' }} />
+                  </td>
+                  <td>₹{calcLineAmt(product).toFixed(2)}</td>
+                  <td>
+                    <button type='button' className='remove-btn' onClick={() => handleRemoveProduct(index)}>Remove</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        ) : (
-          <p>No products added yet.</p>
-        )}
+        ) : <p>No products added yet.</p>}
+
         {/* Add product fields */}
         <div className='form-group'>
           <label className='form-label'>Product Name</label>
-          <textarea
-            ref={nameTextareaRef}
-            id='productName'
-            className='form-input product-name-textarea'
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={handleNameKeyDown}
-            rows={4}
-            placeholder={'Product Details (use Tab for indentation)'}
-          />
+          <textarea id='productName' className='form-input product-name-textarea'
+            value={name} onChange={(e) => setName(e.target.value)}
+            rows={4} placeholder='Product Details' />
         </div>
-
         <div className='form-group'>
           <label className='form-label'>HSN Code</label>
-          <input
-            type='text'
-            className='form-input'
-            value={hsn}
-            onChange={(e) => setHsn(e.target.value)}
-          />
+          <input type='text' className='form-input' value={hsn} onChange={(e) => setHsn(e.target.value)} />
         </div>
         <div className='form-group'>
           <label className='form-label'>Quantity:</label>
-          <input
-            type='number'
-            className='form-input'
-            value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
-          />
+          <input type='number' className='form-input' value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
         </div>
         <div className='form-group'>
           <label className='form-label'>Rate:</label>
-          <input
-            type='number'
-            className='form-input'
-            value={rate}
-            onChange={(e) => setRate(Number(e.target.value))}
-          />
+          <input type='number' className='form-input' value={rate} onChange={(e) => setRate(Number(e.target.value))} />
+        </div>
+        <div className='form-group'>
+          <label className='form-label'>Discount (%)</label>
+          <input type='number' className='form-input' value={discount} min={0} max={100}
+            onChange={(e) => setDiscount(Number(e.target.value))} style={{ width: '6rem' }} />
         </div>
         <div className='form-group'>
           <label className='form-label'>UOM</label>
-          <select
-            className='form-select'
-            value={uom}
-            onChange={(e) => setUom(e.target.value)}
-          >
-            {uomList.map((uom) => (
-              <option key={uom} value={uom}>
-                {uom}
-              </option>
-            ))}
+          <select className='form-select' value={uom} onChange={(e) => setUom(e.target.value)}>
+            {uomList.map((u) => <option key={u} value={u}>{u}</option>)}
           </select>
         </div>
-        <button type='button' className='add-btn' onClick={handleAddProduct}>
+        <button ref={addBtnRef} type='button' className='add-btn' onClick={handleAddProduct}>
           Add Product
         </button>
+
         {/* Totals */}
         <div className='invoice-totals'>
-          <p>
-            Total Amount:{' '}
-            <span>₹{totalAmount?.toFixed?.(2) || totalAmount}</span>
-          </p>
-          <p>
-            Grand Total: <span>₹{grandTotal?.toFixed?.(2) || grandTotal}</span>
-          </p>
+          <p>Subtotal: <span>₹{totalAmount?.toFixed(2)}</span></p>
+          <div className='form-group' style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '0.4rem 0' }}>
+            <label className='form-label' style={{ margin: 0 }}>Invoice Discount (₹)</label>
+            <input type='number' className='form-input' value={invoiceDiscount || 0} min={0}
+              onChange={(e) => dispatch(setInvoiceDiscount(Number(e.target.value)))} style={{ width: '8rem' }} />
+          </div>
+          <p>Taxable Amount: <span>₹{taxable.toFixed(2)}</span></p>
+          <p>{taxLabel}: <span>₹{taxAmt.toFixed(2)}</span></p>
+          <p>Grand Total: <span>₹{grandTotal?.toFixed?.(2) || grandTotal}</span></p>
         </div>
+
         <div className='form-section'>
           <div className='form-group'>
-            <label htmlFor='termsAndConditions' className='form-label'>
-              Terms & Conditions
-            </label>
-            <textarea
-              id='termsAndConditions'
-              name='termsAndConditions'
-              className='form-input'
-              value={termsAndConditions || ''}
-              onChange={(e) => setTermsAndConditions(e.target.value)}
-              rows='5'
-              placeholder='Enter terms and conditions...'
-            />
+            <label htmlFor='termsAndConditions' className='form-label'>Terms &amp; Conditions</label>
+            <textarea id='termsAndConditions' className='form-input' value={termsAndConditions || ''}
+              onChange={(e) => setTermsAndConditions(e.target.value)} rows='5' placeholder='Enter terms and conditions...' />
           </div>
         </div>
+
         {/* Actions */}
         <div className='form-actions'>
           {!isEdit ? (
-            <button
-              className='generate-btn'
-              onClick={handleGenerateProforma}
-              disabled={saving}
-            >
+            <button className='generate-btn' onClick={handleGenerateProforma} disabled={saving}>
               {saving ? 'Saving...' : 'Generate Proforma & Save'}
             </button>
           ) : (
-            <>
-              <button
-                className='save-btn'
-                onClick={handleSaveProforma}
-                disabled={saving}
-              >
-                {saving ? 'Saving...' : 'Save & Generate PDF'}
-              </button>
-            </>
+            <button className='save-btn' onClick={handleSaveProforma} disabled={saving}>
+              {saving ? 'Saving...' : 'Save & Generate PDF'}
+            </button>
           )}
         </div>
       </form>

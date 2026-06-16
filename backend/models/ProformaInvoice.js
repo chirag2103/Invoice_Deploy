@@ -4,6 +4,7 @@ const productSchema = mongoose.Schema({
   name: { type: String, required: true },
   quantity: { type: Number, required: true },
   rate: { type: Number, required: true },
+  discount: { type: Number, default: 0 },
   uom: { type: String, default: 'NOS' },
   hsn: {
     type: String,
@@ -55,6 +56,7 @@ const proformaInvoiceSchema = mongoose.Schema({
   orderDate: Date,
   proformaProducts: [productSchema],
   invoiceTotal: Number,
+  invoiceDiscount: { type: Number, default: 0 },
   grandTotal: Number,
   date: {
     type: Date,

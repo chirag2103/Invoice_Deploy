@@ -20,6 +20,7 @@ const initialState = {
   date: '',
   products: [],
   totalAmount: 0,
+  invoiceDiscount: 0,
   grandTotal: 0,
   gst: 9,
   gstType: 'intraState',
@@ -36,8 +37,13 @@ const getAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
 
-const calculateGrandTotal = (totalAmount, gst, gstType) => {
-  return Math.round(totalAmount + (totalAmount * gst * 2) / 100);
+const lineAmount = (p) =>
+  Number(p.quantity || 0) * Number(p.rate || 0) * (1 - (Number(p.discount) || 0) / 100);
+
+const recalc = (state) => {
+  state.totalAmount = state.products.reduce((sum, p) => sum + lineAmount(p), 0);
+  const taxable = Math.max(state.totalAmount - (state.invoiceDiscount || 0), 0);
+  state.grandTotal = Math.round(taxable + taxable * (state.gst * 2) / 100);
 };
 
 export const fetchQuotations = createAsyncThunk(
@@ -93,58 +99,37 @@ const quotationSlice = createSlice({
     },
     setGst(state, action) {
       state.gst = action.payload;
-      state.grandTotal = calculateGrandTotal(
-        state.totalAmount,
-        state.gst,
-        state.gstType
-      );
+      recalc(state);
     },
     setGstType(state, action) {
       state.gstType = action.payload;
-      state.grandTotal = calculateGrandTotal(
-        state.totalAmount,
-        state.gst,
-        state.gstType
-      );
+      recalc(state);
+    },
+    setInvoiceDiscount(state, action) {
+      state.invoiceDiscount = Number(action.payload) || 0;
+      recalc(state);
     },
     addProduct(state, action) {
-      state.products.push(action.payload);
-      state.totalAmount += action.payload.quantity * action.payload.rate;
-      state.grandTotal = calculateGrandTotal(
-        state.totalAmount,
-        state.gst,
-        state.gstType
-      );
+      state.products.push({
+        name: action.payload.name,
+        hsn: action.payload.hsn || '',
+        quantity: action.payload.quantity,
+        rate: action.payload.rate,
+        discount: Number(action.payload.discount) || 0,
+        uom: action.payload.uom || 'NOS',
+      });
+      recalc(state);
     },
     removeProduct(state, action) {
-      const removed = state.products.splice(action.payload, 1)[0];
-      state.totalAmount -= removed.quantity * removed.rate;
-      state.grandTotal = calculateGrandTotal(
-        state.totalAmount,
-        state.gst,
-        state.gstType
-      );
+      state.products.splice(action.payload, 1);
+      recalc(state);
     },
     updateProduct: (state, action) => {
       const { index, updatedFields } = action.payload;
-      const product = state.products[index];
-
-      if (!product) return;
-
-      const updatedProduct = { ...product, ...updatedFields };
-      state.products[index] = updatedProduct;
-
-      state.totalAmount = state.products.reduce(
-        (sum, prod) => sum + prod.quantity * prod.rate,
-        0
-      );
-      state.grandTotal = calculateGrandTotal(
-        state.totalAmount,
-        state.gst,
-        state.gstType
-      );
+      if (!state.products[index]) return;
+      state.products[index] = { ...state.products[index], ...updatedFields };
+      recalc(state);
     },
-
     clearQuotationData(state) {
       return initialState;
     },
@@ -180,6 +165,7 @@ export const {
   setCustomer,
   setGst,
   setGstType,
+  setInvoiceDiscount,
   addProduct,
   removeProduct,
   updateProduct,
