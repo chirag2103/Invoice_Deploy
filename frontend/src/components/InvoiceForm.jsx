@@ -23,6 +23,12 @@ import {
 } from '../services/helper.js';
 import { uomList } from '../services/helper';
 
+const DEFAULT_PAYMENT_TERMS = [
+  'Payment is due within 45 days from the invoice date.',
+  'Interest at 28% per annum will be charged on overdue payments after the credit period.',
+  'Any quantity or quality concern must be reported in writing within 7 days of receipt of goods.',
+].join('\n');
+
 const InvoiceForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const token = localStorage.getItem('token');
@@ -79,7 +85,7 @@ const InvoiceForm = () => {
   const [shipToName, setShipToName] = useState('');
   const [shipToAddress, setShipToAddress] = useState('');
   const [shipToGst, setShipToGst] = useState('');
-  const [termsAndConditions, setTermsAndConditions] = useState('');
+  const [termsAndConditions, setTermsAndConditions] = useState(DEFAULT_PAYMENT_TERMS);
 
   const parseDate = (d) => d?.split('T')[0];
 
@@ -93,6 +99,7 @@ const InvoiceForm = () => {
       if (quotationData.gstType) dispatch(setGstType(quotationData.gstType));
       quotationData.quotationProducts.forEach((p) => dispatch(addProduct(p)));
       setDate(new Date().toISOString().split('T')[0]);
+      setTermsAndConditions(quotationData.termsAndConditions || DEFAULT_PAYMENT_TERMS);
     }
 
     if (isFromProforma && proformaData) {
@@ -103,7 +110,7 @@ const InvoiceForm = () => {
       setDate(new Date().toISOString().split('T')[0]);
       setOrderNo(proformaData.orderNo || '');
       setOrderDate(parseDate(proformaData.orderDate) || '');
-      setTermsAndConditions(proformaData.termsAndConditions || '');
+      setTermsAndConditions(proformaData.termsAndConditions || DEFAULT_PAYMENT_TERMS);
       if (proformaData.shipTo) {
         setSameAsBillTo(false);
         setShipToName(proformaData.shipTo.name || '');

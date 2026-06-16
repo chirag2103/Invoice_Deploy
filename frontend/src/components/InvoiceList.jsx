@@ -77,6 +77,8 @@ const InvoiceList = () => {
       challanDate: invoice.challanDate?.split('T'),
       grandTotal: invoice.grandTotal,
       totalAmount: invoice.invoiceTotal,
+      invoiceDiscount: invoice.invoiceDiscount || 0,
+      termsAndConditions: invoice.termsAndConditions || '',
       orderNo: invoice?.orderNo,
       orderDate: invoice?.orderDate?.split('T'),
       companyName: user.companyDetails?.name,

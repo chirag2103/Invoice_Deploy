@@ -17,6 +17,7 @@ const FONT = {
   label: { fontSize: 10, bold: true, color: COLORS.text, lineHeight: 1.1 },
   title: { fontSize: 16, bold: true, color: COLORS.text, lineHeight: 1.1 },
 };
+const TERMS_HEADING = { ...FONT.label, fontSize: 9.5, margin: [0, 6, 0, 3] };
 
 const MIN_ROWS = 11;
 const INVOICE_FIRST_PAGE_MIN_ROWS = 1;
@@ -659,9 +660,7 @@ const buildInvoiceFooterSections = ({
           stack: [
             {
               text: 'TERMS & CONDITIONS',
-              ...FONT.label,
-              fontSize: 11,
-              margin: [0, 8, 0, 4],
+              ...TERMS_HEADING,
             },
             {
               table: {
@@ -1492,7 +1491,7 @@ export const generateQuotationPDF = (data) => {
       },
       ...extraSections,
       ...(termsAndConditions
-        ? [{ stack: [{ text: 'TERMS & CONDITIONS', ...FONT.label, fontSize: 11, margin: [0, 8, 0, 4] }, { table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(termsAndConditions), margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout }], margin: [0, 4, 0, 0] }]
+        ? [{ stack: [{ text: 'TERMS & CONDITIONS', ...TERMS_HEADING }, { table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(termsAndConditions), margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout }], margin: [0, 4, 0, 0] }]
         : []),
       { text: 'This document is computer generated and does not require signature.', ...FONT.small, alignment: 'center', margin: [0, 8, 0, 0], italics: true },
     ];
@@ -1643,7 +1642,7 @@ export const generatePurchaseOrderPDF = (data) => {
         layout: simpleBorderLayout,
       },
       ...extraSections,
-      ...(termsAndConditions ? [{ stack: [{ text: 'TERMS & CONDITIONS', ...FONT.label, fontSize: 11, margin: [0, 8, 0, 4] }, { table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(termsAndConditions), margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout }], margin: [0, 4, 0, 0] }] : []),
+      ...(termsAndConditions ? [{ stack: [{ text: 'TERMS & CONDITIONS', ...TERMS_HEADING }, { table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(termsAndConditions), margin: [4, 4, 4, 4] }]] }, layout: simpleBorderLayout }], margin: [0, 4, 0, 0] }] : []),
       { text: 'This document is computer generated and does not require signature.', ...FONT.small, alignment: 'center', margin: [0, 8, 0, 0], italics: true },
     ];
   }
@@ -2018,7 +2017,7 @@ export const generateProformaInvoicePDF = (data) => {
         ? [
             {
               stack: [
-                { text: 'TERMS & CONDITIONS', ...FONT.label, fontSize: 11, margin: [0, 8, 0, 4] },
+                { text: 'TERMS & CONDITIONS', ...TERMS_HEADING },
                 {
                   table: { widths: ['100%'], body: [[{ ul: formatTextAsBulletPoints(termsAndConditions), margin: [4, 4, 4, 4] }]] },
                   layout: simpleBorderLayout,
