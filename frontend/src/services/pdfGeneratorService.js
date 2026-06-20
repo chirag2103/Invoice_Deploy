@@ -1327,6 +1327,216 @@ export const generateMonthlyInvoicesPDF = ({
     );
 };
 
+export const generateStatementPDF = ({
+  companyName = '',
+  companyAddress = '',
+  companyGST = '',
+  companyPhone = '',
+  companyBank = {},
+  userSignature,
+  title = 'ACCOUNT STATEMENT',
+  partyLabel = 'Party',
+  partyName = '',
+  partyAddress = '',
+  gstNo = '',
+  fromDate = '',
+  toDate = '',
+  entries = [],
+  debitLabel = 'Debit',
+  creditLabel = 'Credit',
+  closingBalance = 0,
+  filePrefix = 'Statement',
+}) => {
+  const debitTotal = entries.reduce(
+    (sum, entry) =>
+      sum +
+      Number(entry.invoiceAmount ?? entry.purchaseAmount ?? 0),
+    0
+  );
+  const creditTotal = entries.reduce(
+    (sum, entry) => sum + Number(entry.paymentAmount ?? 0),
+    0
+  );
+
+  const tableBody = [
+    [
+      { text: 'Date', ...FONT.label, alignment: 'center' },
+      { text: 'Description', ...FONT.label, alignment: 'center' },
+      { text: debitLabel, ...FONT.label, alignment: 'right' },
+      { text: creditLabel, ...FONT.label, alignment: 'right' },
+      { text: 'Running Balance', ...FONT.label, alignment: 'right' },
+    ],
+    ...entries.map((entry) => ({
+      date: formatDate(entry.date),
+      description: entry.detail || entry.type || '-',
+      debit: Number(entry.invoiceAmount ?? entry.purchaseAmount ?? 0),
+      credit: Number(entry.paymentAmount ?? 0),
+      balance: Number(entry.balance || 0),
+    })).map((entry) => ([
+      { text: entry.date, ...FONT.small },
+      { text: entry.description, ...FONT.small },
+      {
+        text: entry.debit ? formatCurrency(entry.debit) : '-',
+        ...FONT.small,
+        alignment: 'right',
+      },
+      {
+        text: entry.credit ? formatCurrency(entry.credit) : '-',
+        ...FONT.small,
+        alignment: 'right',
+      },
+      {
+        text: formatCurrency(entry.balance),
+        ...FONT.small,
+        alignment: 'right',
+      },
+    ])),
+    [
+      { text: 'Total', ...FONT.label, colSpan: 2 },
+      {},
+      { text: formatCurrency(debitTotal), ...FONT.label, alignment: 'right' },
+      { text: formatCurrency(creditTotal), ...FONT.label, alignment: 'right' },
+      {
+        text: formatCurrency(closingBalance),
+        ...FONT.label,
+        alignment: 'right',
+      },
+    ],
+  ];
+
+  const docDefinition = {
+    pageSize: 'A4',
+    pageMargins: [20, 20, 20, 25],
+    defaultStyle: {
+      font: 'Roboto',
+      fontSize: 10.5,
+      color: COLORS.text,
+      lineHeight: 1,
+    },
+    content: [
+      {
+        columns: [
+          {
+            width: '65%',
+            stack: [
+              { text: companyName || '', fontSize: 16, bold: true, color: COLORS.text },
+              { text: companyAddress || '', ...FONT.small, margin: [0, 3, 0, 0] },
+              {
+                text: `GSTIN: ${companyGST || '-'}  |  Ph: ${companyPhone || ''}`,
+                ...FONT.small,
+                margin: [0, 1, 0, 0],
+              },
+            ],
+          },
+          {
+            width: '35%',
+            text: title,
+            ...FONT.title,
+            alignment: 'right',
+          },
+        ],
+        margin: [0, 0, 0, 10],
+      },
+      {
+        table: {
+          widths: ['60%', '40%'],
+          body: [
+            [
+              {
+                stack: [
+                  { text: partyLabel, ...FONT.label, margin: [0, 0, 0, 3] },
+                  { text: partyName || '-', fontSize: 11, bold: true, color: COLORS.text },
+                  { text: partyAddress || '-', ...FONT.small, margin: [0, 2, 0, 0] },
+                  { text: `GSTIN: ${gstNo || 'NA'}`, ...FONT.small, margin: [0, 2, 0, 0] },
+                ],
+                margin: [4, 4, 4, 4],
+              },
+              {
+                stack: [
+                  { text: 'Statement Period', ...FONT.label, margin: [0, 0, 0, 3] },
+                  {
+                    text: `${formatDate(fromDate) || '-'} to ${formatDate(toDate) || '-'}`,
+                    ...FONT.small,
+                  },
+                ],
+                margin: [4, 4, 4, 4],
+              },
+            ],
+          ],
+        },
+        layout: simpleBorderLayout,
+        margin: [0, 0, 0, 10],
+      },
+      {
+        table: {
+          headerRows: 1,
+          widths: ['14%', '38%', '16%', '16%', '16%'],
+          body: tableBody,
+        },
+        layout: invoiceTableLayout,
+        margin: [0, 0, 0, 12],
+      },
+      {
+        table: {
+          widths: ['60%', '40%'],
+          body: [
+            [
+              {
+                stack: [
+                  { text: 'Bank Details', ...FONT.label, margin: [0, 0, 0, 2] },
+                  { text: companyName || '', ...FONT.small },
+                  {
+                    text: `Bank Name: ${getBankName(companyBank)}`,
+                    ...FONT.small,
+                    margin: [0, 1, 0, 0],
+                  },
+                  {
+                    text: `A/C No: ${companyBank?.accountNumber || ''}`,
+                    ...FONT.small,
+                    margin: [0, 1, 0, 0],
+                  },
+                  {
+                    text: `IFSC: ${getBankIfsc(companyBank)}`,
+                    ...FONT.small,
+                    margin: [0, 1, 0, 0],
+                  },
+                ],
+                margin: [4, 4, 4, 4],
+              },
+              {
+                stack: [
+                  {
+                    text: `For ${companyName || ''}`,
+                    ...FONT.label,
+                    alignment: 'right',
+                    margin: [0, 0, 0, 4],
+                  },
+                  {
+                    image: getSignatureImage(userSignature),
+                    fit: [120, 40],
+                    alignment: 'right',
+                  },
+                  {
+                    text: 'Authorized Signatory',
+                    ...FONT.small,
+                    alignment: 'right',
+                  },
+                ],
+                margin: [4, 4, 4, 4],
+              },
+            ],
+          ],
+        },
+        layout: simpleBorderLayout,
+      },
+    ],
+  };
+
+  pdfMake.createPdf(docDefinition).download(
+    `${filePrefix}-${partyName || 'Account'}-${fromDate || 'From'}-${toDate || 'To'}.pdf`
+  );
+};
+
 /* ================= QUOTATION ================= */
 
 export const generateQuotationPDF = (data) => {

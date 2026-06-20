@@ -13,6 +13,18 @@ import {
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
 
+const parseQueryDate = (value, endOfDay = false) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(
+    endOfDay ? `${value}T23:59:59.999` : `${value}T00:00:00.000`
+  );
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const sortInvoices = (invoices) =>
   [...invoices].sort((first, second) => {
     const secondFy = second.financialYearStart || 0;
@@ -340,6 +352,10 @@ export const getStatementByCustomer = catchAsyncError(async (req, res, next) => 
       return res.status(404).json({ error: 'Customer not found' });
     }
 
+    const { from, to } = req.query;
+    const fromDate = parseQueryDate(from);
+    const toDate = parseQueryDate(to, true);
+
     const invoices = await Invoice.find({
       user: req.user.id,
       customer: customerId,
@@ -354,20 +370,9 @@ export const getStatementByCustomer = catchAsyncError(async (req, res, next) => 
     let totalPaid = 0;
     let totalInvoice = 0;
     let currentBalance = 0;
+    let openingBalance = Number(customer.openingBalance || 0);
 
-    if (customer.openingBalance && customer.openingBalance !== 0) {
-      currentBalance = customer.openingBalance;
-      statement.push({
-        date: customer.createdAt || new Date('2024-01-01'),
-        type: 'opening',
-        detail: 'Opening Balance',
-        invoiceAmount: customer.openingBalance,
-        paymentAmount: null,
-        balance: currentBalance,
-      });
-    }
-
-    const entries = [
+    const allEntries = [
       ...invoices.map((invoice) => ({
         date: invoice.date,
         type: 'invoice',
@@ -384,29 +389,68 @@ export const getStatementByCustomer = catchAsyncError(async (req, res, next) => 
         invoiceAmount: null,
         paymentAmount: payment.amountPaid,
       })),
-    ];
+    ].map((entry) => ({
+      ...entry,
+      timestamp: new Date(entry.date),
+    }));
 
-    entries.sort((first, second) => new Date(first.date) - new Date(second.date));
+    allEntries.sort((first, second) => first.timestamp - second.timestamp);
 
-    entries.forEach((entry) => {
+    if (fromDate) {
+      const preRangeEntries = allEntries.filter((entry) => entry.timestamp < fromDate);
+      preRangeEntries.forEach((entry) => {
+        if (entry.type === 'invoice') {
+          openingBalance += Number(entry.invoiceAmount || 0);
+        } else {
+          openingBalance -= Number(entry.paymentAmount || 0);
+        }
+      });
+    }
+
+    if (openingBalance !== 0) {
+      currentBalance = openingBalance;
+      statement.push({
+        date: fromDate || customer.createdAt || new Date('2024-01-01'),
+        type: 'opening',
+        detail: fromDate ? `Opening Balance (as of ${from})` : 'Opening Balance',
+        invoiceAmount: openingBalance > 0 ? openingBalance : null,
+        paymentAmount: openingBalance < 0 ? Math.abs(openingBalance) : null,
+        balance: currentBalance,
+      });
+    }
+
+    const rangeEntries = fromDate
+      ? allEntries.filter((entry) => {
+          return (
+            entry.timestamp >= fromDate && (!toDate || entry.timestamp <= toDate)
+          );
+        })
+      : allEntries;
+
+    rangeEntries.forEach((entry) => {
       if (entry.type === 'invoice') {
-        totalInvoice += entry.invoiceAmount;
-        currentBalance += entry.invoiceAmount;
-      } else if (entry.type === 'payment') {
-        totalPaid += entry.paymentAmount;
-        currentBalance -= entry.paymentAmount;
+        totalInvoice += Number(entry.invoiceAmount || 0);
+        currentBalance += Number(entry.invoiceAmount || 0);
+      } else {
+        totalPaid += Number(entry.paymentAmount || 0);
+        currentBalance -= Number(entry.paymentAmount || 0);
       }
 
       statement.push({
-        ...entry,
+        date: entry.date,
+        type: entry.type,
+        detail: entry.detail,
+        invoiceAmount: entry.invoiceAmount,
+        paymentAmount: entry.paymentAmount,
         balance: Math.round(currentBalance * 100) / 100,
       });
     });
 
     return res.json({
       customerName: customer.name,
+      customerAddress: customer.address || '',
       gstNo: customer.gstNo,
-      openingBalance: customer.openingBalance || 0,
+      openingBalance,
       totalInvoice,
       totalPaid,
       remainingAmount: currentBalance,
@@ -416,3 +460,4 @@ export const getStatementByCustomer = catchAsyncError(async (req, res, next) => 
     next(new ErrorHandler('Error fetching customer billing info', 500));
   }
 });
+

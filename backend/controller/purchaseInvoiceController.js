@@ -1,18 +1,46 @@
 import PurchaseInvoice from '../models/PurchaseInvoice.js';
 import PurchasePayment from '../models/PurchasePayment.js';
 import Seller from '../models/Seller.js';
-
 import ErrorHandler from '../utils/errorHandler.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
 
-// ✅ Create purchase invoice
+const parseQueryDate = (value, endOfDay = false) => {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(
+    endOfDay ? `${value}T23:59:59.999` : `${value}T00:00:00.000`
+  );
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const buildDateMatch = (startDate, endDate) => {
+  if (!startDate && !endDate) {
+    return undefined;
+  }
+
+  const dateMatch = {};
+
+  if (startDate) {
+    dateMatch.$gte = startDate;
+  }
+
+  if (endDate) {
+    dateMatch.$lte = endDate;
+  }
+
+  return dateMatch;
+};
+
 export const createPurchaseInvoice = async (req, res, next) => {
   try {
     const { seller, invoiceNo, amount, date, remarks } = req.body;
 
     if (!seller || !amount || !date) {
       return next(
-        new ErrorHandler('Seller, Amount, and Date are required', 400),
+        new ErrorHandler('Seller, Amount, and Date are required', 400)
       );
     }
 
@@ -35,12 +63,12 @@ export const createPurchaseInvoice = async (req, res, next) => {
   }
 };
 
-// ✅ Get all purchase invoices for logged-in user
 export const getAllPurchases = async (req, res, next) => {
   try {
     const allPurchases = await PurchaseInvoice.find({ user: req.user._id })
-      .populate('seller', 'name') // show seller name
+      .populate('seller', 'name')
       .sort({ date: -1 });
+
     const { results, pagination } = filterAndPaginate(
       allPurchases,
       req.query,
@@ -57,13 +85,12 @@ export const getAllPurchases = async (req, res, next) => {
   }
 };
 
-// ✅ Update purchase invoice
 export const updatePurchaseInvoice = async (req, res, next) => {
   try {
     const purchase = await PurchaseInvoice.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
       { $set: req.body },
-      { new: true },
+      { new: true }
     );
 
     if (!purchase) {
@@ -80,7 +107,6 @@ export const updatePurchaseInvoice = async (req, res, next) => {
   }
 };
 
-// ✅ Delete purchase invoice + its payments
 export const deletePurchaseInvoice = async (req, res, next) => {
   try {
     const purchase = await PurchaseInvoice.findOneAndDelete({
@@ -92,11 +118,9 @@ export const deletePurchaseInvoice = async (req, res, next) => {
       return next(new ErrorHandler('Purchase invoice not found', 404));
     }
 
-    // also delete linked payments
     await PurchasePayment.deleteMany({
       seller: purchase.seller,
       user: req.user._id,
-      // optionally match invoice id if you add invoice reference
     });
 
     res.status(200).json({
@@ -108,410 +132,241 @@ export const deletePurchaseInvoice = async (req, res, next) => {
   }
 };
 
-// ✅ Seller-wise summary (total amount, total paid, remaining)
 export const getPurchaseSummaryBySeller = async (req, res, next) => {
   try {
-    const summary = await PurchaseInvoice.aggregate([
-      // 1) Invoices for this user
-      { $match: { user: req.user._id } },
+    const { sellerId } = req.params;
 
-      // 2) Group invoices by seller -> totalAmount
-      {
-        $group: {
-          _id: '$seller',
-          totalAmount: { $sum: '$amount' },
-        },
-      },
+    const seller = await Seller.findOne({
+      _id: sellerId,
+      user: req.user._id,
+    }).select('name openingBalance');
 
-      // 3) Lookup payments for this user & seller (once per seller)
-      {
-        $lookup: {
-          from: 'purchasepayments',
-          let: { sellerId: '$_id', userId: req.user._id },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ['$seller', '$$sellerId'] },
-                    { $eq: ['$user', '$$userId'] },
-                  ],
-                },
-              },
-            },
-            { $project: { amountPaid: 1 } },
-          ],
-          as: 'payments',
-        },
-      },
+    if (!seller) {
+      return next(new ErrorHandler('Seller not found', 404));
+    }
 
-      // 4) Sum payments array (no double counting)
-      {
-        $addFields: {
-          totalPaid: { $ifNull: [{ $sum: '$payments.amountPaid' }, 0] },
-        },
-      },
-
-      // 5) Join seller name
-      {
-        $lookup: {
-          from: 'sellers',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'sellerInfo',
-        },
-      },
-      {
-        $unwind: {
-          path: '$sellerInfo',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-
-      // 6) Shape + remaining + sort by seller name
-      {
-        $project: {
-          seller: '$_id',
-          sellerName: { $ifNull: ['$sellerInfo.name', 'Unknown Seller'] },
-          totalAmount: 1,
-          totalPaid: 1,
-          remaining: { $subtract: ['$totalAmount', '$totalPaid'] },
-          _id: 0,
-        },
-      },
-      { $sort: { sellerName: 1 } },
+    const [invoiceSummary, paymentSummary] = await Promise.all([
+      PurchaseInvoice.aggregate([
+        { $match: { user: req.user._id, seller: seller._id } },
+        { $group: { _id: null, totalBills: { $sum: '$amount' } } },
+      ]),
+      PurchasePayment.aggregate([
+        { $match: { user: req.user._id, seller: seller._id } },
+        { $group: { _id: null, totalPaid: { $sum: '$amountPaid' } } },
+      ]),
     ]);
 
-    res.status(200).json({ success: true, summary });
+    const totalBills = invoiceSummary[0]?.totalBills || 0;
+    const totalPaid = paymentSummary[0]?.totalPaid || 0;
+
+    res.status(200).json({
+      success: true,
+      summary: {
+        seller: { _id: seller._id, name: seller.name },
+        totalBills,
+        totalPaid,
+        remaining: Number(seller.openingBalance || 0) + totalBills - totalPaid,
+      },
+    });
   } catch (err) {
     next(err);
   }
 };
 
-// ✅ Seller statement (invoices + payments chronologically)
-// export const getSellerStatement = async (req, res, next) => {
-//   try {
-//     const sellerId = req.params.sellerId;
-
-//     const invoices = await PurchaseInvoice.find({
-//       user: req.user._id,
-//       seller: sellerId,
-//     }).sort({ date: 1 });
-
-//     const payments = await PurchasePayment.find({
-//       user: req.user._id,
-//       seller: sellerId,
-//     })
-//       .populate('seller', 'name')
-//       .sort({ date: 1 });
-
-//     res.status(200).json({
-//       success: true,
-//       invoices,
-//       payments,
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// export const getSellerStatement = async (req, res) => {
-//   try {
-//     const { sellerId } = req.params;
-//     const userId = req.user.id;
-
-//     const seller = await Seller.findOne({ _id: sellerId, user: userId });
-//     if (!seller) {
-//       return res.status(404).json({ error: 'Seller not found' });
-//     }
-
-//     // fetch purchases
-//     const purchases = await PurchaseInvoice.find({
-//       seller: sellerId,
-//       user: userId,
-//     }).sort({ date: 1 });
-
-//     // fetch payments
-//     const payments = await PurchasePayment.find({
-//       seller: sellerId,
-//       user: userId,
-//     }).sort({ date: 1 });
-
-//     let statement = [];
-//     let balance = 0;
-//     let totalPurchase = 0;
-//     let totalPaid = 0;
-
-//     purchases.forEach((p) => {
-//       balance += p.amount;
-//       totalPurchase += p.amount;
-//       statement.push({
-//         date: p.date,
-//         type: 'purchase',
-//         invoiceAmount: p.amount,
-//         paymentAmount: null,
-//         balance,
-//       });
-//     });
-
-//     payments.forEach((pay) => {
-//       balance -= pay.amount;
-//       totalPaid += pay.amount;
-//       statement.push({
-//         date: pay.date,
-//         type: 'payment',
-//         invoiceAmount: null,
-//         paymentAmount: pay.amount,
-//         balance,
-//       });
-//     });
-
-//     // sort final statement by date
-//     statement.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-//     res.json({
-//       sellerName: seller.name,
-//       gstNo: seller.gstNo || '',
-//       statement,
-//       totalPurchase,
-//       totalPaid,
-//       balance,
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: 'Server error' });
-//   }
-// };
-
-// export const getSellerStatement = async (req, res, next) => {
-//   try {
-//     const { sellerId } = req.params;
-
-//     // get purchases
-//     const purchases = await PurchaseInvoice.find({
-//       seller: sellerId,
-//       user: req.user._id,
-//     })
-//       .select('date amount remarks')
-//       .lean();
-
-//     // get payments
-//     const payments = await PurchasePayment.find({
-//       seller: sellerId,
-//       user: req.user._id,
-//     })
-//       .select('date amountPaid remarks')
-//       .lean();
-
-//     // merge both
-//     let combined = [];
-
-//     purchases.forEach((p) => {
-//       combined.push({
-//         date: p.date,
-//         type: 'purchase',
-//         amount: p.amount,
-//         remarks: p.remarks,
-//       });
-//     });
-
-//     payments.forEach((p) => {
-//       combined.push({
-//         date: p.date,
-//         type: 'payment',
-//         amount: p.amountPaid,
-//         remarks: p.remarks,
-//       });
-//     });
-
-//     // sort by date
-//     combined.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-//     // calculate running balance
-//     let balance = 0;
-//     combined = combined.map((entry) => {
-//       if (entry.type === 'purchase') {
-//         balance += entry.amount;
-//       } else if (entry.type === 'payment') {
-//         balance -= entry.amount;
-//       }
-//       return { ...entry, balance };
-//     });
-
-//     res.status(200).json({
-//       success: true,
-//       statement: combined,
-//     });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
-// Example backend code (Node.js / Express)
-export const getSellerStatement = async (req, res) => {
+export const getSellerStatement = async (req, res, next) => {
   try {
     const { sellerId } = req.params;
+    const { from, to } = req.query;
 
-    // ✅ Fetch seller
-    const seller = await Seller.findOne({ _id: sellerId, user: req.user._id });
-    if (!seller) return res.status(404).json({ error: 'Seller not found' });
+    const seller = await Seller.findOne({
+      _id: sellerId,
+      user: req.user._id,
+    });
+
+    if (!seller) {
+      return res.status(404).json({ error: 'Seller not found' });
+    }
+
+    const fromDate = parseQueryDate(from);
+    const toDate = parseQueryDate(to, true);
+
     const purchases = await PurchaseInvoice.find({
       seller: sellerId,
       user: req.user._id,
-    }).sort({
-      date: 1,
-    });
+    }).sort({ date: 1 });
+
     const payments = await PurchasePayment.find({
       seller: sellerId,
       user: req.user._id,
-    }).sort({
-      date: 1,
-    });
+    }).sort({ date: 1 });
 
     const statement = [];
     let totalPurchase = 0;
     let totalPaid = 0;
     let currentBalance = 0;
+    let openingBalance = Number(seller.openingBalance || 0);
 
-    // ✅ Opening Balance if any
-    if (seller.openingBalance && seller.openingBalance !== 0) {
-      currentBalance = seller.openingBalance;
-      statement.push({
-        date: seller.createdAt || new Date('2024-01-01'),
-        type: 'opening',
-        detail: 'Opening Balance',
-        purchaseAmount: seller.openingBalance,
+    const allEntries = [
+      ...purchases.map((purchase) => ({
+        date: purchase.date,
+        type: 'purchase',
+        detail: purchase.invoiceNo
+          ? `Purchase Invoice - ${purchase.invoiceNo}`
+          : 'Purchase Invoice',
+        purchaseAmount: purchase.amount,
         paymentAmount: null,
+      })),
+      ...payments.map((payment) => ({
+        date: payment.date,
+        type: 'payment',
+        detail: payment.remarks?.trim() || 'Payment',
+        purchaseAmount: null,
+        paymentAmount: payment.amountPaid,
+      })),
+    ].map((entry) => ({
+      ...entry,
+      timestamp: new Date(entry.date),
+    }));
+
+    allEntries.sort((first, second) => first.timestamp - second.timestamp);
+
+    if (fromDate) {
+      const preRangeEntries = allEntries.filter((entry) => entry.timestamp < fromDate);
+      preRangeEntries.forEach((entry) => {
+        if (entry.type === 'purchase') {
+          openingBalance += Number(entry.purchaseAmount || 0);
+        } else {
+          openingBalance -= Number(entry.paymentAmount || 0);
+        }
+      });
+    }
+
+    if (openingBalance !== 0) {
+      currentBalance = openingBalance;
+      statement.push({
+        date: fromDate || seller.createdAt || new Date('2024-01-01'),
+        type: 'opening',
+        detail: fromDate ? `Opening Balance (as of ${from})` : 'Opening Balance',
+        purchaseAmount: openingBalance > 0 ? openingBalance : null,
+        paymentAmount: openingBalance < 0 ? Math.abs(openingBalance) : null,
         balance: currentBalance,
       });
     }
 
-    // ✅ Merge purchases & payments
-    const entries = [
-      ...purchases.map((p) => ({
-        date: p.date,
-        type: 'purchase',
-        invoiceNo: p.invoiceNo,
-        detail: 'Purchase Invoice',
-        purchaseAmount: p.amount,
-        paymentAmount: null,
-      })),
-      ...payments.map((pay) => ({
-        date: pay.date,
-        type: 'payment',
-        detail: 'Payment',
-        purchaseAmount: null,
-        paymentAmount: pay.amountPaid,
-      })),
-    ];
+    const rangeEntries = fromDate
+      ? allEntries.filter((entry) => {
+          return (
+            entry.timestamp >= fromDate && (!toDate || entry.timestamp <= toDate)
+          );
+        })
+      : allEntries;
 
-    // ✅ Sort by date
-    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    // ✅ Process entries sequentially
-    entries.forEach((entry) => {
+    rangeEntries.forEach((entry) => {
       if (entry.type === 'purchase') {
-        totalPurchase += entry.purchaseAmount;
-        currentBalance += entry.purchaseAmount;
-      } else if (entry.type === 'payment') {
-        totalPaid += entry.paymentAmount;
-        currentBalance -= entry.paymentAmount;
+        totalPurchase += Number(entry.purchaseAmount || 0);
+        currentBalance += Number(entry.purchaseAmount || 0);
+      } else {
+        totalPaid += Number(entry.paymentAmount || 0);
+        currentBalance -= Number(entry.paymentAmount || 0);
       }
 
       statement.push({
-        ...entry,
-        balance: Math.round(currentBalance * 100) / 100, // ✅ 2 decimals
+        date: entry.date,
+        type: entry.type,
+        detail: entry.detail,
+        purchaseAmount: entry.purchaseAmount,
+        paymentAmount: entry.paymentAmount,
+        balance: Math.round(currentBalance * 100) / 100,
       });
     });
 
-    // ✅ Response
     res.json({
       sellerName: seller.name,
-      gstNo: seller.gstNo,
-      openingBalance: seller.openingBalance || 0,
+      sellerAddress: seller.address || '',
+      gstNo: seller.gstNo || '',
+      openingBalance,
       totalPurchase,
       totalPaid,
       balance: currentBalance,
       statement,
     });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch seller statement' });
+    next(err);
   }
 };
 
 export const getAllSellerSummary = async (req, res, next) => {
   try {
-    const userId = req.user._id;
-
-    // optional filters
     const { startDate, endDate } = req.query;
-    let dateFilter = {};
-    if (startDate && endDate) {
-      dateFilter = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
-    }
+    const dateMatch = buildDateMatch(
+      parseQueryDate(startDate),
+      parseQueryDate(endDate, true)
+    );
 
-    // Step 1: Aggregate total bills per seller
-    const invoices = await PurchaseInvoice.aggregate([
-      {
-        $match: {
-          user: userId,
-          ...(startDate && endDate ? { date: dateFilter } : {}),
+    const sellers = await Seller.find({ user: req.user._id })
+      .select('name openingBalance')
+      .lean();
+
+    const [invoiceGroups, paymentGroups] = await Promise.all([
+      PurchaseInvoice.aggregate([
+        {
+          $match: {
+            user: req.user._id,
+            ...(dateMatch ? { date: dateMatch } : {}),
+          },
         },
-      },
-      {
-        $group: {
-          _id: '$seller',
-          totalBills: { $sum: '$amount' },
+        {
+          $group: {
+            _id: '$seller',
+            totalBills: { $sum: '$amount' },
+          },
         },
-      },
+      ]),
+      PurchasePayment.aggregate([
+        {
+          $match: {
+            user: req.user._id,
+            ...(dateMatch ? { date: dateMatch } : {}),
+          },
+        },
+        {
+          $group: {
+            _id: '$seller',
+            totalPaid: { $sum: '$amountPaid' },
+          },
+        },
+      ]),
     ]);
 
-    // Step 2: Aggregate total payments per seller
-    const payments = await PurchasePayment.aggregate([
-      {
-        $match: {
-          user: userId,
-          ...(startDate && endDate ? { date: dateFilter } : {}),
-        },
-      },
-      {
-        $group: {
-          _id: '$seller',
-          totalPaid: { $sum: '$amountPaid' },
-        },
-      },
-    ]);
+    const invoiceMap = new Map(
+      invoiceGroups.map((entry) => [String(entry._id), entry.totalBills || 0])
+    );
+    const paymentMap = new Map(
+      paymentGroups.map((entry) => [String(entry._id), entry.totalPaid || 0])
+    );
 
-    // Step 3: Map payments for easy lookup
-    const paymentMap = {};
-    payments.forEach((p) => {
-      paymentMap[p._id.toString()] = p.totalPaid;
-    });
+    const summary = sellers
+      .map((seller) => {
+        const sellerId = String(seller._id);
+        const totalBills = invoiceMap.get(sellerId) || 0;
+        const totalPaid = paymentMap.get(sellerId) || 0;
 
-    // Step 4: Merge + fetch seller details
-    const summary = await Promise.all(
-      invoices.map(async (inv) => {
-        const seller = await Seller.findById(inv._id).select('name'); // populate name only
-        const sellerName = seller ? seller.name : 'Unknown Seller';
-
-        const sellerId = inv._id.toString();
-        const totalPaid = paymentMap[sellerId] || 0;
+        if (totalBills === 0 && totalPaid === 0 && !seller.openingBalance) {
+          return null;
+        }
 
         return {
           seller: {
-            _id: inv._id,
-            name: sellerName,
+            _id: seller._id,
+            name: seller.name,
           },
-          totalBills: inv.totalBills,
+          totalBills,
           totalPaid,
-          remaining: inv.totalBills - totalPaid,
+          remaining: Number(seller.openingBalance || 0) + totalBills - totalPaid,
         };
-      }),
-    );
-    summary.sort((a, b) => a.seller.name.localeCompare(b.seller.name));
+      })
+      .filter(Boolean)
+      .sort((first, second) => first.seller.name.localeCompare(second.seller.name));
 
     const { results, pagination } = filterAndPaginate(summary, req.query, [
       'seller.name',

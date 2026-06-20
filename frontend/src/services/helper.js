@@ -44,6 +44,14 @@ export const getTodayDate = () => {
   return today.toISOString().split('T')[0]; // YYYY-MM-DD
 };
 
+export const getFinancialYearStartDate = (dateInput) => {
+  const date = dateInput ? new Date(dateInput) : new Date();
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const startYear = month >= 3 ? year : year - 1;
+  return `${startYear}-04-01`;
+};
+
 export const getFinancialYearFromDate = (dateInput) => {
   const date = dateInput ? new Date(dateInput) : new Date();
   const year = date.getFullYear();
