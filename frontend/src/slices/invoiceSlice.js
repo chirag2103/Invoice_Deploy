@@ -46,10 +46,11 @@ const lineAmount = (p) =>
 const recalc = (state) => {
   state.totalAmount = state.products.reduce((sum, p) => sum + lineAmount(p), 0);
   const taxable = Math.max(state.totalAmount - (state.invoiceDiscount || 0), 0);
-  const taxRate = state.gstType === 'interState'
-    ? (state.gst * 2) / 100
-    : (state.gst * 2) / 100; // CGST+SGST same rate total
-  state.grandTotal = Math.round(taxable + taxable * taxRate);
+  // `state.gst` is stored as the half-rate (e.g. 9 => 18% total GST). The total
+  // tax is the same for intra-state (CGST+SGST) and inter-state (IGST); only the
+  // split differs, which is applied on the PDF / server side.
+  const totalTaxRate = ((Number(state.gst) || 0) * 2) / 100;
+  state.grandTotal = Math.round(taxable + taxable * totalTaxRate);
 };
 
 export const fetchInvoices = createAsyncThunk(

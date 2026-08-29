@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import './Print.css';
-import { useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { ToWords } from 'to-words';
 import { useSelector } from 'react-redux';
 
@@ -45,19 +45,25 @@ const Print = () => {
     orderDate,
     specs,
     terms,
-  } = location.state;
+  } = location.state || {};
   // console.log(location.state);
+
+  // This preview is only reachable with navigation state (from a list row).
+  // On a hard refresh / direct visit there is nothing to render.
+  const hasValidState =
+    Boolean(location.state) && Array.isArray(products) && Boolean(user);
 
   const isQuotation = invoicefor === 'Quotation';
   const isChallan = invoicefor === 'Challan';
   const rowsToRender = isQuotation
-    ? products.length
-    : products.length > 13
+    ? products?.length || 0
+    : (products?.length || 0) > 13
       ? products.length
       : 13;
 
-  const prefix = user.companyDetails.name
+  const prefix = (user?.companyDetails?.name || '')
     .split(' ')
+    .filter(Boolean)
     .map((word) => word[0].toUpperCase())
     .join('');
 
@@ -105,6 +111,10 @@ const Print = () => {
     const number = `${prefix}${billNo}`;
     document.title = `${type} - ${number}`;
   });
+
+  if (!hasValidState) {
+    return <Navigate to='/invoices/all' replace />;
+  }
 
   return (
     <div ref={pdfRef}>

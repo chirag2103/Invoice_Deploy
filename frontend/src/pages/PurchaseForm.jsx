@@ -14,7 +14,6 @@ const PurchaseForm = () => {
   const [message, setMessage] = useState('');
   const [invoiceNO, setInvoiceNO] = useState('');
   const apiUrl = process.env.REACT_APP_API_URL;
-  const token = localStorage.getItem('token');
 
   const dispatch = useDispatch();
   useEffect(() => {
@@ -26,21 +25,12 @@ const PurchaseForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      const { data } = await api.post(
-        `${apiUrl}/api/purchase/new`,
-        {
-          seller: selectedSeller,
-          date: invoiceDate,
-          amount: Number(amount),
-          invoiceNo: invoiceNO,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await api.post(`${apiUrl}/api/purchase/new`, {
+        seller: selectedSeller,
+        date: invoiceDate,
+        amount: Number(amount),
+        invoiceNo: invoiceNO,
+      });
 
       setMessage('Purchase invoice added successfully!');
       setSelectedSeller('');

@@ -167,16 +167,17 @@ export const forgotPassword = catchAsyncError(async (req, res, next) => {
   const resetToken = user.getResetPasswordToken();
   await user.save({ validateBeforeSave: false });
 
-  const resetPasswordUrl = `${req.protocol}://${req.get(
-    'host'
-  )}/api/v1/user/password/reset/${resetToken}`;
+  const frontendBaseUrl = (
+    process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`
+  ).replace(/\/+$/, '');
+  const resetPasswordUrl = `${frontendBaseUrl}/password/reset/${resetToken}`;
 
-  const message = `Your password reset token is :\n\n ${resetPasswordUrl} \n\n If you have not requested this email then please ignore it`;
+  const message = `Your password reset link is :\n\n ${resetPasswordUrl} \n\n If you have not requested this email then please ignore it`;
 
   try {
     await sendEmail({
       email: user.email,
-      subject: `Ecommerce Password Recovery`,
+      subject: `Invoice Manager Password Recovery`,
       message,
     });
     res.status(200).json({
@@ -237,10 +238,10 @@ export const getUserDetails = catchAsyncError(async (req, res, next) => {
 export const updatePassword = catchAsyncError(async (req, res, next) => {
   const user = await User.findById(req.user.id).select('+password');
 
-  const isPasswordMatched = await user.comparePassword(req.body.oldPassword);
+  const isPasswordMatched = await user.matchPassword(req.body.oldPassword);
 
   if (!isPasswordMatched) {
-    return next(new ErrorHandler('Old Password is incorredct', 400));
+    return next(new ErrorHandler('Old password is incorrect', 400));
   }
   if (req.body.newPassword !== req.body.confirmPassword) {
     return next(new ErrorHandler('password does not match', 400));
@@ -297,7 +298,7 @@ export const getSingleUser = catchAsyncError(async (req, res, next) => {
   const user = await User.findById(req.params.id);
   if (!user) {
     return next(
-      new ErrorHandler(`User does not exist with id :${req.params.id}`)
+      new ErrorHandler(`User does not exist with id :${req.params.id}`, 404)
     );
   }
   res.status(200).json({
@@ -326,13 +327,12 @@ export const updateUserRole = catchAsyncError(async (req, res, next) => {
 
 // Delete User --Admin
 export const deleteUser = catchAsyncError(async (req, res, next) => {
-  const user = await User.findById(req.params.id);
+  const user = await User.findByIdAndDelete(req.params.id);
   if (!user) {
     return next(
-      new ErrorHandler(`User does not exist with id :${req.params.id}`)
+      new ErrorHandler(`User does not exist with id :${req.params.id}`, 404)
     );
   }
-  await user.remove();
   res.status(200).json({
     success: true,
     message: 'User Deleted Successfully',

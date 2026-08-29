@@ -124,13 +124,15 @@ export const updateQuotation = catchAsyncError(async (req, res, next) => {
 });
 
 export const deleteQuotation = catchAsyncError(async (req, res, next) => {
-  const quotation = await Quotation.findById(req.params.id);
+  const quotation = await Quotation.findOneAndDelete({
+    _id: req.params.id,
+    user: req.user.id,
+  });
 
   if (!quotation) {
     return next(new ErrorHandler('Quotation not found', 404));
   }
 
-  await quotation.remove();
   res.status(200).json({ message: 'Quotation deleted successfully' });
 });
 

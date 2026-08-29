@@ -5,15 +5,15 @@ import Payment from '../models/Payment.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
 
-export const createPayment = async (req, res, next) => {
+export const createPayment = catchAsyncError(async (req, res, next) => {
   const payment = await Payment.create({ ...req.body, user: req.user.id });
   res.status(201).json({
     payment,
     message: 'Payment added successfully',
   });
-};
+});
 
-export const getPayments = async (req, res, next) => {
+export const getPayments = catchAsyncError(async (req, res, next) => {
   const payments = await Payment.find({ user: req.user.id })
     .populate('customer')
     .sort({ date: -1 })
@@ -30,7 +30,7 @@ export const getPayments = async (req, res, next) => {
     payments: results,
     pagination,
   });
-};
+});
 
 export const getPaymentsByCustomer = catchAsyncError(async (req, res, next) => {
   try {

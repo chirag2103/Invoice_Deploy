@@ -36,6 +36,7 @@ import ProformaInvoiceForm from './components/ProformaInvoiceForm';
 import ProformaInvoiceList from './components/ProformaInvoiceList';
 import CreateProformaInvoice from './pages/CreateProformaInvoice';
 import Profile from './pages/Profile';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -327,6 +328,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path='*' element={<NotFound />} />
       </Routes>
     </Router>
   );

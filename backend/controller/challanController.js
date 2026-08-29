@@ -128,13 +128,15 @@ export const updateChallan = catchAsyncError(async (req, res, next) => {
 });
 
 export const deleteChallan = catchAsyncError(async (req, res, next) => {
-  const challan = await Challan.findById(req.params.id);
+  const challan = await Challan.findOneAndDelete({
+    _id: req.params.id,
+    user: req.user.id,
+  });
 
   if (!challan) {
     return next(new ErrorHandler('Challan not found', 404));
   }
 
-  await challan.remove();
   res.status(200).json({ message: 'Challan deleted successfully' });
 });
 

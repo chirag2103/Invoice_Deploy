@@ -244,10 +244,10 @@ export const deleteInvoice = catchAsyncError(async (req, res, next) => {
   });
 
   if (!invoice) {
-    return next(new ErrorHandler('Product not found', 404));
+    return next(new ErrorHandler('Invoice not found', 404));
   }
 
-  await invoice.remove();
+  await Invoice.deleteOne({ _id: invoice._id, user: req.user.id });
 
   res.status(200).json({
     success: true,

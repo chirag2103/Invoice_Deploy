@@ -124,7 +124,7 @@ export const deletePO = catchAsyncError(async (req, res, next) => {
     user: req.user.id,
   });
   if (!po) return next(new ErrorHandler('PO not found', 404));
-  await po.remove();
+  await PurchaseOrder.deleteOne({ _id: po._id, user: req.user.id });
   res.status(200).json({ message: 'po deleted successfully' });
 });
 

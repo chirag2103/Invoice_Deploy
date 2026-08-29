@@ -105,7 +105,6 @@ const QuotationForm = () => {
     }
 
     const selectedCustomer = customers.find((c) => c._id === customer);
-    const taxable = Math.max(totalAmount - (invoiceDiscount || 0), 0);
 
     const pdfData = {
       customer: selectedCustomer,

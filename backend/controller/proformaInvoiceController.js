@@ -178,7 +178,7 @@ export const deleteProformaInvoice = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler('Proforma invoice not found', 404));
   }
 
-  await proforma.remove();
+  await ProformaInvoice.deleteOne({ _id: proforma._id, user: req.user.id });
 
   res.status(200).json({
     success: true,

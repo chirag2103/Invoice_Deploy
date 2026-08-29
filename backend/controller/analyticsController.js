@@ -130,7 +130,8 @@ export const getFinancialYears = async (req, res, next) => {
 /** GET /api/analytics/financial-year?fy=2025-26 */
 export const getFinancialYearAnalytics = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    // Use the ObjectId form: aggregation $match does not auto-cast a string id.
+    const userId = req.user._id;
     const { fy } = req.query;
     const { start, end, startYear, label } = getFyRange(fy);
 

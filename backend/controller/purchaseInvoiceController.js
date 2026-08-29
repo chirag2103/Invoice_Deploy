@@ -118,14 +118,12 @@ export const deletePurchaseInvoice = async (req, res, next) => {
       return next(new ErrorHandler('Purchase invoice not found', 404));
     }
 
-    await PurchasePayment.deleteMany({
-      seller: purchase.seller,
-      user: req.user._id,
-    });
+    // Payments are recorded at the seller/account level, not against a single
+    // bill, so deleting one bill must NOT remove that seller's payment history.
 
     res.status(200).json({
       success: true,
-      message: 'Purchase invoice & related payments deleted',
+      message: 'Purchase invoice deleted',
     });
   } catch (err) {
     next(err);
