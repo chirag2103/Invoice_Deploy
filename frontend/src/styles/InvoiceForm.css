@@ -264,6 +264,7 @@ textarea.form-input,
     display: block;
     overflow-x: auto;
     white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
 
   .invoice-totals {
@@ -273,11 +274,34 @@ textarea.form-input,
   .form-actions {
     flex-direction: column;
   }
+
+  .form-actions button,
+  .form-actions .remove-btn,
+  .form-actions .add-btn,
+  .form-actions .generate-btn,
+  .form-actions .generate-vendor-btn,
+  .form-actions .save-btn,
+  .form-actions .save-challan {
+    width: 100%;
+  }
+
+  /* Prevent iOS from zooming when focusing form fields */
+  .form-select,
+  .form-input,
+  .table-input,
+  .table-select {
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 480px) {
   .invoice-container {
     padding: 14px;
+  }
+
+  .invoice-header,
+  .products-header {
+    font-size: 1.35rem;
   }
 
   .form-select,
@@ -287,5 +311,9 @@ textarea.form-input,
     min-height: 50px;
     padding: 0.85rem 0.9rem;
     border-radius: 14px;
+  }
+
+  .form-section {
+    padding: 14px;
   }
 }

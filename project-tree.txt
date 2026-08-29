@@ -1,0 +1,163 @@
+Invoice_Deploy/
+├── .gitignore
+├── backend/
+│   ├── app.js
+│   ├── config/
+│   │   └── database.js
+│   ├── controller/
+│   │   ├── analyticsController.js
+│   │   ├── challanController.js
+│   │   ├── customerController.js
+│   │   ├── InvoiceController.js
+│   │   ├── paymentController.js
+│   │   ├── proformaInvoiceController.js
+│   │   ├── purchaseController.js
+│   │   ├── purchaseInvoiceController.js
+│   │   ├── purchaseOrderController.js
+│   │   ├── purchasePaymentController.js
+│   │   ├── quotationController.js
+│   │   ├── sellerController.js
+│   │   └── userController.js
+│   ├── middlewares/
+│   │   ├── auth.js
+│   │   ├── catchAsyncError.js
+│   │   └── Error.js
+│   ├── models/
+│   │   ├── Challan.js
+│   │   ├── Customer.js
+│   │   ├── DocumentSequence.js
+│   │   ├── Invoice.js
+│   │   ├── Payment.js
+│   │   ├── ProformaInvoice.js
+│   │   ├── PurchaseInvoice.js
+│   │   ├── PurchaseOrder.js
+│   │   ├── PurchasePayment.js
+│   │   ├── Quotation.js
+│   │   ├── Seller.js
+│   │   └── userModel.js
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── routes/
+│   │   ├── challanRoute.js
+│   │   ├── customerRoute.js
+│   │   ├── invoiceRoute.js
+│   │   ├── paymentRoute.js
+│   │   ├── proformaInvoiceRoute.js
+│   │   ├── purchaseInvoiceRoute.js
+│   │   ├── purchaseOrder.js
+│   │   ├── purchasePaymentRoute.js
+│   │   ├── purchaseRoute.js
+│   │   ├── quotationRoute.js
+│   │   └── userRoute.js
+│   ├── server.js
+│   └── utils/
+│       ├── apifeature.js
+│       ├── errorHandler.js
+│       ├── financialYear.js
+│       ├── jwtToken.js
+│       ├── listResponse.js
+│       └── sendEmail.js
+├── frontend/
+│   ├── .env.development
+│   ├── .env.production
+│   ├── .gitignore
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── public/
+│   │   ├── favicon.ico
+│   │   ├── index.html
+│   │   ├── logo192.png
+│   │   ├── logo512.png
+│   │   ├── manifest.json
+│   │   └── robots.txt
+│   ├── README.md
+│   └── src/
+│       ├── App.css
+│       ├── App.js
+│       ├── App.test.js
+│       ├── assets/
+│       │   ├── data.json
+│       │   ├── react.svg
+│       │   └── userpic.png
+│       ├── axiosSetup.js
+│       ├── components/
+│       │   ├── AdminSidebar.jsx
+│       │   ├── Card.jsx
+│       │   ├── ChallanForm.jsx
+│       │   ├── ChallanList.jsx
+│       │   ├── Charts.jsx
+│       │   ├── DashboardTable.jsx
+│       │   ├── InvoiceForm.jsx
+│       │   ├── InvoiceList.jsx
+│       │   ├── ListControls.jsx
+│       │   ├── Loader.jsx
+│       │   ├── PoPrint.jsx
+│       │   ├── Print.css
+│       │   ├── Print.jsx
+│       │   ├── ProformaInvoiceForm.jsx
+│       │   ├── ProformaInvoiceList.jsx
+│       │   ├── ProtectedRoute.jsx
+│       │   ├── PurchaseInvoiceList.jsx
+│       │   ├── PurchaseOrderForm.jsx
+│       │   ├── PurchaseOrderList.jsx
+│       │   ├── QuotationForm.jsx
+│       │   ├── QuotationList.jsx
+│       │   └── TableHOC.jsx
+│       ├── index.css
+│       ├── index.js
+│       ├── logo.svg
+│       ├── pages/
+│       │   ├── CreateChallan.jsx
+│       │   ├── CreateInvoice.jsx
+│       │   ├── CreateProformaInvoice.jsx
+│       │   ├── CreateQuotation.jsx
+│       │   ├── CustomerBills.jsx
+│       │   ├── CustomerInvoices.jsx
+│       │   ├── Customers.jsx
+│       │   ├── CustomerStatement.jsx
+│       │   ├── CustomerStatement.scss
+│       │   ├── Dashboard.jsx
+│       │   ├── Payments.jsx
+│       │   ├── Products.jsx
+│       │   ├── Profile.jsx
+│       │   ├── PurchaseForm.jsx
+│       │   ├── PurchaseSummary.jsx
+│       │   ├── PurchaseTransactions.jsx
+│       │   ├── Register.jsx
+│       │   ├── sellerPayments.jsx
+│       │   ├── Sellers.jsx
+│       │   ├── SellerStatement.jsx
+│       │   ├── SignIn.jsx
+│       │   ├── Statement.jsx
+│       │   └── Transaction.jsx
+│       ├── reportWebVitals.js
+│       ├── services/
+│       │   ├── helper.js
+│       │   └── pdfGeneratorService.js
+│       ├── setupTests.js
+│       ├── slices/
+│       │   ├── analyticsSlice.js
+│       │   ├── challanSlice.js
+│       │   ├── customerSlice.js
+│       │   ├── invoiceSlice.js
+│       │   ├── paymentSlice.js
+│       │   ├── poSlice.js
+│       │   ├── proformaSlice.js
+│       │   ├── purchaseInvoiceSlice.js
+│       │   ├── purchasePaymentSlice.js
+│       │   ├── quotationSlice.js
+│       │   └── userSlice.js
+│       ├── store.js
+│       └── styles/
+│           ├── _addserver.scss
+│           ├── _customer.scss
+│           ├── _dashboard.scss
+│           ├── _invoicelist.scss
+│           ├── _products.scss
+│           ├── _sshterminal.scss
+│           ├── app.scss
+│           ├── InvoiceForm.css
+│           ├── mixin.scss
+│           └── signin.scss
+├── package-lock.json
+└── package.json

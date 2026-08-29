@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchSellers } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
 import { getTodayDate } from '../services/helper.js';
+import '../styles/InvoiceForm.css';
 
 const PurchaseForm = () => {
   //   const [sellers, setSellers] = useState([]);
@@ -54,10 +55,11 @@ const PurchaseForm = () => {
   return (
     <div className='admin-container'>
       <AdminSidebar />
-      <div className='customer-container'>
-        <h2>Create Purchase Invoice</h2>
-        {message && <p>{message}</p>}
-        <form className='invoice-form' onSubmit={handleSubmit}>
+      <div className='create-invoice-container'>
+        <div className='invoice-container'>
+          <h2 className='invoice-header'>Create Purchase Invoice</h2>
+          {message && <p className='no-products'>{message}</p>}
+          <form className='invoice-form' onSubmit={handleSubmit}>
           {/* Seller Dropdown */}
 
           <div className='form-group'>
@@ -109,7 +111,6 @@ const PurchaseForm = () => {
               id='date'
               value={invoiceDate}
               onChange={(e) => setInvoiceDate(e.target.value)}
-              style={{ width: '10rem' }}
               required
             />
           </div>
@@ -129,8 +130,13 @@ const PurchaseForm = () => {
             />
           </div>
 
-          <button type='submit'>Add Purchase Invoice</button>
+          <div className='form-actions'>
+            <button type='submit' className='save-btn'>
+              Add Purchase Invoice
+            </button>
+          </div>
         </form>
+        </div>
       </div>
     </div>
   );

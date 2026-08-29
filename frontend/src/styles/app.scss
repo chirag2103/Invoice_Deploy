@@ -37,11 +37,30 @@ body,
   min-height: 100%;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background:
     radial-gradient(circle at top left, rgba(195, 90, 32, 0.12), transparent 28%),
     linear-gradient(180deg, #fbf6ef 0%, #f4ede2 100%);
   color: var(--text);
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+@media (max-width: 1024px) {
+  body.sidebar-open {
+    overflow: hidden;
+  }
 }
 
 a {
@@ -870,6 +889,53 @@ aside {
   display: none;
 }
 
+/* Mobile navigation: hamburger + slide-in drawer */
+.app-hamburger {
+  display: none;
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 1200;
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: rgba(255, 252, 247, 0.96);
+  color: var(--primary-dark);
+  font-size: 1.4rem;
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(10px);
+}
+
+.app-hamburger:active {
+  transform: scale(0.96);
+}
+
+/* When the drawer is open, float the close button clear of the panel */
+body.sidebar-open .app-hamburger {
+  left: auto;
+  right: 14px;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(23, 16, 8, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+/* Single-child customer-container pages should not sit in a narrow grid column */
+.customer-container:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (max-width: 1200px) {
   .dashboard .widget-container {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -885,15 +951,46 @@ aside {
 }
 
 @media (max-width: 1024px) {
+  .app-hamburger {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  .sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .admin-container {
     grid-template-columns: 1fr;
 
     > aside {
-      position: static;
-      height: auto;
-      border-right: none;
-      border-bottom: 1px solid var(--border);
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1100;
+      width: min(86vw, 320px);
+      height: 100vh;
+      height: 100dvh;
+      border-right: 1px solid var(--border);
+      border-bottom: none;
+      transform: translateX(-100%);
+      transition: transform 0.28s ease;
+      will-change: transform;
     }
+
+    > aside.active {
+      transform: translateX(0);
+      box-shadow: 0 30px 80px rgba(23, 16, 8, 0.28);
+    }
+  }
+
+  .admin-container > main,
+  .admin-container > div:not(aside) {
+    padding-top: 74px;
   }
 
   .dashboard,
@@ -904,6 +1001,10 @@ aside {
   .create-invoice-container {
     min-height: auto;
     padding: 22px;
+  }
+
+  .customer-statement-shell {
+    padding-top: 74px;
   }
 
   .financial-year-selector {
@@ -971,6 +1072,15 @@ aside {
     grid-template-columns: 1fr;
   }
 
+  .list-toolbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .list-toolbar-actions select {
+    width: 100%;
+  }
+
   .invoice-list table,
   .breakdown-table,
   .customerTable,
@@ -980,10 +1090,40 @@ aside {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .invoice-list .invoice-container > div {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .customr-list li {
     padding: 0.9rem;
+  }
+
+  /* Prevent iOS from zooming when focusing form fields */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .row-actions,
+  .dashboard-actions,
+  .form-actions {
+    width: 100%;
+  }
+
+  .row-actions button,
+  .dashboard-actions button,
+  .list-pagination-actions button,
+  .list-pagination-actions select {
+    flex: 1 1 auto;
+  }
+
+  .list-pagination-actions {
+    flex-wrap: wrap;
   }
 }
 
