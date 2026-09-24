@@ -1,5 +1,5 @@
 import PurchasePayment from '../models/PurchasePayment.js';
-import PurchaseInvoice from '../models/PurchaseInvoice.js';
+import Seller from '../models/Seller.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
 
@@ -8,15 +8,26 @@ export const createPayment = async (req, res, next) => {
   try {
     const { seller, amountPaid, date, remarks } = req.body;
 
-    if (!seller || !amountPaid || !date) {
+    if (!seller || !date || amountPaid === undefined || amountPaid === null) {
       return next(new ErrorHandler('Seller, amount, and date required', 400));
+    }
+    if (Number(amountPaid) <= 0) {
+      return next(new ErrorHandler('Amount must be greater than zero', 400));
+    }
+
+    const sellerDoc = await Seller.findOne({
+      _id: seller,
+      user: req.user._id,
+    });
+    if (!sellerDoc) {
+      return next(new ErrorHandler('Seller not found', 404));
     }
 
     const payment = await PurchasePayment.create({
       seller,
-      amountPaid,
+      amountPaid: Number(amountPaid),
       date,
-      remarks,
+      remarks: remarks || '',
       user: req.user._id,
     });
 
@@ -55,15 +66,38 @@ export const getPayments = async (req, res, next) => {
 // ✅ Update payment
 export const updatePayment = async (req, res, next) => {
   try {
-    const payment = await PurchasePayment.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
-      { $set: req.body },
-      { new: true }
-    );
+    const payment = await PurchasePayment.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
 
     if (!payment) {
       return next(new ErrorHandler('Payment not found', 404));
     }
+
+    const { seller, amountPaid, date, remarks } = req.body;
+
+    if (seller && String(seller) !== String(payment.seller)) {
+      const sellerDoc = await Seller.findOne({
+        _id: seller,
+        user: req.user._id,
+      });
+      if (!sellerDoc) {
+        return next(new ErrorHandler('Seller not found', 404));
+      }
+      payment.seller = seller;
+    }
+
+    if (amountPaid !== undefined) {
+      if (Number(amountPaid) <= 0) {
+        return next(new ErrorHandler('Amount must be greater than zero', 400));
+      }
+      payment.amountPaid = Number(amountPaid);
+    }
+    if (date !== undefined) payment.date = date;
+    if (remarks !== undefined) payment.remarks = remarks;
+
+    await payment.save();
 
     res.status(200).json({
       success: true,

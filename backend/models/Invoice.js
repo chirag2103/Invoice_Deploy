@@ -58,6 +58,13 @@ const invoiceSchema = mongoose.Schema({
   invoiceTotal: Number,
   invoiceDiscount: { type: Number, default: 0 }, // invoice-level flat discount ₹
   grandTotal: Number,
+  taxBreakup: {
+    taxable: Number,
+    cgst: Number,
+    sgst: Number,
+    igst: Number,
+    roundOff: Number,
+  },
   date: {
     type: Date,
     required: true,

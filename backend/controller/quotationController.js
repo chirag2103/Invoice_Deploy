@@ -1,12 +1,15 @@
 import Quotation from '../models/Quotation.js';
+import Customer from '../models/Customer.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
+import { pickProducts } from '../utils/pickProduct.js';
+import computeDocumentTotals from '../services/documentTotals.js';
+import createNumberedDocument from '../services/createNumberedDocument.js';
 import {
   buildFinancialYearFilter,
   getAvailableFinancialYearsFromDocuments,
   getFinancialYearInfo,
-  getNextDocumentNumber,
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
 
@@ -27,19 +30,65 @@ const sortQuotations = (quotations) =>
   });
 
 export const createQuotation = catchAsyncError(async (req, res, next) => {
-  const numbering = await getNextDocumentNumber(
-    req.user.id,
-    'quotation',
-    req.body.date || new Date()
-  );
+  const {
+    customer,
+    gst,
+    gstType,
+    quotationProducts,
+    invoiceDiscount,
+    date,
+    termsAndConditions,
+    technicalSpecifications,
+  } = req.body;
 
-  const quotation = await Quotation.create({
-    ...req.body,
+  if (
+    !customer ||
+    !date ||
+    !Array.isArray(quotationProducts) ||
+    quotationProducts.length === 0
+  ) {
+    return next(
+      new ErrorHandler(
+        'Customer, date and at least one product are required',
+        400
+      )
+    );
+  }
+
+  const customerDoc = await Customer.findOne({
+    _id: customer,
     user: req.user.id,
-    quoteNo: numbering.quoteNo,
-    sequenceNumber: numbering.sequenceNumber,
-    financialYearStart: numbering.financialYearStart,
-    financialYearLabel: numbering.financialYearLabel,
+  });
+  if (!customerDoc) {
+    return next(new ErrorHandler('Customer not found', 404));
+  }
+
+  const products = pickProducts(quotationProducts);
+  const totals = computeDocumentTotals({ products, invoiceDiscount, gst, gstType });
+
+  const quotation = await createNumberedDocument({
+    Model: Quotation,
+    userId: req.user.id,
+    documentType: 'quotation',
+    dateInput: date,
+    buildDoc: ({ numbering }) => ({
+      user: req.user.id,
+      customer,
+      gst,
+      gstType,
+      quotationProducts: products,
+      invoiceDiscount: totals.invoiceDiscount,
+      invoiceTotal: totals.subTotal,
+      grandTotal: totals.grandTotal,
+      taxBreakup: totals.taxBreakup,
+      date,
+      termsAndConditions: termsAndConditions || '',
+      technicalSpecifications: technicalSpecifications || '',
+      quoteNo: numbering.quoteNo,
+      sequenceNumber: numbering.sequenceNumber,
+      financialYearStart: numbering.financialYearStart,
+      financialYearLabel: numbering.financialYearLabel,
+    }),
   });
 
   res.status(201).json({ quotation });
@@ -88,7 +137,7 @@ export const getSingleQuotation = catchAsyncError(async (req, res, next) => {
 });
 
 export const updateQuotation = catchAsyncError(async (req, res, next) => {
-  let quotation = await Quotation.findOne({
+  const quotation = await Quotation.findOne({
     _id: req.params.id,
     user: req.user.id,
   });
@@ -97,28 +146,66 @@ export const updateQuotation = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler('Quotation not found', 404));
   }
 
-  const updatePayload = { ...req.body, user: req.user.id };
+  const {
+    customer,
+    gst,
+    gstType,
+    quotationProducts,
+    invoiceDiscount,
+    date,
+    termsAndConditions,
+    technicalSpecifications,
+  } = req.body;
 
-  if (quotation.financialYearStart) {
-    const nextFinancialYear = getFinancialYearInfo(req.body.date || quotation.date);
-
+  if (quotation.financialYearStart && date) {
+    const nextFinancialYear = getFinancialYearInfo(date);
     if (nextFinancialYear.financialYearStart !== quotation.financialYearStart) {
-      const numbering = await getNextDocumentNumber(
-        req.user.id,
-        'quotation',
-        req.body.date || quotation.date
+      return next(
+        new ErrorHandler(
+          'Cannot move a numbered quotation to a different financial year. Create a new one instead.',
+          409
+        )
       );
-
-      updatePayload.quoteNo = numbering.quoteNo;
-      updatePayload.sequenceNumber = numbering.sequenceNumber;
-      updatePayload.financialYearStart = numbering.financialYearStart;
-      updatePayload.financialYearLabel = numbering.financialYearLabel;
     }
   }
 
-  quotation = await Quotation.findByIdAndUpdate(req.params.id, updatePayload, {
-    new: true,
+  if (customer && String(customer) !== String(quotation.customer)) {
+    const customerDoc = await Customer.findOne({
+      _id: customer,
+      user: req.user.id,
+    });
+    if (!customerDoc) {
+      return next(new ErrorHandler('Customer not found', 404));
+    }
+    quotation.customer = customer;
+  }
+
+  if (Array.isArray(quotationProducts)) {
+    quotation.quotationProducts = pickProducts(quotationProducts);
+  }
+  if (gst !== undefined) quotation.gst = gst;
+  if (gstType !== undefined) quotation.gstType = gstType;
+  if (invoiceDiscount !== undefined) quotation.invoiceDiscount = invoiceDiscount;
+  if (date !== undefined) quotation.date = date;
+  if (termsAndConditions !== undefined) {
+    quotation.termsAndConditions = termsAndConditions;
+  }
+  if (technicalSpecifications !== undefined) {
+    quotation.technicalSpecifications = technicalSpecifications;
+  }
+
+  const totals = computeDocumentTotals({
+    products: quotation.quotationProducts,
+    invoiceDiscount: quotation.invoiceDiscount,
+    gst: quotation.gst,
+    gstType: quotation.gstType,
   });
+  quotation.invoiceDiscount = totals.invoiceDiscount;
+  quotation.invoiceTotal = totals.subTotal;
+  quotation.grandTotal = totals.grandTotal;
+  quotation.taxBreakup = totals.taxBreakup;
+
+  await quotation.save();
 
   res.status(200).json({ quotation });
 });

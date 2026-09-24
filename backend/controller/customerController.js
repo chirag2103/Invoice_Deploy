@@ -6,6 +6,10 @@ export const createCustomer = async (req, res, next) => {
   try {
     const { name, gstNo, address, openingBalance } = req.body;
 
+    if (!name || !String(name).trim()) {
+      return next(new ErrorHandler('Customer name is required', 400));
+    }
+
     const existingCustomer = await Customer.findOne({
       user: req.user.id,
       name: name.trim(),
@@ -57,6 +61,10 @@ export const getCustomers = async (req, res, next) => {
 export const updateCustomer = async (req, res, next) => {
   try {
     const { name, gstNo, address, openingBalance } = req.body;
+
+    if (!name || !String(name).trim()) {
+      return next(new ErrorHandler('Customer name is required', 400));
+    }
 
     const existingCustomer = await Customer.findOne({
       user: req.user.id,

@@ -49,6 +49,13 @@ const purchaseOrderSchema = new mongoose.Schema({
   invoiceTotal: Number,
   invoiceDiscount: { type: Number, default: 0 },
   grandTotal: Number,
+  taxBreakup: {
+    taxable: Number,
+    cgst: Number,
+    sgst: Number,
+    igst: Number,
+    roundOff: Number,
+  },
   termsAndConditions: { type: String, default: '' },
   technicalSpecifications: { type: String, default: '' },
 });

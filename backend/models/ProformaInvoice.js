@@ -58,6 +58,13 @@ const proformaInvoiceSchema = mongoose.Schema({
   invoiceTotal: Number,
   invoiceDiscount: { type: Number, default: 0 },
   grandTotal: Number,
+  taxBreakup: {
+    taxable: Number,
+    cgst: Number,
+    sgst: Number,
+    igst: Number,
+    roundOff: Number,
+  },
   date: {
     type: Date,
     required: true,

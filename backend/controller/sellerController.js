@@ -6,6 +6,10 @@ export const createSeller = async (req, res, next) => {
   try {
     const { name, gstNo, address, contact, openingBalance } = req.body;
 
+    if (!name || !String(name).trim()) {
+      return next(new ErrorHandler('Seller name is required', 400));
+    }
+
     const exists = await Seller.findOne({
       user: req.user.id,
       name: name.trim(),
@@ -62,6 +66,10 @@ export const getSellers = async (req, res, next) => {
 export const updateSeller = async (req, res, next) => {
   try {
     const { name, gstNo, address, contact, openingBalance } = req.body;
+
+    if (!name || !String(name).trim()) {
+      return next(new ErrorHandler('Seller name is required', 400));
+    }
 
     const exists = await Seller.findOne({
       user: req.user.id,

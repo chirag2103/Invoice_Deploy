@@ -1,12 +1,15 @@
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import PurchaseOrder from '../models/PurchaseOrder.js';
+import Seller from '../models/Seller.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
+import { pickProducts } from '../utils/pickProduct.js';
+import computeDocumentTotals from '../services/documentTotals.js';
+import createNumberedDocument from '../services/createNumberedDocument.js';
 import {
   buildFinancialYearFilter,
   getAvailableFinancialYearsFromDocuments,
   getFinancialYearInfo,
-  getNextDocumentNumber,
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
 
@@ -27,20 +30,64 @@ const sortPurchaseOrders = (purchaseOrders) =>
   });
 
 export const createPO = catchAsyncError(async (req, res, next) => {
-  const numbering = await getNextDocumentNumber(
-    req.user.id,
-    'purchaseOrder',
-    req.body.date || new Date()
-  );
+  const {
+    seller,
+    gst,
+    gstType,
+    poProducts,
+    invoiceDiscount,
+    date,
+    termsAndConditions,
+    technicalSpecifications,
+  } = req.body;
 
-  const po = await PurchaseOrder.create({
-    ...req.body,
-    user: req.user.id,
-    poNo: numbering.quoteNo,
-    sequenceNumber: numbering.sequenceNumber,
-    financialYearStart: numbering.financialYearStart,
-    financialYearLabel: numbering.financialYearLabel,
+  if (
+    !seller ||
+    !date ||
+    !Array.isArray(poProducts) ||
+    poProducts.length === 0
+  ) {
+    return next(
+      new ErrorHandler(
+        'Seller, date and at least one product are required',
+        400
+      )
+    );
+  }
+
+  const sellerDoc = await Seller.findOne({ _id: seller, user: req.user.id });
+  if (!sellerDoc) {
+    return next(new ErrorHandler('Seller not found', 404));
+  }
+
+  const products = pickProducts(poProducts);
+  const totals = computeDocumentTotals({ products, invoiceDiscount, gst, gstType });
+
+  const po = await createNumberedDocument({
+    Model: PurchaseOrder,
+    userId: req.user.id,
+    documentType: 'purchaseOrder',
+    dateInput: date,
+    buildDoc: ({ numbering }) => ({
+      user: req.user.id,
+      seller,
+      gst,
+      gstType,
+      poProducts: products,
+      invoiceDiscount: totals.invoiceDiscount,
+      invoiceTotal: totals.subTotal,
+      grandTotal: totals.grandTotal,
+      taxBreakup: totals.taxBreakup,
+      date,
+      termsAndConditions: termsAndConditions || '',
+      technicalSpecifications: technicalSpecifications || '',
+      poNo: numbering.quoteNo,
+      sequenceNumber: numbering.sequenceNumber,
+      financialYearStart: numbering.financialYearStart,
+      financialYearLabel: numbering.financialYearLabel,
+    }),
   });
+
   res.status(201).json({ po });
 });
 
@@ -86,35 +133,67 @@ export const getSinglePO = catchAsyncError(async (req, res, next) => {
 });
 
 export const updatePO = catchAsyncError(async (req, res, next) => {
-  let po = await PurchaseOrder.findOne({
+  const po = await PurchaseOrder.findOne({
     _id: req.params.id,
     user: req.user.id,
   });
   if (!po) return next(new ErrorHandler('PO not found', 404));
 
-  const updatePayload = { ...req.body, user: req.user.id };
+  const {
+    seller,
+    gst,
+    gstType,
+    poProducts,
+    invoiceDiscount,
+    date,
+    termsAndConditions,
+    technicalSpecifications,
+  } = req.body;
 
-  if (po.financialYearStart) {
-    const nextFinancialYear = getFinancialYearInfo(req.body.date || po.date);
-
+  if (po.financialYearStart && date) {
+    const nextFinancialYear = getFinancialYearInfo(date);
     if (nextFinancialYear.financialYearStart !== po.financialYearStart) {
-      const numbering = await getNextDocumentNumber(
-        req.user.id,
-        'purchaseOrder',
-        req.body.date || po.date
+      return next(
+        new ErrorHandler(
+          'Cannot move a numbered purchase order to a different financial year. Create a new one instead.',
+          409
+        )
       );
-
-      updatePayload.poNo = numbering.quoteNo;
-      updatePayload.sequenceNumber = numbering.sequenceNumber;
-      updatePayload.financialYearStart = numbering.financialYearStart;
-      updatePayload.financialYearLabel = numbering.financialYearLabel;
     }
   }
 
-  po = await PurchaseOrder.findByIdAndUpdate(req.params.id, updatePayload, {
-    new: true,
-    runValidators: true,
+  if (seller && String(seller) !== String(po.seller)) {
+    const sellerDoc = await Seller.findOne({ _id: seller, user: req.user.id });
+    if (!sellerDoc) {
+      return next(new ErrorHandler('Seller not found', 404));
+    }
+    po.seller = seller;
+  }
+
+  if (Array.isArray(poProducts)) po.poProducts = pickProducts(poProducts);
+  if (gst !== undefined) po.gst = gst;
+  if (gstType !== undefined) po.gstType = gstType;
+  if (invoiceDiscount !== undefined) po.invoiceDiscount = invoiceDiscount;
+  if (date !== undefined) po.date = date;
+  if (termsAndConditions !== undefined) {
+    po.termsAndConditions = termsAndConditions;
+  }
+  if (technicalSpecifications !== undefined) {
+    po.technicalSpecifications = technicalSpecifications;
+  }
+
+  const totals = computeDocumentTotals({
+    products: po.poProducts,
+    invoiceDiscount: po.invoiceDiscount,
+    gst: po.gst,
+    gstType: po.gstType,
   });
+  po.invoiceDiscount = totals.invoiceDiscount;
+  po.invoiceTotal = totals.subTotal;
+  po.grandTotal = totals.grandTotal;
+  po.taxBreakup = totals.taxBreakup;
+
+  await po.save();
   res.status(200).json({ po });
 });
 

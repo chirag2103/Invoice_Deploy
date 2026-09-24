@@ -38,18 +38,29 @@ export const createPurchaseInvoice = async (req, res, next) => {
   try {
     const { seller, invoiceNo, amount, date, remarks } = req.body;
 
-    if (!seller || !amount || !date) {
+    if (!seller || amount === undefined || amount === null || !date) {
       return next(
         new ErrorHandler('Seller, Amount, and Date are required', 400)
       );
     }
+    if (Number(amount) <= 0) {
+      return next(new ErrorHandler('Amount must be greater than zero', 400));
+    }
+
+    const sellerDoc = await Seller.findOne({
+      _id: seller,
+      user: req.user._id,
+    });
+    if (!sellerDoc) {
+      return next(new ErrorHandler('Seller not found', 404));
+    }
 
     const newPurchase = await PurchaseInvoice.create({
       seller,
-      invoiceNo,
-      amount,
+      invoiceNo: invoiceNo || undefined,
+      amount: Number(amount),
       date,
-      remarks,
+      remarks: remarks || '',
       user: req.user._id,
     });
 
@@ -87,15 +98,39 @@ export const getAllPurchases = async (req, res, next) => {
 
 export const updatePurchaseInvoice = async (req, res, next) => {
   try {
-    const purchase = await PurchaseInvoice.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
-      { $set: req.body },
-      { new: true }
-    );
+    const purchase = await PurchaseInvoice.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
 
     if (!purchase) {
       return next(new ErrorHandler('Purchase invoice not found', 404));
     }
+
+    const { seller, invoiceNo, amount, date, remarks } = req.body;
+
+    if (seller && String(seller) !== String(purchase.seller)) {
+      const sellerDoc = await Seller.findOne({
+        _id: seller,
+        user: req.user._id,
+      });
+      if (!sellerDoc) {
+        return next(new ErrorHandler('Seller not found', 404));
+      }
+      purchase.seller = seller;
+    }
+
+    if (amount !== undefined) {
+      if (Number(amount) <= 0) {
+        return next(new ErrorHandler('Amount must be greater than zero', 400));
+      }
+      purchase.amount = Number(amount);
+    }
+    if (invoiceNo !== undefined) purchase.invoiceNo = invoiceNo;
+    if (date !== undefined) purchase.date = date;
+    if (remarks !== undefined) purchase.remarks = remarks;
+
+    await purchase.save();
 
     res.status(200).json({
       success: true,

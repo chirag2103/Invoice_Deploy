@@ -5,11 +5,13 @@ import Customer from '../models/Customer.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
+import { pickProducts } from '../utils/pickProduct.js';
+import computeDocumentTotals from '../services/documentTotals.js';
+import createNumberedDocument from '../services/createNumberedDocument.js';
 import {
   buildFinancialYearFilter,
   getAvailableFinancialYearsFromDocuments,
   getFinancialYearInfo,
-  getNextDocumentNumber,
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
 
@@ -64,28 +66,76 @@ export const getLastInvoice = catchAsyncError(async (req, res, next) => {
 });
 
 export const createInvoice = catchAsyncError(async (req, res, next) => {
-  try {
-    const numbering = await getNextDocumentNumber(
-      req.user.id,
-      'invoice',
-      req.body.date || new Date()
-    );
+  const {
+    customer,
+    gst,
+    gstType,
+    invoiceProducts,
+    invoiceDiscount,
+    date,
+    challanNo,
+    challanDate,
+    orderNo,
+    orderDate,
+    termsAndConditions,
+    shipTo,
+  } = req.body;
 
-    const invoice = await Invoice.create({
-      ...req.body,
+  if (
+    !customer ||
+    !date ||
+    !Array.isArray(invoiceProducts) ||
+    invoiceProducts.length === 0
+  ) {
+    return next(
+      new ErrorHandler(
+        'Customer, date and at least one product are required',
+        400
+      )
+    );
+  }
+
+  const customerDoc = await Customer.findOne({
+    _id: customer,
+    user: req.user.id,
+  });
+  if (!customerDoc) {
+    return next(new ErrorHandler('Customer not found', 404));
+  }
+
+  const products = pickProducts(invoiceProducts);
+  const totals = computeDocumentTotals({ products, invoiceDiscount, gst, gstType });
+
+  const invoice = await createNumberedDocument({
+    Model: Invoice,
+    userId: req.user.id,
+    documentType: 'invoice',
+    dateInput: date,
+    buildDoc: ({ numbering }) => ({
       user: req.user.id,
+      customer,
+      shipTo: shipTo || undefined,
+      gst,
+      gstType,
+      invoiceProducts: products,
+      invoiceDiscount: totals.invoiceDiscount,
+      invoiceTotal: totals.subTotal,
+      grandTotal: totals.grandTotal,
+      taxBreakup: totals.taxBreakup,
+      date,
+      challanNo,
+      challanDate,
+      orderNo,
+      orderDate,
+      termsAndConditions: termsAndConditions || '',
       invoiceNo: numbering.invoiceNo,
       sequenceNumber: numbering.sequenceNumber,
       financialYearStart: numbering.financialYearStart,
       financialYearLabel: numbering.financialYearLabel,
-    });
+    }),
+  });
 
-    res.status(201).json({
-      invoice,
-    });
-  } catch (error) {
-    next(new ErrorHandler(`Error creating invoice ${error.message}`, 500));
-  }
+  res.status(201).json({ invoice });
 });
 
 export const getInvoices = catchAsyncError(async (req, res, next) => {
@@ -193,48 +243,85 @@ export const getInvoicesByCustomer = catchAsyncError(async (req, res, next) => {
 });
 
 export const updateInvoice = catchAsyncError(async (req, res, next) => {
-  try {
-    let invoice = await Invoice.findOne({
-      _id: req.params.id,
+  const invoice = await Invoice.findOne({
+    _id: req.params.id,
+    user: req.user.id,
+  });
+
+  if (!invoice) {
+    return next(new ErrorHandler('Invoice not found', 404));
+  }
+
+  const {
+    customer,
+    gst,
+    gstType,
+    invoiceProducts,
+    invoiceDiscount,
+    date,
+    challanNo,
+    challanDate,
+    orderNo,
+    orderDate,
+    termsAndConditions,
+    shipTo,
+  } = req.body;
+
+  // A numbered invoice must stay in its financial year — the serial number is
+  // tied to that year. Re-issue via a credit note instead of moving it.
+  if (invoice.financialYearStart && date) {
+    const nextFinancialYear = getFinancialYearInfo(date);
+    if (nextFinancialYear.financialYearStart !== invoice.financialYearStart) {
+      return next(
+        new ErrorHandler(
+          'Cannot move a numbered invoice to a different financial year. Cancel and re-issue it instead.',
+          409
+        )
+      );
+    }
+  }
+
+  if (customer && String(customer) !== String(invoice.customer)) {
+    const customerDoc = await Customer.findOne({
+      _id: customer,
       user: req.user.id,
     });
-
-    if (!invoice) {
-      return next(new ErrorHandler('Invoice not found', 404));
+    if (!customerDoc) {
+      return next(new ErrorHandler('Customer not found', 404));
     }
-
-    const updatePayload = { ...req.body, user: req.user.id };
-
-    if (invoice.financialYearStart) {
-      const nextFinancialYear = getFinancialYearInfo(req.body.date || invoice.date);
-
-      if (nextFinancialYear.financialYearStart !== invoice.financialYearStart) {
-        const numbering = await getNextDocumentNumber(
-          req.user.id,
-          'invoice',
-          req.body.date || invoice.date
-        );
-
-        updatePayload.invoiceNo = numbering.invoiceNo;
-        updatePayload.sequenceNumber = numbering.sequenceNumber;
-        updatePayload.financialYearStart = numbering.financialYearStart;
-        updatePayload.financialYearLabel = numbering.financialYearLabel;
-      }
-    }
-
-    invoice = await Invoice.findByIdAndUpdate(req.params.id, updatePayload, {
-      new: true,
-      runValidators: true,
-      useFindAndModify: false,
-    });
-
-    res.status(200).json({
-      success: true,
-      invoice,
-    });
-  } catch (error) {
-    next(new ErrorHandler('Error updating invoice', 500));
+    invoice.customer = customer;
   }
+
+  if (Array.isArray(invoiceProducts)) {
+    invoice.invoiceProducts = pickProducts(invoiceProducts);
+  }
+  if (gst !== undefined) invoice.gst = gst;
+  if (gstType !== undefined) invoice.gstType = gstType;
+  if (invoiceDiscount !== undefined) invoice.invoiceDiscount = invoiceDiscount;
+  if (date !== undefined) invoice.date = date;
+  if (challanNo !== undefined) invoice.challanNo = challanNo;
+  if (challanDate !== undefined) invoice.challanDate = challanDate;
+  if (orderNo !== undefined) invoice.orderNo = orderNo;
+  if (orderDate !== undefined) invoice.orderDate = orderDate;
+  if (termsAndConditions !== undefined) {
+    invoice.termsAndConditions = termsAndConditions;
+  }
+  if (shipTo !== undefined) invoice.shipTo = shipTo || undefined;
+
+  const totals = computeDocumentTotals({
+    products: invoice.invoiceProducts,
+    invoiceDiscount: invoice.invoiceDiscount,
+    gst: invoice.gst,
+    gstType: invoice.gstType,
+  });
+  invoice.invoiceDiscount = totals.invoiceDiscount;
+  invoice.invoiceTotal = totals.subTotal;
+  invoice.grandTotal = totals.grandTotal;
+  invoice.taxBreakup = totals.taxBreakup;
+
+  await invoice.save();
+
+  res.status(200).json({ success: true, invoice });
 });
 
 export const deleteInvoice = catchAsyncError(async (req, res, next) => {

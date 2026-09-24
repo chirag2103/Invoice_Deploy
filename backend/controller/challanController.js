@@ -1,12 +1,14 @@
 import Challan from '../models/Challan.js';
+import Customer from '../models/Customer.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
+import { pickProducts } from '../utils/pickProduct.js';
+import createNumberedDocument from '../services/createNumberedDocument.js';
 import {
   buildFinancialYearFilter,
   getAvailableFinancialYearsFromDocuments,
   getFinancialYearInfo,
-  getNextDocumentNumber,
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
 
@@ -27,19 +29,57 @@ const sortChallans = (challans) =>
   });
 
 export const createChallan = catchAsyncError(async (req, res, next) => {
-  const numbering = await getNextDocumentNumber(
-    req.user.id,
-    'challan',
-    req.body.challanDate || new Date()
-  );
+  const {
+    customer,
+    challanProducts,
+    challanDate,
+    orderNo,
+    orderDate,
+    shipTo,
+  } = req.body;
 
-  const challan = await Challan.create({
-    ...req.body,
+  if (
+    !customer ||
+    !challanDate ||
+    !Array.isArray(challanProducts) ||
+    challanProducts.length === 0
+  ) {
+    return next(
+      new ErrorHandler(
+        'Customer, challan date and at least one product are required',
+        400
+      )
+    );
+  }
+
+  const customerDoc = await Customer.findOne({
+    _id: customer,
     user: req.user.id,
-    challanNo: numbering.challanNo,
-    sequenceNumber: numbering.sequenceNumber,
-    financialYearStart: numbering.financialYearStart,
-    financialYearLabel: numbering.financialYearLabel,
+  });
+  if (!customerDoc) {
+    return next(new ErrorHandler('Customer not found', 404));
+  }
+
+  const products = pickProducts(challanProducts);
+
+  const challan = await createNumberedDocument({
+    Model: Challan,
+    userId: req.user.id,
+    documentType: 'challan',
+    dateInput: challanDate,
+    buildDoc: ({ numbering }) => ({
+      user: req.user.id,
+      customer,
+      shipTo: shipTo || undefined,
+      challanProducts: products,
+      challanDate,
+      orderNo,
+      orderDate,
+      challanNo: numbering.challanNo,
+      sequenceNumber: numbering.sequenceNumber,
+      financialYearStart: numbering.financialYearStart,
+      financialYearLabel: numbering.financialYearLabel,
+    }),
   });
 
   res.status(201).json({ challan });
@@ -89,7 +129,7 @@ export const getSingleChallan = catchAsyncError(async (req, res, next) => {
 });
 
 export const updateChallan = catchAsyncError(async (req, res, next) => {
-  let challan = await Challan.findOne({
+  const challan = await Challan.findOne({
     _id: req.params.id,
     user: req.user.id,
   });
@@ -98,31 +138,41 @@ export const updateChallan = catchAsyncError(async (req, res, next) => {
     return next(new ErrorHandler('Challan not found', 404));
   }
 
-  const updatePayload = { ...req.body, user: req.user.id };
+  const { customer, challanProducts, challanDate, orderNo, orderDate, shipTo } =
+    req.body;
 
-  if (challan.financialYearStart) {
-    const nextFinancialYear = getFinancialYearInfo(
-      req.body.challanDate || challan.challanDate
-    );
-
+  if (challan.financialYearStart && challanDate) {
+    const nextFinancialYear = getFinancialYearInfo(challanDate);
     if (nextFinancialYear.financialYearStart !== challan.financialYearStart) {
-      const numbering = await getNextDocumentNumber(
-        req.user.id,
-        'challan',
-        req.body.challanDate || challan.challanDate
+      return next(
+        new ErrorHandler(
+          'Cannot move a numbered challan to a different financial year. Create a new one instead.',
+          409
+        )
       );
-
-      updatePayload.challanNo = numbering.challanNo;
-      updatePayload.sequenceNumber = numbering.sequenceNumber;
-      updatePayload.financialYearStart = numbering.financialYearStart;
-      updatePayload.financialYearLabel = numbering.financialYearLabel;
     }
   }
 
-  challan = await Challan.findByIdAndUpdate(req.params.id, updatePayload, {
-    new: true,
-    runValidators: true,
-  });
+  if (customer && String(customer) !== String(challan.customer)) {
+    const customerDoc = await Customer.findOne({
+      _id: customer,
+      user: req.user.id,
+    });
+    if (!customerDoc) {
+      return next(new ErrorHandler('Customer not found', 404));
+    }
+    challan.customer = customer;
+  }
+
+  if (Array.isArray(challanProducts)) {
+    challan.challanProducts = pickProducts(challanProducts);
+  }
+  if (challanDate !== undefined) challan.challanDate = challanDate;
+  if (orderNo !== undefined) challan.orderNo = orderNo;
+  if (orderDate !== undefined) challan.orderDate = orderDate;
+  if (shipTo !== undefined) challan.shipTo = shipTo || undefined;
+
+  await challan.save();
 
   res.status(200).json({ challan });
 });

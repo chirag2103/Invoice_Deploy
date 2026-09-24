@@ -6,7 +6,33 @@ import ErrorHandler from '../utils/errorHandler.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
 
 export const createPayment = catchAsyncError(async (req, res, next) => {
-  const payment = await Payment.create({ ...req.body, user: req.user.id });
+  const { customer, amountPaid, date, remarks } = req.body;
+
+  if (!customer || !date || amountPaid === undefined || amountPaid === null) {
+    return next(
+      new ErrorHandler('Customer, amount and date are required', 400)
+    );
+  }
+  if (Number(amountPaid) <= 0) {
+    return next(new ErrorHandler('Amount must be greater than zero', 400));
+  }
+
+  const customerDoc = await Customer.findOne({
+    _id: customer,
+    user: req.user.id,
+  });
+  if (!customerDoc) {
+    return next(new ErrorHandler('Customer not found', 404));
+  }
+
+  const payment = await Payment.create({
+    user: req.user.id,
+    customer,
+    amountPaid: Number(amountPaid),
+    date,
+    remarks: remarks || '',
+  });
+
   res.status(201).json({
     payment,
     message: 'Payment added successfully',
@@ -72,15 +98,39 @@ export const getPaymentsByCustomer = catchAsyncError(async (req, res, next) => {
 });
 
 export const updatePayment = catchAsyncError(async (req, res, next) => {
-  const payment = await Payment.findOneAndUpdate(
-    { _id: req.params.id, user: req.user.id },
-    { ...req.body, user: req.user.id },
-    { new: true, runValidators: true },
-  ).populate('customer');
+  const payment = await Payment.findOne({
+    _id: req.params.id,
+    user: req.user.id,
+  });
 
   if (!payment) {
     return next(new ErrorHandler('Payment not found', 404));
   }
+
+  const { customer, amountPaid, date, remarks } = req.body;
+
+  if (customer && String(customer) !== String(payment.customer)) {
+    const customerDoc = await Customer.findOne({
+      _id: customer,
+      user: req.user.id,
+    });
+    if (!customerDoc) {
+      return next(new ErrorHandler('Customer not found', 404));
+    }
+    payment.customer = customer;
+  }
+
+  if (amountPaid !== undefined) {
+    if (Number(amountPaid) <= 0) {
+      return next(new ErrorHandler('Amount must be greater than zero', 400));
+    }
+    payment.amountPaid = Number(amountPaid);
+  }
+  if (date !== undefined) payment.date = date;
+  if (remarks !== undefined) payment.remarks = remarks;
+
+  await payment.save();
+  await payment.populate('customer');
 
   res.status(200).json({
     success: true,

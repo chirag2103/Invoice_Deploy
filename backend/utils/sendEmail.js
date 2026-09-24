@@ -1,29 +1,35 @@
 import nodeMailer from 'nodemailer';
+import config from '../config/index.js';
+import ErrorHandler from './errorHandler.js';
 
 export const sendEmail = async (options) => {
-  // let testAccount = await nodeMailer.createTestAccount();
+  if (!config.SMPT_MAIL || !config.SMPT_PASSWORD) {
+    throw new ErrorHandler(
+      'Email is not configured on the server. Please contact the administrator.',
+      500
+    );
+  }
+
   const transporter = nodeMailer.createTransport({
-    service: 'gmail',
-    port: 465,
-    secure: true,
-    secureConnection: false,
+    host: config.SMPT_HOST || 'smtp.gmail.com',
+    service: config.SMPT_SERVICE || 'gmail',
+    port: config.SMPT_PORT || 465,
+    secure: (config.SMPT_PORT || 465) === 465,
     auth: {
-      user: process.env.SMPT_MAIL,
-      pass: process.env.SMPT_PASSWORD,
-      // user: testAccount.user,
-      // pass: testAccount.pass,
-      // user: process.env.SMPT_MAIL,
-      // pass: process.env.SMPT_PASSWORD,
+      user: config.SMPT_MAIL,
+      pass: config.SMPT_PASSWORD,
     },
     tls: {
       rejectUnauthorized: true,
     },
   });
+
   const mailOptions = {
-    from: process.env.SMPT_MAIL,
+    from: config.SMPT_MAIL,
     to: options.email,
     subject: options.subject,
     text: options.message,
   };
+
   await transporter.sendMail(mailOptions);
 };

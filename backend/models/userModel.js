@@ -3,6 +3,7 @@ import validator from 'validator';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import config from '../config/index.js';
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -81,6 +82,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
+    enum: ['user', 'admin'],
     default: 'user',
   },
   createdAt: {
@@ -104,8 +106,8 @@ userSchema.pre('save', async function (next) {
 });
 
 userSchema.methods.getJWTToken = function () {
-  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+  return jwt.sign({ id: this._id }, config.JWT_SECRET, {
+    expiresIn: config.JWT_EXPIRE,
   });
 };
 userSchema.methods.matchPassword = async function (password) {
