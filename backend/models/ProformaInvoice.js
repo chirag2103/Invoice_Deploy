@@ -73,7 +73,7 @@ const proformaInvoiceSchema = mongoose.Schema({
     type: Date,
   },
   termsAndConditions: { type: String, default: '' },
-});
+}, { timestamps: true });
 
 proformaInvoiceSchema.index(
   { user: 1, financialYearStart: 1, proformaNo: 1 },
@@ -84,5 +84,7 @@ proformaInvoiceSchema.index(
     },
   }
 );
+proformaInvoiceSchema.index({ user: 1, date: -1 });
+proformaInvoiceSchema.index({ user: 1, customer: 1, date: 1 });
 
 export default mongoose.model('ProformaInvoice', proformaInvoiceSchema);

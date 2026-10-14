@@ -48,7 +48,7 @@ const challanSchema = mongoose.Schema({
   },
   orderNo: String,
   orderDate: Date,
-});
+}, { timestamps: true });
 
 challanSchema.index(
   { user: 1, financialYearStart: 1, challanNo: 1 },
@@ -59,5 +59,7 @@ challanSchema.index(
     },
   }
 );
+challanSchema.index({ user: 1, challanDate: -1 });
+challanSchema.index({ user: 1, customer: 1, challanDate: 1 });
 
 export default mongoose.model('Challan', challanSchema);

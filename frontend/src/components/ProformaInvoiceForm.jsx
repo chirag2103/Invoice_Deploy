@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   setCustomer,
@@ -15,13 +16,14 @@ import { fetchCustomers } from '../slices/customerSlice.js';
 import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup.js';
-import { generateProformaInvoicePDF } from '../services/pdfGeneratorService.js';
 import {
   formatDocumentNumber,
   getFinancialYearFromDate,
   getTodayDate,
 } from '../services/helper.js';
 import { uomList } from '../services/helper';
+import { getErrorMessage } from '../services/apiError';
+import { getPdfExtras } from '../services/pdfPayload';
 
 const ProformaInvoiceForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -138,34 +140,23 @@ const ProformaInvoiceForm = () => {
   };
 
   const handleAddProduct = () => {
-    if (!name || quantity <= 0 || rate < 0) { alert('Enter valid product details'); return; }
+    if (!name || quantity <= 0 || rate < 0) { toast.error('Enter valid product details'); return; }
     dispatch(addProduct({ name, hsn, quantity, rate, discount, uom }));
     setName(''); setHsn(''); setQuantity(0); setRate(0); setDiscount(0); setUom('NOS');
   };
 
   const handleRemoveProduct = (index) => dispatch(removeProduct(index));
 
-  const getPdfExtras = () => ({
-    companyName: user.companyDetails?.name,
-    companyAddress: user.companyDetails?.address,
-    companyGST: user.companyDetails?.gstin,
-    companyPhone: user.companyDetails?.mobile,
-    companyBank: user.bankDetails || {},
-    userSignature: user.signature || null,
-    companyLogo: user.companyLogo || null,
-    template: user.pdfTemplate || 'classic',
-  });
-
   const buildPdfPayload = (overrides = {}) => ({
     customer, products, gst, gstType,
     totalAmount, invoiceDiscount, grandTotal,
     date, challanNo, challanDate, orderNo, orderDate, validUntil, termsAndConditions,
-    ...getPdfExtras(), ...overrides,
+    ...getPdfExtras(user), ...overrides,
   });
 
   // ---------------- SAVE ----------------
   const handleGenerateProforma = async () => {
-    if (!customer || products.length === 0 || !date) { alert('Incomplete proforma data'); return; }
+    if (!customer || products.length === 0 || !date) { toast.error('Incomplete proforma data'); return; }
     setSaving(true);
     try {
       const payload = {
@@ -179,17 +170,22 @@ const ProformaInvoiceForm = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const savedProforma = data.proforma;
+      const { generateProformaInvoicePDF } = await import(
+        '../services/pdfGeneratorService.js'
+      );
       generateProformaInvoicePDF(buildPdfPayload({
         shipTo: payload.shipTo,
         billNo: formatDocumentNumber(savedProforma.proformaNo, savedProforma.financialYearLabel),
       }));
       navigate('/proformas/all');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Failed to save proforma invoice'));
     } finally { setSaving(false); }
   };
 
   const handleSaveProforma = async () => {
-    if (!isEdit || !proformaToEdit) { alert('Nothing to save'); return; }
-    if (!customer || products.length === 0 || !date) { alert('Incomplete proforma data'); return; }
+    if (!isEdit || !proformaToEdit) { toast.error('Nothing to save'); return; }
+    if (!customer || products.length === 0 || !date) { toast.error('Incomplete proforma data'); return; }
     setSaving(true);
     try {
       const payload = {
@@ -203,14 +199,16 @@ const ProformaInvoiceForm = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const savedProforma = data.proforma;
+      const { generateProformaInvoicePDF } = await import(
+        '../services/pdfGeneratorService.js'
+      );
       generateProformaInvoicePDF(buildPdfPayload({
         shipTo: payload.shipTo,
         billNo: formatDocumentNumber(savedProforma.proformaNo, savedProforma.financialYearLabel),
       }));
       navigate('/proformas/all');
     } catch (err) {
-      console.error('Update proforma failed', err);
-      alert('Failed to update proforma invoice');
+      toast.error(getErrorMessage(err, 'Failed to update proforma invoice'));
     } finally { setSaving(false); }
   };
 

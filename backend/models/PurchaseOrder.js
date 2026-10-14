@@ -58,7 +58,10 @@ const purchaseOrderSchema = new mongoose.Schema({
   },
   termsAndConditions: { type: String, default: '' },
   technicalSpecifications: { type: String, default: '' },
-});
+}, { timestamps: true });
+
+purchaseOrderSchema.index({ user: 1, date: -1 });
+purchaseOrderSchema.index({ user: 1, seller: 1, date: 1 });
 
 purchaseOrderSchema.index(
   { user: 1, financialYearStart: 1, poNo: 1 },

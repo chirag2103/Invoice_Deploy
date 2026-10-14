@@ -3,9 +3,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchChallans } from '../slices/challanSlice';
 import AdminSidebar from './AdminSidebar';
 import { useNavigate } from 'react-router-dom';
-import { generateChallanPDF } from '../services/pdfGeneratorService';
 import { ListToolbar, PaginationControls } from './ListControls';
 import { formatDocumentNumber } from '../services/helper';
+import { getPdfExtras } from '../services/pdfPayload';
 
 const ChallanList = () => {
   const dispatch = useDispatch();
@@ -68,7 +68,7 @@ const ChallanList = () => {
   // ---------------------------------------------------------
   // Print challan → Generate PDF directly
   // ---------------------------------------------------------
-  const handlePrint = (challan) => {
+  const handlePrint = async (challan) => {
     const shipTo = challan.shipTo ? challan.shipTo : challan.customer;
     const pdfData = {
       customer: challan.customer,
@@ -80,15 +80,12 @@ const ChallanList = () => {
       products: challan.challanProducts,
       orderNo: challan.orderNo,
       orderDate: challan.orderDate?.split('T')[0],
-      companyName: user.companyDetails?.name,
-      companyAddress: user.companyDetails?.address,
-      companyGST: user.companyDetails?.gstin,
-      companyPhone: user.companyDetails?.mobile,
-      userSignature: user.signature || null,
-      companyLogo: user.companyLogo || null,
-      template: user.pdfTemplate || 'classic',
+      ...getPdfExtras(user, { includeBank: false }),
     };
 
+    const { generateChallanPDF } = await import(
+      '../services/pdfGeneratorService'
+    );
     generateChallanPDF(pdfData, shipTo);
   };
 

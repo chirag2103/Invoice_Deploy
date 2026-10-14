@@ -25,7 +25,6 @@ export const createNumberedDocument = async ({
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
     try {
-      // eslint-disable-next-line no-await-in-loop
       return await withTransaction(async (session) => {
         const numbering = await getNextDocumentNumber(
           userId,

@@ -1,17 +1,8 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
+import { initialPagination } from '../constants/pagination.js';
 
 const apiUrl = process.env.REACT_APP_API_URL;
-
-const initialPagination = {
-  page: 1,
-  limit: 10,
-  totalItems: 0,
-  totalPages: 1,
-  hasPrevPage: false,
-  hasNextPage: false,
-  search: '',
-};
 
 const initialState = {
   proformaNo: 1,
@@ -33,10 +24,6 @@ const initialState = {
   message: '',
 };
 
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
-
 const lineAmount = (p) =>
   Number(p.quantity || 0) * Number(p.rate || 0) * (1 - (Number(p.discount) || 0) / 100);
 
@@ -52,7 +39,6 @@ export const fetchProformaInvoices = createAsyncThunk(
     try {
       const res = await api.get(`${apiUrl}/api/proformas`, {
         params: payload,
-        headers: getAuthHeaders(),
       });
       return res.data;
     } catch (error) {
@@ -69,7 +55,6 @@ export const fetchProformaNo = createAsyncThunk(
     try {
       const res = await api.get(`${apiUrl}/api/lastproforma`, {
         params: date ? { date } : {},
-        headers: getAuthHeaders(),
       });
       return res.data.proforma;
     } catch (error) {
@@ -84,9 +69,7 @@ export const deleteProformaInvoice = createAsyncThunk(
   'proforma/deleteProformaInvoice',
   async (id, { rejectWithValue }) => {
     try {
-      const res = await api.delete(`${apiUrl}/api/proforma/${id}`, {
-        headers: getAuthHeaders(),
-      });
+      const res = await api.delete(`${apiUrl}/api/proforma/${id}`);
       return { id, message: res.data.message };
     } catch (error) {
       return rejectWithValue(
@@ -174,6 +157,9 @@ const proformaSlice = createSlice({
           (p) => p._id !== action.payload.id
         );
         state.message = action.payload.message;
+      })
+      .addCase(deleteProformaInvoice.rejected, (state, action) => {
+        state.error = action.payload || action.error.message;
       });
   },
 });

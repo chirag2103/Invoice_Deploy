@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import '../styles/signin.scss';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../slices/userSlice';
 import api from '../axiosSetup';
+import { getErrorMessage } from '../services/apiError';
 
 export default function Register() {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -74,7 +76,7 @@ export default function Register() {
         navigate('/admin/dashboard');
       })
       .catch((err) => {
-        alert(err.response?.data?.message || 'Registration failed');
+        toast.error(getErrorMessage(err, 'Registration failed'));
       });
   };
 

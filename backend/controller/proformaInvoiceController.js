@@ -2,32 +2,29 @@ import ProformaInvoice from '../models/ProformaInvoice.js';
 import Customer from '../models/Customer.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
+import paginateQuery from '../utils/paginateQuery.js';
 import { pickProducts } from '../utils/pickProduct.js';
 import computeDocumentTotals from '../services/documentTotals.js';
 import createNumberedDocument from '../services/createNumberedDocument.js';
 import {
   buildFinancialYearFilter,
-  getAvailableFinancialYearsFromDocuments,
+  getAvailableFinancialYearsForUser,
   getFinancialYearInfo,
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
 
-const sortProformaInvoices = (proformas) =>
-  [...proformas].sort((first, second) => {
-    const secondFy = second.financialYearStart || 0;
-    const firstFy = first.financialYearStart || 0;
-
-    if (secondFy !== firstFy) {
-      return secondFy - firstFy;
-    }
-
-    if ((second.proformaNo || 0) !== (first.proformaNo || 0)) {
-      return (second.proformaNo || 0) - (first.proformaNo || 0);
-    }
-
-    return new Date(second.date) - new Date(first.date);
-  });
+const PROFORMA_SEARCH_FIELDS = [
+  { field: 'proformaNo', type: 'number' },
+  'financialYearLabel',
+  { field: 'grandTotal', type: 'number' },
+];
+const PROFORMA_ALLOWED_SORT = {
+  date: { date: -1 },
+  '-date': { date: 1 },
+  amount: { grandTotal: -1 },
+  '-amount': { grandTotal: 1 },
+};
+const PROFORMA_DEFAULT_SORT = { financialYearStart: -1, proformaNo: -1 };
 
 export const getLastProformaInvoice = catchAsyncError(async (req, res, next) => {
   try {
@@ -127,38 +124,37 @@ export const createProformaInvoice = catchAsyncError(async (req, res, next) => {
 });
 
 export const getProformaInvoices = catchAsyncError(async (req, res, next) => {
-  try {
-    const availableYearsSource = await ProformaInvoice.find({ user: req.user.id })
-      .select('date financialYearLabel financialYearStart')
-      .lean();
-    const allProformas = await ProformaInvoice.find({
-      user: req.user.id,
-      ...buildFinancialYearFilter(req.query, 'date'),
-    })
-      .populate('customer')
-      .lean();
+  const filter = {
+    user: req.user.id,
+    ...buildFinancialYearFilter(req.query, 'date'),
+  };
 
-    const sortedProformas = sortProformaInvoices(allProformas);
-    const { results, pagination } = filterAndPaginate(sortedProformas, req.query, [
-      'proformaNo',
-      'financialYearLabel',
-      'customer.name',
-      'grandTotal',
-      'date',
-    ]);
+  const [{ data, pagination }, availableFinancialYears] = await Promise.all([
+    paginateQuery(ProformaInvoice, {
+      filter,
+      query: req.query,
+      searchFields: PROFORMA_SEARCH_FIELDS,
+      searchRefs: [
+        {
+          RefModel: Customer,
+          refField: 'name',
+          localField: 'customer',
+          scopeField: 'user',
+        },
+      ],
+      allowedSort: PROFORMA_ALLOWED_SORT,
+      defaultSort: PROFORMA_DEFAULT_SORT,
+      populate: 'customer',
+    }),
+    getAvailableFinancialYearsForUser(ProformaInvoice, req.user.id),
+  ]);
 
-    res.status(200).json({
-      proformas: results,
-      pagination,
-      availableFinancialYears: getAvailableFinancialYearsFromDocuments(
-        availableYearsSource,
-        'date'
-      ),
-      currentFinancialYear: getFinancialYearInfo().financialYearLabel,
-    });
-  } catch (error) {
-    next(new ErrorHandler('Error fetching proforma invoices', 500));
-  }
+  res.status(200).json({
+    proformas: data,
+    pagination,
+    availableFinancialYears,
+    currentFinancialYear: getFinancialYearInfo().financialYearLabel,
+  });
 });
 
 export const getSingleProformaInvoice = catchAsyncError(async (req, res, next) => {

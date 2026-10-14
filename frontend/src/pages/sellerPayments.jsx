@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminSidebar from '../components/AdminSidebar';
 import { ListToolbar, PaginationControls } from '../components/ListControls';
@@ -6,6 +7,8 @@ import { fetchSellers } from '../slices/customerSlice';
 import { fetchPurchasePayments } from '../slices/purchasePaymentSlice';
 import api from '../axiosSetup.js';
 import { formatNumberWithCommas } from '../services/helper.js';
+import { getErrorMessage } from '../services/apiError';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const initialForm = {
   seller: '',
@@ -24,7 +27,8 @@ const SellerPayments = () => {
 
   const [formData, setFormData] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput, 300);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -49,11 +53,12 @@ const SellerPayments = () => {
       } else {
         await api.post(`${apiUrl}/api/purchase/payment/new`, formData);
       }
+      toast.success(editingId ? 'Payment updated' : 'Payment added');
       resetForm();
       dispatch(fetchPurchasePayments({ page, limit, search }));
     } catch (requestError) {
-      alert(
-        requestError.response?.data?.message || 'Unable to save seller payment'
+      toast.error(
+        getErrorMessage(requestError, 'Unable to save seller payment')
       );
     }
   };
@@ -72,10 +77,11 @@ const SellerPayments = () => {
     if (!window.confirm('Delete this seller payment?')) return;
     try {
       await api.delete(`${apiUrl}/api/purchase/payment/${paymentId}`);
+      toast.success('Payment deleted');
       dispatch(fetchPurchasePayments({ page, limit, search }));
     } catch (requestError) {
-      alert(
-        requestError.response?.data?.message || 'Unable to delete seller payment'
+      toast.error(
+        getErrorMessage(requestError, 'Unable to delete seller payment')
       );
     }
   };
@@ -149,9 +155,9 @@ const SellerPayments = () => {
           <ListToolbar
             title='Purchase Payments'
             subtitle='Search and manage seller payments.'
-            search={search}
+            search={searchInput}
             onSearchChange={(value) => {
-              setSearch(value);
+              setSearchInput(value);
               setPage(1);
             }}
             searchPlaceholder='Search by seller, amount, date, remarks'

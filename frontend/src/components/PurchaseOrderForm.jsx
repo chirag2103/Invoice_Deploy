@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../axiosSetup.js';
+import { getErrorMessage } from '../services/apiError';
+import { getPdfExtras } from '../services/pdfPayload';
 import AdminSidebar from './AdminSidebar';
 import '../styles/InvoiceForm.css';
 import { fetchSellers } from '../slices/customerSlice';
@@ -17,7 +20,6 @@ import {
   setSeller,
   updateProduct,
 } from '../slices/poSlice';
-import { generatePurchaseOrderPDF } from '../services/pdfGeneratorService';
 import {
   formatDocumentNumber,
   getFinancialYearFromDate,
@@ -80,7 +82,7 @@ const PurchaseOrderForm = () => {
 
   const handleAddProduct = () => {
     if (!product.name.trim() || product.quantity <= 0 || product.rate < 0) {
-      alert('Enter valid product details.');
+      toast.error('Enter valid product details.');
       return;
     }
     dispatch(addProduct(product));
@@ -109,14 +111,7 @@ const PurchaseOrderForm = () => {
     grandTotal,
     technicalSpecifications,
     termsAndConditions,
-    companyName: user.companyDetails?.name,
-    companyAddress: user.companyDetails?.address,
-    companyGST: user.companyDetails?.gstin,
-    companyPhone: user.companyDetails?.mobile,
-    companyBank: user.bankDetails || {},
-    userSignature: user.signature || null,
-    companyLogo: user.companyLogo || null,
-    template: user.pdfTemplate || 'classic',
+    ...getPdfExtras(user),
   });
 
   const savePayload = {
@@ -127,10 +122,13 @@ const PurchaseOrderForm = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!seller || products.length === 0) { alert('Select seller and add at least one product.'); return; }
+    if (!seller || products.length === 0) { toast.error('Select seller and add at least one product.'); return; }
 
     setSaving(true);
     try {
+      const { generatePurchaseOrderPDF } = await import(
+        '../services/pdfGeneratorService'
+      );
       if (isEdit && poToEdit) {
         const { data } = await api.put(`${apiUrl}/api/po/${poToEdit._id}`, savePayload, {
           headers: { Authorization: `Bearer ${token}` },
@@ -145,13 +143,15 @@ const PurchaseOrderForm = () => {
       }
       navigate('/pos/all');
     } catch (requestError) {
-      console.error('Purchase order save error', requestError);
-      alert(requestError.response?.data?.message || requestError.message || 'Failed to save purchase order.');
+      toast.error(getErrorMessage(requestError, 'Failed to save purchase order.'));
     } finally { setSaving(false); }
   };
 
-  const handleGenerateWithoutSaving = () => {
-    if (!selectedSeller || products.length === 0) { alert('Select seller and add at least one product.'); return; }
+  const handleGenerateWithoutSaving = async () => {
+    if (!selectedSeller || products.length === 0) { toast.error('Select seller and add at least one product.'); return; }
+    const { generatePurchaseOrderPDF } = await import(
+      '../services/pdfGeneratorService'
+    );
     generatePurchaseOrderPDF(pdfData());
   };
 

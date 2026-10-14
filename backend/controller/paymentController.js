@@ -3,7 +3,19 @@ import catchAsyncError from '../middlewares/catchAsyncError.js';
 import Customer from '../models/Customer.js';
 import Payment from '../models/Payment.js';
 import ErrorHandler from '../utils/errorHandler.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
+import paginateQuery from '../utils/paginateQuery.js';
+
+const PAYMENT_SEARCH_FIELDS = [
+  'remarks',
+  { field: 'amountPaid', type: 'number' },
+  { field: 'date', type: 'date' },
+];
+const PAYMENT_ALLOWED_SORT = {
+  date: { date: -1 },
+  '-date': { date: 1 },
+  amount: { amountPaid: -1 },
+  '-amount': { amountPaid: 1 },
+};
 
 export const createPayment = catchAsyncError(async (req, res, next) => {
   const { customer, amountPaid, date, remarks } = req.body;
@@ -40,61 +52,72 @@ export const createPayment = catchAsyncError(async (req, res, next) => {
 });
 
 export const getPayments = catchAsyncError(async (req, res, next) => {
-  const payments = await Payment.find({ user: req.user.id })
-    .populate('customer')
-    .sort({ date: -1 })
-    .lean();
-
-  const { results, pagination } = filterAndPaginate(payments, req.query, [
-    'customer.name',
-    'remarks',
-    'amountPaid',
-    'date',
-  ]);
+  const { data, pagination } = await paginateQuery(Payment, {
+    filter: { user: req.user.id },
+    query: req.query,
+    searchFields: PAYMENT_SEARCH_FIELDS,
+    searchRefs: [
+      {
+        RefModel: Customer,
+        refField: 'name',
+        localField: 'customer',
+        scopeField: 'user',
+      },
+    ],
+    allowedSort: PAYMENT_ALLOWED_SORT,
+    defaultSort: { date: -1 },
+    populate: 'customer',
+  });
 
   res.status(200).json({
-    payments: results,
+    payments: data,
     pagination,
   });
 });
 
 export const getPaymentsByCustomer = catchAsyncError(async (req, res, next) => {
-  try {
-    const customerId = req.params.id;
+  const customerId = req.params.id;
 
-    if (!mongoose.Types.ObjectId.isValid(customerId)) {
-      return next(new ErrorHandler('Invalid customer ID', 400));
-    }
-
-    const payments = await Payment.find({
-      user: req.user.id,
-      customer: customerId,
-    })
-      .sort({ date: -1 })
-      .lean();
-
-    const customer = await Customer.findOne({
-      _id: customerId,
-      user: req.user.id,
-    });
-
-    const { results, pagination } = filterAndPaginate(payments, req.query, [
-      'remarks',
-      'amountPaid',
-      'date',
-    ]);
-
-    const total = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
-
-    res.status(200).json({
-      payments: results,
-      paidAmount: total,
-      customerName: customer?.name || '',
-      pagination,
-    });
-  } catch (error) {
-    next(new ErrorHandler('Error fetching invoices for the customer', 500));
+  if (!mongoose.Types.ObjectId.isValid(customerId)) {
+    return next(new ErrorHandler('Invalid customer ID', 400));
   }
+
+  const customer = await Customer.findOne({
+    _id: customerId,
+    user: req.user.id,
+  }).lean();
+
+  if (!customer) {
+    return next(new ErrorHandler('Customer not found', 404));
+  }
+
+  const filter = { user: req.user.id, customer: customerId };
+
+  const [{ data, pagination }, totalAgg] = await Promise.all([
+    paginateQuery(Payment, {
+      filter,
+      query: req.query,
+      searchFields: PAYMENT_SEARCH_FIELDS,
+      allowedSort: PAYMENT_ALLOWED_SORT,
+      defaultSort: { date: -1 },
+    }),
+    Payment.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(req.user.id),
+          customer: new mongoose.Types.ObjectId(customerId),
+        },
+      },
+      { $group: { _id: null, total: { $sum: '$amountPaid' } } },
+    ]),
+  ]);
+
+  res.status(200).json({
+    payments: data,
+    paidAmount: totalAgg[0]?.total || 0,
+    customerName: customer.name || '',
+    pagination,
+  });
 });
 
 export const updatePayment = catchAsyncError(async (req, res, next) => {

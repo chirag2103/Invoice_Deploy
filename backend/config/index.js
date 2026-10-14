@@ -44,7 +44,6 @@ if (!parsed.success) {
   const issues = parsed.error.issues
     .map((i) => `  - ${i.path.join('.') || '(root)'}: ${i.message}`)
     .join('\n');
-  // eslint-disable-next-line no-console
   console.error(`\nInvalid environment configuration:\n${issues}\n`);
   process.exit(1);
 }
@@ -66,14 +65,12 @@ config.sessionsEnabled =
     : config.isProd;
 
 if (!config.isTest && config.JWT_SECRET.length < 32) {
-  // eslint-disable-next-line no-console
   console.warn(
     '[config] JWT_SECRET is shorter than 32 characters — rotate it to a long random value.'
   );
 }
 
 if (!config.corsOrigins && config.isProd) {
-  // eslint-disable-next-line no-console
   console.warn(
     '[config] CORS_ORIGINS is not set — CORS is permissive. Set it to your frontend origin(s) in production.'
   );

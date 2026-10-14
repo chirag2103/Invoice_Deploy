@@ -3,8 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import { fetchQuotations } from '../slices/quotationSlice';
-import { generateQuotationPDF } from '../services/pdfGeneratorService';
 import { formatDocumentNumber, formatNumberWithCommas } from '../services/helper';
+import { getPdfExtras } from '../services/pdfPayload';
 import { ListToolbar, PaginationControls } from './ListControls';
 
 const QuotationList = () => {
@@ -58,7 +58,10 @@ const QuotationList = () => {
     );
   }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
 
-  const handlePrint = (quotation) => {
+  const handlePrint = async (quotation) => {
+    const { generateQuotationPDF } = await import(
+      '../services/pdfGeneratorService'
+    );
     generateQuotationPDF({
       customer: quotation.customer,
       quotationNo: formatDocumentNumber(
@@ -73,14 +76,7 @@ const QuotationList = () => {
       grandTotal: quotation.grandTotal,
       technicalSpecifications: quotation.technicalSpecifications || [],
       termsAndConditions: quotation.termsAndConditions || [],
-      companyName: user.companyDetails?.name,
-      companyAddress: user.companyDetails?.address,
-      companyGST: user.companyDetails?.gstin,
-      companyPhone: user.companyDetails?.mobile,
-      companyBank: user.bankDetails || {},
-      userSignature: user.signature || null,
-      companyLogo: user.companyLogo || null,
-      template: user.pdfTemplate || 'classic',
+      ...getPdfExtras(user),
     });
   };
 

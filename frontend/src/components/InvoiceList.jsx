@@ -4,11 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import { fetchInvoices } from '../slices/invoiceSlice';
 import { ListToolbar, PaginationControls } from './ListControls';
-import { generateInvoicePDF } from '../services/pdfGeneratorService.js';
 import {
   formatDocumentNumber,
   formatNumberWithCommas,
 } from '../services/helper.js';
+import { getPdfExtras } from '../services/pdfPayload';
 
 const InvoiceList = () => {
   const dispatch = useDispatch();
@@ -61,7 +61,10 @@ const InvoiceList = () => {
     );
   }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
 
-  const handlePrint = (invoice, invoicefor) => {
+  const handlePrint = async (invoice, invoicefor) => {
+    const { generateInvoicePDF } = await import(
+      '../services/pdfGeneratorService.js'
+    );
     generateInvoicePDF({
       challanNo: invoice.challanNo || '',
       gst: invoice.gst,
@@ -81,14 +84,7 @@ const InvoiceList = () => {
       termsAndConditions: invoice.termsAndConditions || '',
       orderNo: invoice?.orderNo,
       orderDate: invoice?.orderDate?.split('T'),
-      companyName: user.companyDetails?.name,
-      companyAddress: user.companyDetails?.address,
-      companyGST: user.companyDetails?.gstin,
-      companyPhone: user.companyDetails?.mobile,
-      companyBank: user.bankDetails || {},
-      userSignature: user.signature || null,
-      companyLogo: user.companyLogo || null,
-      template: user.pdfTemplate || 'classic',
+      ...getPdfExtras(user),
     });
   };
 

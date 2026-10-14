@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   setCustomer,
@@ -15,13 +16,14 @@ import { fetchCustomers } from '../slices/customerSlice.js';
 import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup.js';
-import { generateInvoicePDF } from '../services/pdfGeneratorService.js';
 import {
   formatDocumentNumber,
   getFinancialYearFromDate,
   getTodayDate,
 } from '../services/helper.js';
 import { uomList } from '../services/helper';
+import { getErrorMessage } from '../services/apiError';
+import { getPdfExtras } from '../services/pdfPayload';
 
 const DEFAULT_PAYMENT_TERMS = [
   'Payment is due within 45 days from the invoice date.',
@@ -176,7 +178,7 @@ const InvoiceForm = () => {
 
   const handleAddProduct = () => {
     if (!name || quantity <= 0 || rate < 0) {
-      alert('Enter valid product details');
+      toast.error('Enter valid product details');
       return;
     }
     dispatch(addProduct({ name, hsn, quantity, rate, discount, uom }));
@@ -184,18 +186,6 @@ const InvoiceForm = () => {
   };
 
   const handleRemoveProduct = (index) => dispatch(removeProduct(index));
-
-  // PDF helper
-  const getPdfExtras = () => ({
-    companyName: user.companyDetails?.name,
-    companyAddress: user.companyDetails?.address,
-    companyGST: user.companyDetails?.gstin,
-    companyPhone: user.companyDetails?.mobile,
-    companyBank: user.bankDetails || {},
-    userSignature: user.signature || null,
-    companyLogo: user.companyLogo || null,
-    template: user.pdfTemplate || 'classic',
-  });
 
   const buildPdfPayload = (overrides = {}) => ({
     customer,
@@ -211,13 +201,13 @@ const InvoiceForm = () => {
     orderNo,
     orderDate,
     termsAndConditions,
-    ...getPdfExtras(),
+    ...getPdfExtras(user),
     ...overrides,
   });
 
   // ---------------- SAVE ----------------
   const handleGenerateInvoice = async () => {
-    if (!customer || products.length === 0 || !date) { alert('Incomplete invoice data'); return; }
+    if (!customer || products.length === 0 || !date) { toast.error('Incomplete invoice data'); return; }
     setSaving(true);
     try {
       const payload = {
@@ -231,17 +221,22 @@ const InvoiceForm = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const savedInvoice = data.invoice;
+      const { generateInvoicePDF } = await import(
+        '../services/pdfGeneratorService.js'
+      );
       generateInvoicePDF(buildPdfPayload({
         shipTo: payload.shipTo,
         billNo: formatDocumentNumber(savedInvoice.invoiceNo, savedInvoice.financialYearLabel),
       }));
       navigate('/invoices/all');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Failed to save invoice'));
     } finally { setSaving(false); }
   };
 
   const handleSaveInvoice = async () => {
-    if (!isEdit || !invoiceToEdit) { alert('Nothing to save'); return; }
-    if (!customer || products.length === 0 || !date) { alert('Incomplete invoice data'); return; }
+    if (!isEdit || !invoiceToEdit) { toast.error('Nothing to save'); return; }
+    if (!customer || products.length === 0 || !date) { toast.error('Incomplete invoice data'); return; }
     setSaving(true);
     try {
       const payload = {
@@ -255,19 +250,24 @@ const InvoiceForm = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const savedInvoice = data.invoice;
+      const { generateInvoicePDF } = await import(
+        '../services/pdfGeneratorService.js'
+      );
       generateInvoicePDF(buildPdfPayload({
         shipTo: payload.shipTo,
         billNo: formatDocumentNumber(savedInvoice.invoiceNo, savedInvoice.financialYearLabel),
       }));
       navigate('/invoices/all');
     } catch (err) {
-      console.error('Update invoice failed', err);
-      alert('Failed to update invoice');
+      toast.error(getErrorMessage(err, 'Failed to update invoice'));
     } finally { setSaving(false); }
   };
 
-  const handleGenerateDuplicate = () => {
-    if (!customer || products.length === 0 || !date) { alert('Incomplete invoice data'); return; }
+  const handleGenerateDuplicate = async () => {
+    if (!customer || products.length === 0 || !date) { toast.error('Incomplete invoice data'); return; }
+    const { generateInvoicePDF } = await import(
+      '../services/pdfGeneratorService.js'
+    );
     generateInvoicePDF(buildPdfPayload({
       billNo, financialYearLabel,
       shipTo: sameAsBillTo ? null : { name: shipToName, address: shipToAddress, gstNo: shipToGst },

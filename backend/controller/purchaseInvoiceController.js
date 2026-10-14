@@ -2,7 +2,21 @@ import PurchaseInvoice from '../models/PurchaseInvoice.js';
 import PurchasePayment from '../models/PurchasePayment.js';
 import Seller from '../models/Seller.js';
 import ErrorHandler from '../utils/errorHandler.js';
+import paginateQuery from '../utils/paginateQuery.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
+
+const PURCHASE_SEARCH_FIELDS = [
+  'invoiceNo',
+  'remarks',
+  { field: 'amount', type: 'number' },
+  { field: 'date', type: 'date' },
+];
+const PURCHASE_ALLOWED_SORT = {
+  date: { date: -1 },
+  '-date': { date: 1 },
+  amount: { amount: -1 },
+  '-amount': { amount: 1 },
+};
 
 const parseQueryDate = (value, endOfDay = false) => {
   if (!value) {
@@ -76,19 +90,26 @@ export const createPurchaseInvoice = async (req, res, next) => {
 
 export const getAllPurchases = async (req, res, next) => {
   try {
-    const allPurchases = await PurchaseInvoice.find({ user: req.user._id })
-      .populate('seller', 'name')
-      .sort({ date: -1 });
-
-    const { results, pagination } = filterAndPaginate(
-      allPurchases,
-      req.query,
-      ['seller.name', 'invoiceNo', 'amount', 'date', 'remarks']
-    );
+    const { data, pagination } = await paginateQuery(PurchaseInvoice, {
+      filter: { user: req.user._id },
+      query: req.query,
+      searchFields: PURCHASE_SEARCH_FIELDS,
+      searchRefs: [
+        {
+          RefModel: Seller,
+          refField: 'name',
+          localField: 'seller',
+          scopeField: 'user',
+        },
+      ],
+      allowedSort: PURCHASE_ALLOWED_SORT,
+      defaultSort: { date: -1 },
+      populate: { path: 'seller', select: 'name' },
+    });
 
     res.status(200).json({
       success: true,
-      purchases: results,
+      purchases: data,
       pagination,
     });
   } catch (err) {

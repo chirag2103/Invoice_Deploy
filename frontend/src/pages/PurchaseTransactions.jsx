@@ -4,13 +4,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import { formatNumberWithCommas } from '../services/helper.js';
 import { fetchPurchasePayments } from '../slices/purchasePaymentSlice';
 import { ListToolbar, PaginationControls } from '../components/ListControls';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const PurchaseTransaction = () => {
   const dispatch = useDispatch();
   const { purchasePayments, pagination } = useSelector(
     (state) => state.purchasePayment
   );
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput, 300);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const formatDate = (inputDate) => {
@@ -34,9 +36,9 @@ const PurchaseTransaction = () => {
           <div className='invoice-container'>
             <ListToolbar
               title='Purchase Transactions'
-              search={search}
+              search={searchInput}
               onSearchChange={(value) => {
-                setSearch(value);
+                setSearchInput(value);
                 setPage(1);
               }}
               searchPlaceholder='Search purchase payments'

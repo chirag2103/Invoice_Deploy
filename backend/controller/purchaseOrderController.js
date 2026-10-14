@@ -2,32 +2,28 @@ import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import PurchaseOrder from '../models/PurchaseOrder.js';
 import Seller from '../models/Seller.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
+import paginateQuery from '../utils/paginateQuery.js';
 import { pickProducts } from '../utils/pickProduct.js';
 import computeDocumentTotals from '../services/documentTotals.js';
 import createNumberedDocument from '../services/createNumberedDocument.js';
 import {
   buildFinancialYearFilter,
-  getAvailableFinancialYearsFromDocuments,
+  getAvailableFinancialYearsForUser,
   getFinancialYearInfo,
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
 
-const sortPurchaseOrders = (purchaseOrders) =>
-  [...purchaseOrders].sort((first, second) => {
-    const secondFy = second.financialYearStart || 0;
-    const firstFy = first.financialYearStart || 0;
-
-    if (secondFy !== firstFy) {
-      return secondFy - firstFy;
-    }
-
-    if ((second.poNo || 0) !== (first.poNo || 0)) {
-      return (second.poNo || 0) - (first.poNo || 0);
-    }
-
-    return new Date(second.date) - new Date(first.date);
-  });
+const PO_SEARCH_FIELDS = [
+  { field: 'poNo', type: 'number' },
+  'financialYearLabel',
+];
+const PO_ALLOWED_SORT = {
+  date: { date: -1 },
+  '-date': { date: 1 },
+  amount: { grandTotal: -1 },
+  '-amount': { grandTotal: 1 },
+};
+const PO_DEFAULT_SORT = { financialYearStart: -1, poNo: -1 };
 
 export const createPO = catchAsyncError(async (req, res, next) => {
   const {
@@ -92,33 +88,35 @@ export const createPO = catchAsyncError(async (req, res, next) => {
 });
 
 export const getPO = catchAsyncError(async (req, res, next) => {
-  const availableYearsSource = await PurchaseOrder.find({ user: req.user.id })
-    .select('date financialYearLabel financialYearStart')
-    .lean();
-  const allPo = await PurchaseOrder.find({
+  const filter = {
     user: req.user.id,
     ...buildFinancialYearFilter(req.query, 'date'),
-  })
-    .populate('seller')
-    .lean();
-  const sortedPurchaseOrders = sortPurchaseOrders(allPo);
-  const { results, pagination } = filterAndPaginate(
-    sortedPurchaseOrders,
-    req.query,
-    [
-    'poNo',
-    'financialYearLabel',
-    'seller.name',
-    'date',
-    ]
-  );
+  };
+
+  const [{ data, pagination }, availableFinancialYears] = await Promise.all([
+    paginateQuery(PurchaseOrder, {
+      filter,
+      query: req.query,
+      searchFields: PO_SEARCH_FIELDS,
+      searchRefs: [
+        {
+          RefModel: Seller,
+          refField: 'name',
+          localField: 'seller',
+          scopeField: 'user',
+        },
+      ],
+      allowedSort: PO_ALLOWED_SORT,
+      defaultSort: PO_DEFAULT_SORT,
+      populate: 'seller',
+    }),
+    getAvailableFinancialYearsForUser(PurchaseOrder, req.user.id),
+  ]);
+
   res.status(200).json({
-    po: results,
+    po: data,
     pagination,
-    availableFinancialYears: getAvailableFinancialYearsFromDocuments(
-      availableYearsSource,
-      'date'
-    ),
+    availableFinancialYears,
     currentFinancialYear: getFinancialYearInfo().financialYearLabel,
   });
 });

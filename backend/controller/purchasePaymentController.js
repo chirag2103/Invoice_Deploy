@@ -1,7 +1,20 @@
+import mongoose from 'mongoose';
 import PurchasePayment from '../models/PurchasePayment.js';
 import Seller from '../models/Seller.js';
 import ErrorHandler from '../utils/errorHandler.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
+import paginateQuery from '../utils/paginateQuery.js';
+
+const PURCHASE_PAYMENT_SEARCH_FIELDS = [
+  'remarks',
+  { field: 'amountPaid', type: 'number' },
+  { field: 'date', type: 'date' },
+];
+const PURCHASE_PAYMENT_ALLOWED_SORT = {
+  date: { date: -1 },
+  '-date': { date: 1 },
+  amount: { amountPaid: -1 },
+  '-amount': { amountPaid: 1 },
+};
 
 // ✅ Create payment
 export const createPayment = async (req, res, next) => {
@@ -43,19 +56,26 @@ export const createPayment = async (req, res, next) => {
 // ✅ Get all payments
 export const getPayments = async (req, res, next) => {
   try {
-    const allPayments = await PurchasePayment.find({ user: req.user._id })
-      .populate('seller', 'name')
-      .sort({ date: -1 });
-    const { results, pagination } = filterAndPaginate(allPayments, req.query, [
-      'seller.name',
-      'amountPaid',
-      'date',
-      'remarks',
-    ]);
+    const { data, pagination } = await paginateQuery(PurchasePayment, {
+      filter: { user: req.user._id },
+      query: req.query,
+      searchFields: PURCHASE_PAYMENT_SEARCH_FIELDS,
+      searchRefs: [
+        {
+          RefModel: Seller,
+          refField: 'name',
+          localField: 'seller',
+          scopeField: 'user',
+        },
+      ],
+      allowedSort: PURCHASE_PAYMENT_ALLOWED_SORT,
+      defaultSort: { date: -1 },
+      populate: { path: 'seller', select: 'name' },
+    });
 
     res.status(200).json({
       success: true,
-      payments: results,
+      payments: data,
       pagination,
     });
   } catch (err) {
@@ -135,22 +155,35 @@ export const getPaymentsBySeller = async (req, res, next) => {
   try {
     const seller = req.params.sellerId;
 
-    const allPayments = await PurchasePayment.find({
-      user: req.user._id,
-      seller,
-    }).sort({ date: -1 });
+    if (!mongoose.Types.ObjectId.isValid(seller)) {
+      return next(new ErrorHandler('Invalid seller ID', 400));
+    }
 
-    const total = allPayments.reduce((acc, p) => acc + p.amountPaid, 0);
-    const { results, pagination } = filterAndPaginate(allPayments, req.query, [
-      'amountPaid',
-      'date',
-      'remarks',
+    const filter = { user: req.user._id, seller };
+
+    const [{ data, pagination }, totalAgg] = await Promise.all([
+      paginateQuery(PurchasePayment, {
+        filter,
+        query: req.query,
+        searchFields: PURCHASE_PAYMENT_SEARCH_FIELDS,
+        allowedSort: PURCHASE_PAYMENT_ALLOWED_SORT,
+        defaultSort: { date: -1 },
+      }),
+      PurchasePayment.aggregate([
+        {
+          $match: {
+            user: new mongoose.Types.ObjectId(req.user._id),
+            seller: new mongoose.Types.ObjectId(seller),
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$amountPaid' } } },
+      ]),
     ]);
 
     res.status(200).json({
       success: true,
-      payments: results,
-      paidAmount: total,
+      payments: data,
+      paidAmount: totalAgg[0]?.total || 0,
       pagination,
     });
   } catch (err) {

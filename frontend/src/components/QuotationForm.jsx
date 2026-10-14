@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import '../styles/InvoiceForm.css';
 
@@ -20,12 +21,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup';
 import { uomList } from '../services/helper';
 
-import { generateQuotationPDF } from '../services/pdfGeneratorService';
 import {
   formatDocumentNumber,
   getFinancialYearFromDate,
   getTodayDate,
 } from '../services/helper';
+import { getErrorMessage } from '../services/apiError';
+import { getPdfExtras } from '../services/pdfPayload';
 
 const QuotationForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -57,6 +59,7 @@ const QuotationForm = () => {
   const [product, setProduct] = useState({ name: '', quantity: 1, rate: 0, discount: 0, uom: 'NOS' });
   const [termsAndConditions, setTermsAndConditions] = useState('');
   const [technicalSpecifications, setTechnicalSpecifications] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // ---------------------------------------------------------
   // Load Customers + Prefill for Edit
@@ -87,7 +90,7 @@ const QuotationForm = () => {
   // ---------------------------------------------------------
   const handleAddProduct = () => {
     if (!product.name || product.quantity <= 0 || product.rate < 0) {
-      alert('Enter valid product details.');
+      toast.error('Enter valid product details.');
       return;
     }
     dispatch(addProduct(product));
@@ -100,7 +103,7 @@ const QuotationForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!customer || products.length === 0) {
-      alert('Select customer and add at least one product.');
+      toast.error('Select customer and add at least one product.');
       return;
     }
 
@@ -120,16 +123,10 @@ const QuotationForm = () => {
       gstType,
       termsAndConditions,
       technicalSpecifications,
-      companyName: user.companyDetails?.name,
-      companyAddress: user.companyDetails?.address,
-      companyGST: user.companyDetails?.gstin,
-      companyPhone: user.companyDetails?.mobile,
-      companyBank: user.bankDetails || {},
-      userSignature: user.signature || null,
-      companyLogo: user.companyLogo || null,
-      template: user.pdfTemplate || 'classic',
+      ...getPdfExtras(user),
     };
 
+    setSaving(true);
     try {
       if (isEdit) {
         await api.put(
@@ -161,20 +158,27 @@ const QuotationForm = () => {
           })
         );
 
-        if (result.meta.requestStatus === 'fulfilled' && result.payload?.quotation) {
-          pdfData.quotationNo = formatDocumentNumber(
-            result.payload.quotation.quoteNo,
-            result.payload.quotation.financialYearLabel
-          );
+        if (!sendQuotationData.fulfilled.match(result) || !result.payload?.quotation) {
+          toast.error(result.payload || 'Failed to save quotation.');
+          return;
         }
+
+        pdfData.quotationNo = formatDocumentNumber(
+          result.payload.quotation.quoteNo,
+          result.payload.quotation.financialYearLabel
+        );
       }
 
+      const { generateQuotationPDF } = await import(
+        '../services/pdfGeneratorService'
+      );
       generateQuotationPDF(pdfData);
       dispatch(clearQuotationData());
       navigate('/quotations/all');
     } catch (err) {
-      console.error('Quotation save error:', err);
-      alert('Failed to save quotation.');
+      toast.error(getErrorMessage(err, 'Failed to save quotation.'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -381,8 +385,12 @@ const QuotationForm = () => {
 
         {/* Submit */}
         <div className='form-actions'>
-          <button type='submit' className='generate-btn'>
-            {isEdit ? 'Save Changes & Generate PDF' : 'Save & Generate PDF'}
+          <button type='submit' className='generate-btn' disabled={saving}>
+            {saving
+              ? 'Saving...'
+              : isEdit
+                ? 'Save Changes & Generate PDF'
+                : 'Save & Generate PDF'}
           </button>
         </div>
       </form>

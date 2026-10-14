@@ -20,7 +20,7 @@ export const fetchFinancialYearAnalytics = createAsyncThunk(
   async (fy, { rejectWithValue }) => {
     try {
       const params = fy ? { fy } : {};
-      const { data } = await api.get(`${apiUrl}/api/analytics/financial-year`, {
+      const { data } = await api.get(`${apiUrl}/api/analytics/summary`, {
         params,
       });
       return data;

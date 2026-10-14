@@ -4,16 +4,33 @@ import Payment from '../models/Payment.js';
 import Customer from '../models/Customer.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
+import paginateQuery from '../utils/paginateQuery.js';
 import { filterAndPaginate } from '../utils/listResponse.js';
 import { pickProducts } from '../utils/pickProduct.js';
 import computeDocumentTotals from '../services/documentTotals.js';
 import createNumberedDocument from '../services/createNumberedDocument.js';
 import {
   buildFinancialYearFilter,
-  getAvailableFinancialYearsFromDocuments,
+  getAvailableFinancialYearsForUser,
   getFinancialYearInfo,
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
+
+const INVOICE_SEARCH_FIELDS = [
+  { field: 'invoiceNo', type: 'number' },
+  'financialYearLabel',
+  { field: 'grandTotal', type: 'number' },
+];
+const INVOICE_ALLOWED_SORT = {
+  date: { date: -1 },
+  '-date': { date: 1 },
+  amount: { grandTotal: -1 },
+  '-amount': { grandTotal: 1 },
+};
+const INVOICE_DEFAULT_SORT = {
+  financialYearStart: -1,
+  invoiceNo: -1,
+};
 
 const parseQueryDate = (value, endOfDay = false) => {
   if (!value) {
@@ -26,22 +43,6 @@ const parseQueryDate = (value, endOfDay = false) => {
 
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
-
-const sortInvoices = (invoices) =>
-  [...invoices].sort((first, second) => {
-    const secondFy = second.financialYearStart || 0;
-    const firstFy = first.financialYearStart || 0;
-
-    if (secondFy !== firstFy) {
-      return secondFy - firstFy;
-    }
-
-    if ((second.invoiceNo || 0) !== (first.invoiceNo || 0)) {
-      return (second.invoiceNo || 0) - (first.invoiceNo || 0);
-    }
-
-    return new Date(second.date) - new Date(first.date);
-  });
 
 export const getLastInvoice = catchAsyncError(async (req, res, next) => {
   try {
@@ -139,38 +140,41 @@ export const createInvoice = catchAsyncError(async (req, res, next) => {
 });
 
 export const getInvoices = catchAsyncError(async (req, res, next) => {
-  try {
-    const availableYearsSource = await Invoice.find({ user: req.user.id })
-      .select('date financialYearLabel financialYearStart')
-      .lean();
-    const allInvoices = await Invoice.find({
-      user: req.user.id,
-      ...buildFinancialYearFilter(req.query, 'date'),
-    })
-      .populate('customer')
-      .lean();
+  const filter = {
+    user: req.user.id,
+    ...buildFinancialYearFilter(req.query, 'date'),
+  };
 
-    const sortedInvoices = sortInvoices(allInvoices);
-    const { results, pagination } = filterAndPaginate(sortedInvoices, req.query, [
-      'invoiceNo',
-      'financialYearLabel',
-      'customer.name',
-      'grandTotal',
-      'date',
-    ]);
+  const [{ data, pagination }, availableFinancialYears] = await Promise.all([
+    paginateQuery(Invoice, {
+      filter,
+      query: req.query,
+      searchFields: INVOICE_SEARCH_FIELDS,
+      searchRefs: [
+        {
+          RefModel: Customer,
+          refField: 'name',
+          localField: 'customer',
+          scopeField: 'user',
+        },
+      ],
+      allowedSort: INVOICE_ALLOWED_SORT,
+      defaultSort: INVOICE_DEFAULT_SORT,
+      dateField: 'date', // lets ?from=&to= scope a single month (e.g. dashboard PDF export)
+      // Higher ceiling than the other lists: the dashboard's monthly PDF
+      // export pulls every invoice in a month (?from=&to=) in one request.
+      maxLimit: 500,
+      populate: 'customer',
+    }),
+    getAvailableFinancialYearsForUser(Invoice, req.user.id),
+  ]);
 
-    res.status(200).json({
-      invoices: results,
-      pagination,
-      availableFinancialYears: getAvailableFinancialYearsFromDocuments(
-        availableYearsSource,
-        'date'
-      ),
-      currentFinancialYear: getFinancialYearInfo().financialYearLabel,
-    });
-  } catch (error) {
-    next(new ErrorHandler('Error fetching invoices', 500));
-  }
+  res.status(200).json({
+    invoices: data,
+    pagination,
+    availableFinancialYears,
+    currentFinancialYear: getFinancialYearInfo().financialYearLabel,
+  });
 });
 
 export const getSingleInvoice = catchAsyncError(async (req, res, next) => {
@@ -188,58 +192,58 @@ export const getSingleInvoice = catchAsyncError(async (req, res, next) => {
 });
 
 export const getInvoicesByCustomer = catchAsyncError(async (req, res, next) => {
-  try {
-    const customerId = req.params.id;
+  const customerId = req.params.id;
 
-    if (!mongoose.Types.ObjectId.isValid(customerId)) {
-      return next(new ErrorHandler('Invalid customer ID', 400));
-    }
+  if (!mongoose.Types.ObjectId.isValid(customerId)) {
+    return next(new ErrorHandler('Invalid customer ID', 400));
+  }
 
-    const availableYearsSource = await Invoice.find({
-      customer: customerId,
-      user: req.user.id,
-    })
-      .select('date financialYearLabel financialYearStart')
-      .lean();
+  const customer = await Customer.findOne({
+    _id: customerId,
+    user: req.user.id,
+  }).lean();
 
-    const allInvoices = await Invoice.find({
-      customer: customerId,
-      user: req.user.id,
-      ...buildFinancialYearFilter(req.query, 'date'),
-    })
-      .populate('customer')
-      .lean();
+  if (!customer) {
+    return next(new ErrorHandler('Customer not found', 404));
+  }
 
-    const customer = await Customer.findById(customerId);
-    const customerName = customer?.name || '';
+  const filter = {
+    user: req.user.id,
+    customer: customerId,
+    ...buildFinancialYearFilter(req.query, 'date'),
+  };
 
-    const total = allInvoices.reduce(
-      (runningTotal, invoice) => runningTotal + (invoice.grandTotal || 0),
-      0
-    );
-
-    const sortedInvoices = sortInvoices(allInvoices);
-    const { results, pagination } = filterAndPaginate(sortedInvoices, req.query, [
-      'invoiceNo',
-      'financialYearLabel',
-      'customer.name',
-      'grandTotal',
-      'date',
+  const [{ data, pagination }, availableFinancialYears, totalAgg] =
+    await Promise.all([
+      paginateQuery(Invoice, {
+        filter,
+        query: req.query,
+        searchFields: INVOICE_SEARCH_FIELDS,
+        allowedSort: INVOICE_ALLOWED_SORT,
+        defaultSort: INVOICE_DEFAULT_SORT,
+        populate: 'customer',
+      }),
+      getAvailableFinancialYearsForUser(Invoice, req.user.id),
+      Invoice.aggregate([
+        {
+          // aggregate $match does not auto-cast string ids like .find() does
+          $match: {
+            ...filter,
+            user: new mongoose.Types.ObjectId(req.user.id),
+            customer: new mongoose.Types.ObjectId(customerId),
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$grandTotal' } } },
+      ]),
     ]);
 
-    res.status(200).json({
-      invoices: results,
-      total,
-      customerName,
-      pagination,
-      availableFinancialYears: getAvailableFinancialYearsFromDocuments(
-        availableYearsSource,
-        'date'
-      ),
-    });
-  } catch (error) {
-    next(new ErrorHandler('Error fetching invoices for the customer', 500));
-  }
+  res.status(200).json({
+    invoices: data,
+    total: totalAgg[0]?.total || 0,
+    customerName: customer.name || '',
+    pagination,
+    availableFinancialYears,
+  });
 });
 
 export const updateInvoice = catchAsyncError(async (req, res, next) => {

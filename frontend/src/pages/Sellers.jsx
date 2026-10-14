@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import { ListToolbar, PaginationControls } from '../components/ListControls';
 import { fetchSellers } from '../slices/customerSlice';
 import api from '../axiosSetup.js';
+import { getErrorMessage } from '../services/apiError';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const initialForm = {
   name: '',
@@ -24,7 +27,8 @@ const Sellers = () => {
 
   const [formData, setFormData] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput, 300);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -51,10 +55,11 @@ const Sellers = () => {
         await api.post(`${apiUrl}/api/seller/new`, payload);
       }
 
+      toast.success(editingId ? 'Seller updated' : 'Seller added');
       resetForm();
       dispatch(fetchSellers({ page, limit, search }));
     } catch (requestError) {
-      alert(requestError.response?.data?.message || 'Unable to save seller');
+      toast.error(getErrorMessage(requestError, 'Unable to save seller'));
     }
   };
 
@@ -76,9 +81,10 @@ const Sellers = () => {
 
     try {
       await api.delete(`${apiUrl}/api/seller/${sellerId}`);
+      toast.success('Seller deleted');
       dispatch(fetchSellers({ page, limit, search }));
     } catch (requestError) {
-      alert(requestError.response?.data?.message || 'Unable to delete seller');
+      toast.error(getErrorMessage(requestError, 'Unable to delete seller'));
     }
   };
 
@@ -152,9 +158,9 @@ const Sellers = () => {
           <ListToolbar
             title='Sellers'
             subtitle='Manage seller details and open seller statements.'
-            search={search}
+            search={searchInput}
             onSearchChange={(value) => {
-              setSearch(value);
+              setSearchInput(value);
               setPage(1);
             }}
             searchPlaceholder='Search sellers by name, GST, address'

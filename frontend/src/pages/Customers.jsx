@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import { ListToolbar, PaginationControls } from '../components/ListControls';
 import { fetchCustomers } from '../slices/customerSlice';
 import api from '../axiosSetup.js';
+import { getErrorMessage } from '../services/apiError';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const initialForm = {
   name: '',
@@ -23,7 +26,8 @@ const Customers = () => {
 
   const [formData, setFormData] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput, 300);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -50,12 +54,11 @@ const Customers = () => {
         await api.post(`${apiUrl}/api/customer/new`, payload);
       }
 
+      toast.success(editingId ? 'Customer updated' : 'Customer added');
       resetForm();
       dispatch(fetchCustomers({ page, limit, search }));
     } catch (requestError) {
-      alert(
-        requestError.response?.data?.message || 'Unable to save customer'
-      );
+      toast.error(getErrorMessage(requestError, 'Unable to save customer'));
     }
   };
 
@@ -76,11 +79,10 @@ const Customers = () => {
 
     try {
       await api.delete(`${apiUrl}/api/customer/${customerId}`);
+      toast.success('Customer deleted');
       dispatch(fetchCustomers({ page, limit, search }));
     } catch (requestError) {
-      alert(
-        requestError.response?.data?.message || 'Unable to delete customer'
-      );
+      toast.error(getErrorMessage(requestError, 'Unable to delete customer'));
     }
   };
 
@@ -145,9 +147,9 @@ const Customers = () => {
           <ListToolbar
             title='Customers'
             subtitle='Search, edit, delete, and open invoice history.'
-            search={search}
+            search={searchInput}
             onSearchChange={(value) => {
-              setSearch(value);
+              setSearchInput(value);
               setPage(1);
             }}
             searchPlaceholder='Search customers by name, GST, address'

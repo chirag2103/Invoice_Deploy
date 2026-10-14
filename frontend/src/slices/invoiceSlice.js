@@ -1,17 +1,8 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
+import { initialPagination } from '../constants/pagination.js';
 
 const apiUrl = process.env.REACT_APP_API_URL;
-
-const initialPagination = {
-  page: 1,
-  limit: 10,
-  totalItems: 0,
-  totalPages: 1,
-  hasPrevPage: false,
-  hasNextPage: false,
-  search: '',
-};
 
 const initialState = {
   billNo: 1,
@@ -34,10 +25,6 @@ const initialState = {
   customerName: '',
   message: '',
 };
-
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
 
 // lineAmount = qty × rate × (1 - disc/100)
 const lineAmount = (p) =>
@@ -64,10 +51,7 @@ export const fetchInvoices = createAsyncThunk(
         ? `${apiUrl}/api/customer/${customerId}/invoices`
         : `${apiUrl}/api/invoices`;
 
-      const res = await api.get(url, {
-        params: query,
-        headers: getAuthHeaders(),
-      });
+      const res = await api.get(url, { params: query });
       return res.data;
     } catch (error) {
       return rejectWithValue(
@@ -83,7 +67,6 @@ export const fetchBillNo = createAsyncThunk(
     try {
       const res = await api.get(`${apiUrl}/api/lastinvoice`, {
         params: date ? { date } : {},
-        headers: getAuthHeaders(),
       });
       return res.data.invoice;
     } catch (error) {
@@ -98,9 +81,7 @@ export const deleteInvoice = createAsyncThunk(
   'invoice/deleteInvoice',
   async (id, { rejectWithValue }) => {
     try {
-      const res = await api.delete(`${apiUrl}/api/invoice/${id}`, {
-        headers: getAuthHeaders(),
-      });
+      const res = await api.delete(`${apiUrl}/api/invoice/${id}`);
       return { id, message: res.data.message };
     } catch (error) {
       return rejectWithValue(
@@ -190,6 +171,9 @@ const invoiceSlice = createSlice({
           (invoice) => invoice._id !== action.payload.id
         );
         state.message = action.payload.message;
+      })
+      .addCase(deleteInvoice.rejected, (state, action) => {
+        state.error = action.payload || action.error.message;
       });
   },
 });

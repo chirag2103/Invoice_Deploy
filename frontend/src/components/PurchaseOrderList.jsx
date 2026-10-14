@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import api from '../axiosSetup.js';
 import AdminSidebar from './AdminSidebar';
 import { fetchPOs } from '../slices/poSlice';
-import { generatePurchaseOrderPDF } from '../services/pdfGeneratorService';
 import {
   formatDate,
   formatDocumentNumber,
   formatNumberWithCommas,
 } from '../services/helper';
+import { getErrorMessage } from '../services/apiError';
+import { getPdfExtras } from '../services/pdfPayload';
 import { ListToolbar, PaginationControls } from './ListControls';
 
 const PurchaseOrderList = () => {
@@ -59,7 +61,10 @@ const PurchaseOrderList = () => {
     );
   }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
 
-  const handlePrint = (po) => {
+  const handlePrint = async (po) => {
+    const { generatePurchaseOrderPDF } = await import(
+      '../services/pdfGeneratorService'
+    );
     generatePurchaseOrderPDF({
       seller: po.seller,
       poNo: formatDocumentNumber(po.poNo, po.financialYearLabel),
@@ -71,14 +76,7 @@ const PurchaseOrderList = () => {
       grandTotal: po.grandTotal,
       technicalSpecifications: po.technicalSpecifications || '',
       termsAndConditions: po.termsAndConditions || '',
-      companyName: user.companyDetails?.name,
-      companyAddress: user.companyDetails?.address,
-      companyGST: user.companyDetails?.gstin,
-      companyPhone: user.companyDetails?.mobile,
-      companyBank: user.bankDetails || {},
-      userSignature: user.signature || null,
-      companyLogo: user.companyLogo || null,
-      template: user.pdfTemplate || 'classic',
+      ...getPdfExtras(user),
     });
   };
 
@@ -95,6 +93,7 @@ const PurchaseOrderList = () => {
       await api.delete(`${apiUrl}/api/po/${poId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      toast.success('Purchase order deleted');
       dispatch(
         fetchPOs({
           page,
@@ -104,9 +103,8 @@ const PurchaseOrderList = () => {
         })
       );
     } catch (requestError) {
-      alert(
-        requestError.response?.data?.message ||
-          'Unable to delete purchase order'
+      toast.error(
+        getErrorMessage(requestError, 'Unable to delete purchase order')
       );
     }
   };

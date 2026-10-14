@@ -2,31 +2,25 @@ import Challan from '../models/Challan.js';
 import Customer from '../models/Customer.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
+import paginateQuery from '../utils/paginateQuery.js';
 import { pickProducts } from '../utils/pickProduct.js';
 import createNumberedDocument from '../services/createNumberedDocument.js';
 import {
   buildFinancialYearFilter,
-  getAvailableFinancialYearsFromDocuments,
+  getAvailableFinancialYearsForUser,
   getFinancialYearInfo,
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
 
-const sortChallans = (challans) =>
-  [...challans].sort((first, second) => {
-    const secondFy = second.financialYearStart || 0;
-    const firstFy = first.financialYearStart || 0;
-
-    if (secondFy !== firstFy) {
-      return secondFy - firstFy;
-    }
-
-    if ((second.challanNo || 0) !== (first.challanNo || 0)) {
-      return (second.challanNo || 0) - (first.challanNo || 0);
-    }
-
-    return new Date(second.challanDate) - new Date(first.challanDate);
-  });
+const CHALLAN_SEARCH_FIELDS = [
+  { field: 'challanNo', type: 'number' },
+  'financialYearLabel',
+];
+const CHALLAN_ALLOWED_SORT = {
+  date: { challanDate: -1 },
+  '-date': { challanDate: 1 },
+};
+const CHALLAN_DEFAULT_SORT = { financialYearStart: -1, challanNo: -1 };
 
 export const createChallan = catchAsyncError(async (req, res, next) => {
   const {
@@ -86,31 +80,35 @@ export const createChallan = catchAsyncError(async (req, res, next) => {
 });
 
 export const getChallans = catchAsyncError(async (req, res, next) => {
-  const availableYearsSource = await Challan.find({ user: req.user.id })
-    .select('challanDate financialYearLabel financialYearStart')
-    .lean();
-  const allChallans = await Challan.find({
+  const filter = {
     user: req.user.id,
     ...buildFinancialYearFilter(req.query, 'challanDate'),
-  })
-    .populate('customer')
-    .lean();
+  };
 
-  const sortedChallans = sortChallans(allChallans);
-  const { results, pagination } = filterAndPaginate(sortedChallans, req.query, [
-    'challanNo',
-    'financialYearLabel',
-    'customer.name',
-    'challanDate',
+  const [{ data, pagination }, availableFinancialYears] = await Promise.all([
+    paginateQuery(Challan, {
+      filter,
+      query: req.query,
+      searchFields: CHALLAN_SEARCH_FIELDS,
+      searchRefs: [
+        {
+          RefModel: Customer,
+          refField: 'name',
+          localField: 'customer',
+          scopeField: 'user',
+        },
+      ],
+      allowedSort: CHALLAN_ALLOWED_SORT,
+      defaultSort: CHALLAN_DEFAULT_SORT,
+      populate: 'customer',
+    }),
+    getAvailableFinancialYearsForUser(Challan, req.user.id),
   ]);
 
   res.status(200).json({
-    challans: results,
+    challans: data,
     pagination,
-    availableFinancialYears: getAvailableFinancialYearsFromDocuments(
-      availableYearsSource,
-      'challanDate'
-    ),
+    availableFinancialYears,
     currentFinancialYear: getFinancialYearInfo().financialYearLabel,
   });
 });

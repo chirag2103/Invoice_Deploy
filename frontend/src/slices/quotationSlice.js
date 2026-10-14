@@ -1,15 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
-
-const initialPagination = {
-  page: 1,
-  limit: 10,
-  totalItems: 0,
-  totalPages: 1,
-  hasPrevPage: false,
-  hasNextPage: false,
-  search: '',
-};
+import { initialPagination } from '../constants/pagination.js';
 
 const initialState = {
   quoteNo: 1,
@@ -33,10 +24,6 @@ const initialState = {
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
-
 const lineAmount = (p) =>
   Number(p.quantity || 0) * Number(p.rate || 0) * (1 - (Number(p.discount) || 0) / 100);
 
@@ -52,7 +39,6 @@ export const fetchQuotations = createAsyncThunk(
     try {
       const res = await api.get(`${apiUrl}/api/quotations`, {
         params,
-        headers: getAuthHeaders(),
       });
       return res.data;
     } catch (error) {
@@ -69,7 +55,6 @@ export const fetchQuoteNo = createAsyncThunk(
     try {
       const res = await api.get(`${apiUrl}/api/lastquotation`, {
         params: date ? { date } : {},
-        headers: getAuthHeaders(),
       });
       return res.data.quotation;
     } catch (error) {
@@ -82,11 +67,15 @@ export const fetchQuoteNo = createAsyncThunk(
 
 export const sendQuotationData = createAsyncThunk(
   'quotation/sendQuotationData',
-  async (data) => {
-    const res = await api.post(`${apiUrl}/api/quotation/new`, data, {
-      headers: getAuthHeaders(),
-    });
-    return res.data;
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await api.post(`${apiUrl}/api/quotation/new`, data);
+      return res.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to save quotation'
+      );
+    }
   }
 );
 
@@ -157,6 +146,9 @@ const quotationSlice = createSlice({
       })
       .addCase(sendQuotationData.fulfilled, (state) => {
         state.message = 'Quotation saved successfully';
+      })
+      .addCase(sendQuotationData.rejected, (state, action) => {
+        state.error = action.payload || action.error.message;
       });
   },
 });

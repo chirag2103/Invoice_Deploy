@@ -1,262 +1,139 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { HiTrendingDown, HiTrendingUp } from 'react-icons/hi';
 import { FiDownload, FiFileText } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminSidebar from '../components/AdminSidebar';
-import { fetchInvoices } from '../slices/invoiceSlice';
-import { fetchPayments } from '../slices/paymentSlice';
-import { fetchPurchaseInvoices } from '../slices/purchaseInvoiceSlice';
-import { fetchPurchasePayments } from '../slices/purchasePaymentSlice';
+import api from '../axiosSetup';
+import {
+  fetchFinancialYears,
+  fetchFinancialYearAnalytics,
+  setSelectedFy,
+} from '../slices/analyticsSlice';
 import {
   formatDocumentNumber,
   formatNumberWithCommas,
-  getFinancialYearFromDate,
 } from '../services/helper';
-import { generateMonthlyInvoicesPDF } from '../services/pdfGeneratorService';
+import { getErrorMessage } from '../services/apiError';
 
-const MONTHS = [
-  { label: 'April', month: 3 },
-  { label: 'May', month: 4 },
-  { label: 'June', month: 5 },
-  { label: 'July', month: 6 },
-  { label: 'August', month: 7 },
-  { label: 'September', month: 8 },
-  { label: 'October', month: 9 },
-  { label: 'November', month: 10 },
-  { label: 'December', month: 11 },
-  { label: 'January', month: 0 },
-  { label: 'February', month: 1 },
-  { label: 'March', month: 2 },
-];
+const apiUrl = process.env.REACT_APP_API_URL;
+
+const EMPTY_TOTALS = {
+  revenue: 0,
+  receipts: 0,
+  purchaseBills: 0,
+  sellerPayments: 0,
+  outstandingReceivables: 0,
+  pendingPayables: 0,
+  netCashFlow: 0,
+};
+
+const EMPTY_HIGHLIGHTS = {
+  averageInvoiceValue: 0,
+  collectionEfficiency: 0,
+  bestMonth: null,
+  busiestMonth: null,
+};
+
+const buildMonthDateRange = (monthKey) => {
+  const [yearStr, monthStr] = monthKey.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const lastDay = new Date(year, month, 0).getDate();
+
+  return {
+    from: `${yearStr}-${monthStr}-01`,
+    to: `${yearStr}-${monthStr}-${String(lastDay).padStart(2, '0')}`,
+  };
+};
 
 const Dashboard = () => {
   const dispatch = useDispatch();
-  const [selectedYear, setSelectedYear] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [downloadingMonth, setDownloadingMonth] = useState(null);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  const { years, loadingYears, fyData, loadingFy, selectedFy } = useSelector(
+    (state) => state.analytics
+  );
 
   useEffect(() => {
     document.title = 'Dashboard';
-    setLoading(true);
-    Promise.all([
-      dispatch(fetchInvoices()),
-      dispatch(fetchPayments()),
-      dispatch(fetchPurchaseInvoices()),
-      dispatch(fetchPurchasePayments()),
-    ]).finally(() => setLoading(false));
+    dispatch(fetchFinancialYears());
   }, [dispatch]);
 
-  const { invoices } = useSelector((state) => state.invoice);
-  const { payments } = useSelector((state) => state.payment);
-  const { purchaseInvoices } = useSelector((state) => state.purchaseInvoice);
-  const { purchasePayments } = useSelector((state) => state.purchasePayment);
-
-  const availableYears = useMemo(() => {
-    const yearSet = new Set();
-
-    invoices.forEach((invoice) => {
-      yearSet.add(
-        invoice.financialYearLabel || getFinancialYearFromDate(invoice.date)
-      );
-    });
-
-    if (yearSet.size === 0) {
-      yearSet.add(getFinancialYearFromDate(new Date()));
-    }
-
-    return Array.from(yearSet).sort((first, second) => {
-      const firstYear = Number(`20${first.split('-')[0]}`);
-      const secondYear = Number(`20${second.split('-')[0]}`);
-      return secondYear - firstYear;
-    });
-  }, [invoices]);
-
   useEffect(() => {
-    if (!selectedYear && availableYears.length > 0) {
-      setSelectedYear(availableYears[0]);
+    if (selectedFy) {
+      dispatch(fetchFinancialYearAnalytics(selectedFy));
     }
-  }, [availableYears, selectedYear]);
+  }, [dispatch, selectedFy]);
 
-  const financialYearData = useMemo(() => {
-    if (!selectedYear) {
-      return {
-        monthlyData: [],
-        totals: {
-          revenue: 0,
-          receipts: 0,
-          purchaseBills: 0,
-          sellerPayments: 0,
-          outstandingReceivables: 0,
-          pendingPayables: 0,
-          netCashFlow: 0,
-        },
-        highlights: {
-          averageInvoiceValue: 0,
-          collectionEfficiency: 0,
-          bestMonth: null,
-          busiestMonth: null,
-        },
-        recentInvoices: [],
-      };
-    }
-
-    const [startYY] = selectedYear.split('-');
-    const startYear = Number(`20${startYY}`);
-
-    const monthlyData = MONTHS.map((entry, index) => {
-      const year = index < 9 ? startYear : startYear + 1;
-
-      const monthInvoices = invoices.filter((invoice) => {
-        const invoiceDate = new Date(invoice.date);
-        return (
-          invoiceDate.getFullYear() === year &&
-          invoiceDate.getMonth() === entry.month
-        );
-      });
-
-      const monthPayments = payments.filter((payment) => {
-        const paymentDate = new Date(payment.date);
-        return (
-          paymentDate.getFullYear() === year &&
-          paymentDate.getMonth() === entry.month
-        );
-      });
-
-      const monthPurchaseInvoices = purchaseInvoices.filter((purchaseInvoice) => {
-        const purchaseDate = new Date(purchaseInvoice.date);
-        return (
-          purchaseDate.getFullYear() === year &&
-          purchaseDate.getMonth() === entry.month
-        );
-      });
-
-      const monthPurchasePayments = purchasePayments.filter((purchasePayment) => {
-        const purchasePaymentDate = new Date(purchasePayment.date);
-        return (
-          purchasePaymentDate.getFullYear() === year &&
-          purchasePaymentDate.getMonth() === entry.month
-        );
-      });
-
-      return {
-        month: entry.label,
-        monthKey: `${year}-${String(entry.month + 1).padStart(2, '0')}`,
-        year,
-        invoiceCount: monthInvoices.length,
-        monthInvoices,
-        totalInvoices: monthInvoices.reduce(
-          (sum, invoice) => sum + (invoice.grandTotal || 0),
-          0
-        ),
-        totalPayments: monthPayments.reduce(
-          (sum, payment) => sum + (payment.amountPaid || 0),
-          0
-        ),
-        totalSellerBills: monthPurchaseInvoices.reduce(
-          (sum, purchaseInvoice) => sum + (purchaseInvoice.amount || 0),
-          0
-        ),
-        totalSellerPayments: monthPurchasePayments.reduce(
-          (sum, purchasePayment) => sum + (purchasePayment.amountPaid || 0),
-          0
-        ),
-      };
-    });
-
-    const revenue = monthlyData.reduce((sum, month) => sum + month.totalInvoices, 0);
-    const receipts = monthlyData.reduce((sum, month) => sum + month.totalPayments, 0);
-    const purchaseBills = monthlyData.reduce(
-      (sum, month) => sum + month.totalSellerBills,
-      0
-    );
-    const sellerPaymentsTotal = monthlyData.reduce(
-      (sum, month) => sum + month.totalSellerPayments,
-      0
-    );
-
-    const outstandingReceivables = revenue - receipts;
-    const pendingPayables = purchaseBills - sellerPaymentsTotal;
-    const netCashFlow = receipts - sellerPaymentsTotal;
-
-    const bestMonth = [...monthlyData].sort(
-      (first, second) => second.totalInvoices - first.totalInvoices
-    )[0];
-    const busiestMonth = [...monthlyData].sort(
-      (first, second) => second.invoiceCount - first.invoiceCount
-    )[0];
-
-    const yearInvoices = monthlyData.flatMap((month) => month.monthInvoices);
-    const recentInvoices = [...yearInvoices]
-      .sort((first, second) => new Date(second.date) - new Date(first.date))
-      .slice(0, 5);
-
-    return {
-      monthlyData,
-      totals: {
-        revenue,
-        receipts,
-        purchaseBills,
-        sellerPayments: sellerPaymentsTotal,
-        outstandingReceivables,
-        pendingPayables,
-        netCashFlow,
-      },
-      highlights: {
-        averageInvoiceValue: yearInvoices.length ? revenue / yearInvoices.length : 0,
-        collectionEfficiency: revenue ? (receipts / revenue) * 100 : 0,
-        bestMonth,
-        busiestMonth,
-      },
-      recentInvoices,
-    };
-  }, [selectedYear, invoices, payments, purchaseInvoices, purchasePayments]);
-
-  const handleDownloadMonthInvoices = (monthData, invoicefor) => {
-    if (!monthData.monthInvoices.length) {
+  const handleDownloadMonthInvoices = async (monthData, invoicefor) => {
+    if (!monthData.invoiceCount || downloadingMonth) {
       return;
     }
 
-    generateMonthlyInvoicesPDF({
-      monthLabel: monthData.month,
-      financialYearLabel: selectedYear,
-      invoicefor,
-      companyName: user.companyDetails?.name || '',
-      companyAddress: user.companyDetails?.address || '',
-      companyGST: user.companyDetails?.gstin || '',
-      companyPhone: user.companyDetails?.mobile || '',
-      companyBank: user.bankDetails || {},
-      userSignature: user.signature || null,
-      invoices: [...monthData.monthInvoices]
-        .sort((first, second) => {
-          if ((first.invoiceNo || 0) !== (second.invoiceNo || 0)) {
-            return (first.invoiceNo || 0) - (second.invoiceNo || 0);
-          }
-          return new Date(first.date) - new Date(second.date);
-        })
-        .map((invoice) => ({
-          billNo: formatDocumentNumber(
-            invoice.invoiceNo,
-            invoice.financialYearLabel
-          ),
-          date: invoice.date,
-          challanNo: invoice.challanNo,
-          challanDate: invoice.challanDate,
-          orderNo: invoice.orderNo,
-          orderDate: invoice.orderDate,
-          disDocNo: invoice.disDocNo,
-          deliveryDate: invoice.deliveryDate,
-          dispatchedThrough: invoice.dispatchedThrough,
-          destination: invoice.destination,
-          customer: invoice.customer,
-          shipTo: invoice.shipTo,
-          products: invoice.invoiceProducts || [],
-          totalAmount: invoice.invoiceTotal,
-          termsAndConditions: invoice.termsAndConditions,
-          gst: invoice.gst,
-          grandTotal: invoice.grandTotal,
-        })),
-    });
+    setDownloadingMonth(monthData.monthKey);
+    try {
+      const { from, to } = buildMonthDateRange(monthData.monthKey);
+      const { data } = await api.get(`${apiUrl}/api/invoices`, {
+        params: { from, to, limit: 500 },
+      });
+      const monthInvoices = data.invoices || [];
+
+      if (!monthInvoices.length) {
+        toast.error('No invoices found for this month.');
+        return;
+      }
+
+      const { generateMonthlyInvoicesPDF } = await import(
+        '../services/pdfGeneratorService'
+      );
+      generateMonthlyInvoicesPDF({
+        monthLabel: monthData.month,
+        financialYearLabel: fyData?.financialYearLabel || selectedFy,
+        invoicefor,
+        companyName: user.companyDetails?.name || '',
+        companyAddress: user.companyDetails?.address || '',
+        companyGST: user.companyDetails?.gstin || '',
+        companyPhone: user.companyDetails?.mobile || '',
+        companyBank: user.bankDetails || {},
+        userSignature: user.signature || null,
+        invoices: [...monthInvoices]
+          .sort((first, second) => {
+            if ((first.invoiceNo || 0) !== (second.invoiceNo || 0)) {
+              return (first.invoiceNo || 0) - (second.invoiceNo || 0);
+            }
+            return new Date(first.date) - new Date(second.date);
+          })
+          .map((invoice) => ({
+            billNo: formatDocumentNumber(
+              invoice.invoiceNo,
+              invoice.financialYearLabel
+            ),
+            date: invoice.date,
+            challanNo: invoice.challanNo,
+            challanDate: invoice.challanDate,
+            orderNo: invoice.orderNo,
+            orderDate: invoice.orderDate,
+            customer: invoice.customer,
+            shipTo: invoice.shipTo,
+            products: invoice.invoiceProducts || [],
+            totalAmount: invoice.invoiceTotal,
+            termsAndConditions: invoice.termsAndConditions,
+            gst: invoice.gst,
+            grandTotal: invoice.grandTotal,
+          })),
+      });
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error, 'Failed to download invoices for this month.')
+      );
+    } finally {
+      setDownloadingMonth(null);
+    }
   };
+
+  const loading = (loadingYears && !years.length) || (loadingFy && !fyData);
 
   if (loading) {
     return (
@@ -269,7 +146,10 @@ const Dashboard = () => {
     );
   }
 
-  const { totals, highlights, monthlyData, recentInvoices } = financialYearData;
+  const totals = fyData?.totals || EMPTY_TOTALS;
+  const highlights = fyData?.highlights || EMPTY_HIGHLIGHTS;
+  const monthly = fyData?.monthly || [];
+  const recentInvoices = fyData?.recentInvoices || [];
 
   return (
     <div className='admin-container'>
@@ -278,12 +158,13 @@ const Dashboard = () => {
         <div className='financial-year-selector dashboard-hero'>
           <div>
             <h2>{user?.companyDetails?.name || 'Dashboard'}</h2>
-            <p>Financial-year operations, monthly exports, and commercial insights in one place.</p>
+            <p>
+              Financial-year operations, monthly exports, and commercial
+              insights in one place.
+            </p>
           </div>
           <div className='dashboard-pill-group'>
-            <span className='dashboard-pill'>
-              FY {selectedYear || getFinancialYearFromDate(new Date())}
-            </span>
+            <span className='dashboard-pill'>FY {selectedFy || '-'}</span>
             <span className='dashboard-pill'>
               Net Cash Flow Rs {formatNumberWithCommas(totals.netCashFlow)}
             </span>
@@ -293,10 +174,10 @@ const Dashboard = () => {
         <div className='financial-year-selector'>
           <h2>Financial Year</h2>
           <select
-            value={selectedYear}
-            onChange={(event) => setSelectedYear(event.target.value)}
+            value={selectedFy || ''}
+            onChange={(event) => dispatch(setSelectedFy(event.target.value))}
           >
-            {availableYears.map((year) => (
+            {years.map((year) => (
               <option key={year} value={year}>
                 FY {year}
               </option>
@@ -309,10 +190,7 @@ const Dashboard = () => {
             amount
             value={totals.revenue}
             heading='Total Revenue'
-            detail={`${monthlyData.reduce(
-              (sum, month) => sum + month.invoiceCount,
-              0
-            )} invoices`}
+            detail={`${totals.invoiceCount || 0} invoices`}
             color='rgb(0,115,255)'
           />
           <WidgetItem
@@ -403,7 +281,7 @@ const Dashboard = () => {
         <section className='monthly-breakdown'>
           <div className='monthly-breakdown-header'>
             <div>
-              <h2>Monthly Breakdown for FY {selectedYear}</h2>
+              <h2>Monthly Breakdown for FY {selectedFy}</h2>
               <p>Download all invoices for any month as one PDF in Original or Duplicate format.</p>
             </div>
             <div className='dashboard-pill-group'>
@@ -429,7 +307,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {monthlyData.map((monthData) => (
+              {monthly.map((monthData) => (
                 <tr key={monthData.monthKey}>
                   <td>{monthData.month}</td>
                   <td>Rs {formatNumberWithCommas(monthData.totalInvoices)}</td>
@@ -443,7 +321,10 @@ const Dashboard = () => {
                     <div className='dashboard-actions'>
                       <button
                         type='button'
-                        disabled={!monthData.invoiceCount}
+                        disabled={
+                          !monthData.invoiceCount ||
+                          downloadingMonth === monthData.monthKey
+                        }
                         onClick={() =>
                           handleDownloadMonthInvoices(
                             monthData,
@@ -456,7 +337,10 @@ const Dashboard = () => {
                       </button>
                       <button
                         type='button'
-                        disabled={!monthData.invoiceCount}
+                        disabled={
+                          !monthData.invoiceCount ||
+                          downloadingMonth === monthData.monthKey
+                        }
                         onClick={() =>
                           handleDownloadMonthInvoices(
                             monthData,
@@ -482,9 +366,7 @@ const Dashboard = () => {
                   <strong>Rs {formatNumberWithCommas(totals.receipts)}</strong>
                 </td>
                 <td>
-                  <strong>
-                    {monthlyData.reduce((sum, month) => sum + month.invoiceCount, 0)}
-                  </strong>
+                  <strong>{totals.invoiceCount || 0}</strong>
                 </td>
                 <td>
                   <strong>Rs {formatNumberWithCommas(totals.purchaseBills)}</strong>

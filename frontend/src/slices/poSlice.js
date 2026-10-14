@@ -1,15 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
-
-const initialPagination = {
-  page: 1,
-  limit: 10,
-  totalItems: 0,
-  totalPages: 1,
-  hasPrevPage: false,
-  hasNextPage: false,
-  search: '',
-};
+import { initialPagination } from '../constants/pagination.js';
 
 const initialState = {
   poNo: 1,
@@ -33,10 +24,6 @@ const initialState = {
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
-
 const lineAmount = (p) =>
   Number(p.quantity || 0) * Number(p.rate || 0) * (1 - (Number(p.discount) || 0) / 100);
 
@@ -52,7 +39,6 @@ export const fetchPOs = createAsyncThunk(
     try {
       const res = await api.get(`${apiUrl}/api/pos`, {
         params,
-        headers: getAuthHeaders(),
       });
       return res.data;
     } catch (error) {
@@ -69,7 +55,6 @@ export const fetchPONo = createAsyncThunk(
     try {
       const res = await api.get(`${apiUrl}/api/lastpo`, {
         params: date ? { date } : {},
-        headers: getAuthHeaders(),
       });
       return res.data.po;
     } catch (error) {
@@ -85,9 +70,7 @@ export const sendPOData = createAsyncThunk(
   'po/sendPOData',
   async (data, { rejectWithValue }) => {
     try {
-      const res = await api.post(`${apiUrl}/api/po/new`, data, {
-        headers: getAuthHeaders(),
-      });
+      const res = await api.post(`${apiUrl}/api/po/new`, data);
       return res.data;
     } catch (error) {
       return rejectWithValue(

@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminSidebar from '../components/AdminSidebar';
 import api from '../axiosSetup.js';
 import { loginSuccess } from '../slices/userSlice';
+import { getErrorMessage } from '../services/apiError';
 
 const MAX_SIGNATURE_SIZE_BYTES = 1024 * 1024;
 
@@ -181,9 +183,9 @@ const Profile = () => {
           token: localStorage.getItem('token'),
         }),
       );
-      alert('Profile updated successfully');
+      toast.success('Profile updated successfully');
     } catch (error) {
-      alert(error.response?.data?.message || 'Unable to update profile');
+      toast.error(getErrorMessage(error, 'Unable to update profile'));
     }
   };
 

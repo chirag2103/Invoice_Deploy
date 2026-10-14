@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import '../styles/InvoiceForm.css';
 
@@ -16,12 +17,12 @@ import {
 
 import { fetchCustomers } from '../slices/customerSlice';
 import { useNavigate } from 'react-router-dom';
-import { generateChallanPDF } from '../services/pdfGeneratorService';
 import {
   formatDocumentNumber,
   getFinancialYearFromDate,
   uomList,
 } from '../services/helper';
+import { getPdfExtras } from '../services/pdfPayload';
 
 const ChallanForm = () => {
   const dispatch = useDispatch();
@@ -46,6 +47,7 @@ const ChallanForm = () => {
     uom: 'NOS',
   });
 
+  const [saving, setSaving] = useState(false);
   const addBtnRef = useRef(null);
 
   // Disable Tab on product name textarea
@@ -81,7 +83,7 @@ const ChallanForm = () => {
   // Handlers
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.quantity) {
-      alert('Enter product name and quantity.');
+      toast.error('Enter product name and quantity.');
       return;
     }
     dispatch(addChallanProduct(newProduct));
@@ -108,7 +110,7 @@ const ChallanForm = () => {
   // Submit
   const handleSubmit = async () => {
     if (!challan.customer || challan.products.length === 0) {
-      alert('Select customer and add at least one product.');
+      toast.error('Select customer and add at least one product.');
       return;
     }
 
@@ -126,33 +128,41 @@ const ChallanForm = () => {
         : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
     };
 
-    const result = await dispatch(sendChallanData(challanDataSave));
-    const savedChallan = result.payload?.challan;
+    setSaving(true);
+    try {
+      const result = await dispatch(sendChallanData(challanDataSave));
 
-    const pdfData = {
-      customer: selectedCustomer,
-      challanNo: formatDocumentNumber(
-        savedChallan?.challanNo || challan.challanNo,
-        savedChallan?.financialYearLabel || challan.financialYearLabel
-      ),
-      date: challan.challanDate,
-      orderNo: challan.orderNo,
-      orderDate: challan.orderDate,
-      products: challan.products,
-      shipTo: sameAsBillTo
-        ? null
-        : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
-      companyName: user.companyDetails?.name,
-      companyAddress: user.companyDetails?.address,
-      companyGST: user.companyDetails?.gstin,
-      companyPhone: user.companyDetails?.mobile,
-      userSignature: user.signature || null,
-      companyLogo: user.companyLogo || null,
-      template: user.pdfTemplate || 'classic',
-    };
+      if (!sendChallanData.fulfilled.match(result)) {
+        toast.error(result.payload || 'Failed to save challan.');
+        return;
+      }
 
-    generateChallanPDF(pdfData);
-    navigate('/challans/all');
+      const savedChallan = result.payload?.challan;
+
+      const pdfData = {
+        customer: selectedCustomer,
+        challanNo: formatDocumentNumber(
+          savedChallan?.challanNo || challan.challanNo,
+          savedChallan?.financialYearLabel || challan.financialYearLabel
+        ),
+        date: challan.challanDate,
+        orderNo: challan.orderNo,
+        orderDate: challan.orderDate,
+        products: challan.products,
+        shipTo: sameAsBillTo
+          ? null
+          : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
+        ...getPdfExtras(user, { includeBank: false }),
+      };
+
+      const { generateChallanPDF } = await import(
+        '../services/pdfGeneratorService'
+      );
+      generateChallanPDF(pdfData);
+      navigate('/challans/all');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // UI
@@ -452,8 +462,13 @@ const ChallanForm = () => {
       </div>
 
       <div className='form-actions'>
-        <button type='button' className='save-challan' onClick={handleSubmit}>
-          SAVE &amp; GENERATE PDF
+        <button
+          type='button'
+          className='save-challan'
+          onClick={handleSubmit}
+          disabled={saving}
+        >
+          {saving ? 'SAVING...' : 'SAVE & GENERATE PDF'}
         </button>
       </div>
     </div>

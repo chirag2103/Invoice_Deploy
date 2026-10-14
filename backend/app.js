@@ -10,6 +10,7 @@ import rateLimit from 'express-rate-limit';
 
 import config from './config/index.js';
 import healthRouter from './routes/healthRoute.js';
+import analyticsRouter from './routes/analyticsRoute.js';
 import customerRouter from './routes/customerRoute.js';
 import invoiceRouter from './routes/invoiceRoute.js';
 import quotationRouter from './routes/quotationRoute.js';
@@ -76,6 +77,7 @@ app.use(
 );
 
 app.use('/api', userRouter);
+app.use('/api/analytics', analyticsRouter);
 app.use('/api/purchase', purchaseInvoiceRouter);
 app.use('/api/purchase', purchasePaymentRouter);
 app.use('/api', customerRouter);

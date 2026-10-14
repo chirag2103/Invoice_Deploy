@@ -1,6 +1,19 @@
 import Customer from '../models/Customer.js';
 import ErrorHandler from '../utils/errorHandler.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
+import paginateQuery from '../utils/paginateQuery.js';
+
+const CUSTOMER_SEARCH_FIELDS = [
+  'name',
+  'gstNo',
+  'address',
+  { field: 'openingBalance', type: 'number' },
+];
+const CUSTOMER_ALLOWED_SORT = {
+  name: { name: 1 },
+  '-name': { name: -1 },
+  balance: { openingBalance: -1 },
+  '-balance': { openingBalance: 1 },
+};
 
 export const createCustomer = async (req, res, next) => {
   try {
@@ -37,20 +50,20 @@ export const createCustomer = async (req, res, next) => {
 
 export const getCustomers = async (req, res, next) => {
   try {
-    const customers = await Customer.find({ user: req.user.id })
-      .collation({ locale: 'en', strength: 1 })
-      .sort({ name: 1 })
-      .lean();
-
-    const { results, pagination } = filterAndPaginate(customers, req.query, [
-      'name',
-      'gstNo',
-      'address',
-      'openingBalance',
-    ]);
+    const { data, pagination } = await paginateQuery(Customer, {
+      filter: { user: req.user.id },
+      query: req.query,
+      searchFields: CUSTOMER_SEARCH_FIELDS,
+      allowedSort: CUSTOMER_ALLOWED_SORT,
+      defaultSort: { name: 1 },
+      // Some pages (e.g. the payment form's customer picker) load a large
+      // batch at once rather than paging through a dropdown.
+      maxLimit: 500,
+      collation: { locale: 'en', strength: 1 },
+    });
 
     res.status(200).json({
-      customers: results,
+      customers: data,
       pagination,
     });
   } catch (error) {

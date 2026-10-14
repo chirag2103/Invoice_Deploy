@@ -1,6 +1,20 @@
 import Seller from '../models/Seller.js';
 import ErrorHandler from '../utils/errorHandler.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
+import paginateQuery from '../utils/paginateQuery.js';
+
+const SELLER_SEARCH_FIELDS = [
+  'name',
+  'gstNumber',
+  'address',
+  'contact',
+  { field: 'openingBalance', type: 'number' },
+];
+const SELLER_ALLOWED_SORT = {
+  name: { name: 1 },
+  '-name': { name: -1 },
+  balance: { openingBalance: -1 },
+  '-balance': { openingBalance: 1 },
+};
 
 export const createSeller = async (req, res, next) => {
   try {
@@ -38,24 +52,23 @@ export const createSeller = async (req, res, next) => {
 
 export const getSellers = async (req, res, next) => {
   try {
-    const sellers = await Seller.find({ user: req.user.id })
-      .collation({ locale: 'en', strength: 1 })
-      .sort({ name: 1 })
-      .lean({ virtuals: true });
+    const { data, pagination } = await paginateQuery(Seller, {
+      filter: { user: req.user.id },
+      query: req.query,
+      searchFields: SELLER_SEARCH_FIELDS,
+      allowedSort: SELLER_ALLOWED_SORT,
+      defaultSort: { name: 1 },
+      collation: { locale: 'en', strength: 1 },
+      maxLimit: 500,
+    });
 
-    const normalizedSellers = sellers.map((seller) => ({
+    const sellers = data.map((seller) => ({
       ...seller,
-      gstNo: seller.gstNumber || seller.gstNo || '',
+      gstNo: seller.gstNumber || '',
     }));
 
-    const { results, pagination } = filterAndPaginate(
-      normalizedSellers,
-      req.query,
-      ['name', 'gstNo', 'address', 'contact', 'openingBalance'],
-    );
-
     res.status(200).json({
-      sellers: results,
+      sellers,
       pagination,
     });
   } catch (error) {

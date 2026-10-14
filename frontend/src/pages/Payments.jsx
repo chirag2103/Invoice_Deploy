@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminSidebar from '../components/AdminSidebar';
 import { ListToolbar, PaginationControls } from '../components/ListControls';
@@ -6,6 +7,8 @@ import { fetchCustomers } from '../slices/customerSlice';
 import { fetchPayments } from '../slices/paymentSlice';
 import api from '../axiosSetup.js';
 import { formatNumberWithCommas } from '../services/helper.js';
+import { getErrorMessage } from '../services/apiError';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const initialForm = {
   customer: '',
@@ -24,7 +27,8 @@ const Payments = () => {
 
   const [formData, setFormData] = useState(initialForm);
   const [editingId, setEditingId] = useState(null);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput, 300);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -49,10 +53,11 @@ const Payments = () => {
       } else {
         await api.post(`${apiUrl}/api/payment/new`, formData);
       }
+      toast.success(editingId ? 'Payment updated' : 'Payment added');
       resetForm();
       dispatch(fetchPayments({ page, limit, search }));
     } catch (requestError) {
-      alert(requestError.response?.data?.message || 'Unable to save payment');
+      toast.error(getErrorMessage(requestError, 'Unable to save payment'));
     }
   };
 
@@ -70,9 +75,10 @@ const Payments = () => {
     if (!window.confirm('Delete this payment?')) return;
     try {
       await api.delete(`${apiUrl}/api/payment/${paymentId}`);
+      toast.success('Payment deleted');
       dispatch(fetchPayments({ page, limit, search }));
     } catch (requestError) {
-      alert(requestError.response?.data?.message || 'Unable to delete payment');
+      toast.error(getErrorMessage(requestError, 'Unable to delete payment'));
     }
   };
 
@@ -145,9 +151,9 @@ const Payments = () => {
           <ListToolbar
             title='Payments'
             subtitle='Search and manage customer payments.'
-            search={search}
+            search={searchInput}
             onSearchChange={(value) => {
-              setSearch(value);
+              setSearchInput(value);
               setPage(1);
             }}
             searchPlaceholder='Search by customer, amount, date, remarks'

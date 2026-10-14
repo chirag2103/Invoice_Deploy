@@ -1,22 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
 import { getTodayDate } from '../services/helper.js';
+import { initialPagination } from '../constants/pagination.js';
 
 const apiUrl = process.env.REACT_APP_API_URL;
-
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
-
-const initialPagination = {
-  page: 1,
-  limit: 10,
-  totalItems: 0,
-  totalPages: 1,
-  hasPrevPage: false,
-  hasNextPage: false,
-  search: '',
-};
 
 const initialState = {
   challanNo: 1,
@@ -41,7 +28,6 @@ export const fetchChallans = createAsyncThunk(
     try {
       const response = await api.get(`${apiUrl}/api/challans`, {
         params,
-        headers: getAuthHeaders(),
       });
       return response.data;
     } catch (error) {
@@ -58,7 +44,6 @@ export const fetchChallanNo = createAsyncThunk(
     try {
       const res = await api.get(`${apiUrl}/api/lastchallan`, {
         params: date ? { date } : {},
-        headers: getAuthHeaders(),
       });
       return res.data.challan;
     } catch (error) {
@@ -71,21 +56,32 @@ export const fetchChallanNo = createAsyncThunk(
 
 export const sendChallanData = createAsyncThunk(
   'challan/sendChallanData',
-  async (challanData) => {
-    const response = await api.post(`${apiUrl}/api/challan/new`, challanData, {
-      headers: getAuthHeaders(),
-    });
-    return response.data;
+  async (challanData, { rejectWithValue }) => {
+    try {
+      const response = await api.post(
+        `${apiUrl}/api/challan/new`,
+        challanData
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to save challan'
+      );
+    }
   }
 );
 
 export const deleteChallan = createAsyncThunk(
   'challan/deleteChallan',
-  async (id) => {
-    const response = await api.delete(`${apiUrl}/api/challan/${id}`, {
-      headers: getAuthHeaders(),
-    });
-    return { id, message: response.data.message };
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await api.delete(`${apiUrl}/api/challan/${id}`);
+      return { id, message: response.data.message };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to delete challan'
+      );
+    }
   }
 );
 
@@ -169,6 +165,9 @@ const challanSlice = createSlice({
           (challan) => challan._id !== action.payload.id
         );
         state.message = action.payload.message;
+      })
+      .addCase(deleteChallan.rejected, (state, action) => {
+        state.error = action.payload || action.error.message;
       })
       .addCase(fetchChallanNo.fulfilled, (state, action) => {
         state.challanNo = action.payload.challanNo;

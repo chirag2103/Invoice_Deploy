@@ -58,7 +58,7 @@ const quotationSchema = new mongoose.Schema({
   },
   termsAndConditions: { type: String, default: '' },
   technicalSpecifications: { type: String, default: '' },
-});
+}, { timestamps: true });
 
 quotationSchema.index(
   { user: 1, financialYearStart: 1, quoteNo: 1 },
@@ -69,5 +69,6 @@ quotationSchema.index(
     },
   }
 );
+quotationSchema.index({ user: 1, date: -1 });
 
 export default mongoose.model('Quotation', quotationSchema);

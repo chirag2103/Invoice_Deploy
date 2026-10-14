@@ -70,7 +70,7 @@ const invoiceSchema = mongoose.Schema({
     required: true,
   },
   termsAndConditions: { type: String, default: '' },
-});
+}, { timestamps: true });
 
 invoiceSchema.index(
   { user: 1, financialYearStart: 1, invoiceNo: 1 },
@@ -81,6 +81,8 @@ invoiceSchema.index(
     },
   }
 );
+invoiceSchema.index({ user: 1, date: -1 });
+invoiceSchema.index({ user: 1, customer: 1, date: 1 });
 
 // invoiceSchema.pre('save', function (next) {
 //   this.remainingAmount = this.invoiceTotal - this.paidAmount;

@@ -1,7 +1,28 @@
 {
-  "dependencies": {
-    "pdfmake": "^0.2.20",
-    "qrcode": "^1.5.4",
-    "qrcode.react": "^4.2.0"
+  "name": "invoice-deploy",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "prepare": "husky",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "test:backend": "cd backend && npm test"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.9.9"
+  },
+  "lint-staged": {
+    "backend/**/*.js": [
+      "prettier --write",
+      "eslint --config backend/eslint.config.js --fix"
+    ],
+    "frontend/**/*.{js,jsx}": [
+      "prettier --write"
+    ],
+    "*.{json,md,scss,css}": [
+      "prettier --write"
+    ]
   }
 }

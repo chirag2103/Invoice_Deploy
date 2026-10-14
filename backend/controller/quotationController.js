@@ -2,32 +2,28 @@ import Quotation from '../models/Quotation.js';
 import Customer from '../models/Customer.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
+import paginateQuery from '../utils/paginateQuery.js';
 import { pickProducts } from '../utils/pickProduct.js';
 import computeDocumentTotals from '../services/documentTotals.js';
 import createNumberedDocument from '../services/createNumberedDocument.js';
 import {
   buildFinancialYearFilter,
-  getAvailableFinancialYearsFromDocuments,
+  getAvailableFinancialYearsForUser,
   getFinancialYearInfo,
   peekNextDocumentNumber,
 } from '../utils/financialYear.js';
 
-const sortQuotations = (quotations) =>
-  [...quotations].sort((first, second) => {
-    const secondFy = second.financialYearStart || 0;
-    const firstFy = first.financialYearStart || 0;
-
-    if (secondFy !== firstFy) {
-      return secondFy - firstFy;
-    }
-
-    if ((second.quoteNo || 0) !== (first.quoteNo || 0)) {
-      return (second.quoteNo || 0) - (first.quoteNo || 0);
-    }
-
-    return new Date(second.date) - new Date(first.date);
-  });
+const QUOTATION_SEARCH_FIELDS = [
+  { field: 'quoteNo', type: 'number' },
+  'financialYearLabel',
+];
+const QUOTATION_ALLOWED_SORT = {
+  date: { date: -1 },
+  '-date': { date: 1 },
+  amount: { grandTotal: -1 },
+  '-amount': { grandTotal: 1 },
+};
+const QUOTATION_DEFAULT_SORT = { financialYearStart: -1, quoteNo: -1 };
 
 export const createQuotation = catchAsyncError(async (req, res, next) => {
   const {
@@ -95,30 +91,35 @@ export const createQuotation = catchAsyncError(async (req, res, next) => {
 });
 
 export const getQuotations = catchAsyncError(async (req, res, next) => {
-  const availableYearsSource = await Quotation.find({ user: req.user.id })
-    .select('date financialYearLabel financialYearStart')
-    .lean();
-  const allQuotations = await Quotation.find({
+  const filter = {
     user: req.user.id,
     ...buildFinancialYearFilter(req.query, 'date'),
-  })
-    .populate('customer')
-    .lean();
+  };
 
-  const sortedQuotations = sortQuotations(allQuotations);
-  const { results, pagination } = filterAndPaginate(
-    sortedQuotations,
-    req.query,
-    ['quoteNo', 'financialYearLabel', 'customer.name', 'date']
-  );
+  const [{ data, pagination }, availableFinancialYears] = await Promise.all([
+    paginateQuery(Quotation, {
+      filter,
+      query: req.query,
+      searchFields: QUOTATION_SEARCH_FIELDS,
+      searchRefs: [
+        {
+          RefModel: Customer,
+          refField: 'name',
+          localField: 'customer',
+          scopeField: 'user',
+        },
+      ],
+      allowedSort: QUOTATION_ALLOWED_SORT,
+      defaultSort: QUOTATION_DEFAULT_SORT,
+      populate: 'customer',
+    }),
+    getAvailableFinancialYearsForUser(Quotation, req.user.id),
+  ]);
 
   res.status(200).json({
-    quotations: results,
+    quotations: data,
     pagination,
-    availableFinancialYears: getAvailableFinancialYearsFromDocuments(
-      availableYearsSource,
-      'date'
-    ),
+    availableFinancialYears,
     currentFinancialYear: getFinancialYearInfo().financialYearLabel,
   });
 });

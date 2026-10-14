@@ -41,6 +41,9 @@ const purchaseInvoiceSchema = new mongoose.Schema(
   }
 );
 
+purchaseInvoiceSchema.index({ user: 1, date: -1 });
+purchaseInvoiceSchema.index({ user: 1, seller: 1, date: 1 });
+
 const PurchaseInvoice = mongoose.model(
   'PurchaseInvoice',
   purchaseInvoiceSchema,

@@ -1,15 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
-
-const initialPagination = {
-  page: 1,
-  limit: 10,
-  totalItems: 0,
-  totalPages: 1,
-  hasPrevPage: false,
-  hasNextPage: false,
-  search: '',
-};
+import { initialPagination } from '../constants/pagination.js';
 
 const initialState = {
   purchaseInvoices: [],
@@ -21,17 +12,12 @@ const initialState = {
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
-const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
-
 export const fetchPurchaseInvoices = createAsyncThunk(
   'purchaseInvoice/fetchPurchaseInvoices',
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await api.get(`${apiUrl}/api/purchase/get/all`, {
         params,
-        headers: getAuthHeaders(),
       });
       return response.data;
     } catch (error) {

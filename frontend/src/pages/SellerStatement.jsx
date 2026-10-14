@@ -9,7 +9,6 @@ import {
   getFinancialYearStartDate,
   getTodayDate,
 } from '../services/helper';
-import { generateStatementPDF } from '../services/pdfGeneratorService.js';
 
 const SellerStatement = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -66,11 +65,14 @@ const SellerStatement = () => {
     setAppliedRange({ fromDate, toDate });
   };
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!statementData) {
       return;
     }
 
+    const { generateStatementPDF } = await import(
+      '../services/pdfGeneratorService.js'
+    );
     generateStatementPDF({
       companyName: user.companyDetails?.name,
       companyAddress: user.companyDetails?.address,

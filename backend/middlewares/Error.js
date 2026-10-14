@@ -28,7 +28,6 @@ const errorMiddleware = (err, req, res, next) => {
 
   // Log server-side failures (never leak stacks to the client).
   if (statusCode >= 500) {
-    // eslint-disable-next-line no-console
     console.error(
       `[error] ${req.method} ${req.originalUrl} ->`,
       err.stack || err

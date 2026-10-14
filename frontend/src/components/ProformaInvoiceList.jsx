@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import { fetchProformaInvoices, deleteProformaInvoice } from '../slices/proformaSlice';
-import { generateProformaInvoicePDF } from '../services/pdfGeneratorService';
 import { formatDocumentNumber, formatNumberWithCommas } from '../services/helper';
+import { getPdfExtras } from '../services/pdfPayload';
 import { ListToolbar, PaginationControls } from './ListControls';
 
 const ProformaInvoiceList = () => {
@@ -56,7 +57,10 @@ const ProformaInvoiceList = () => {
     );
   }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
 
-  const handlePrint = (proforma) => {
+  const handlePrint = async (proforma) => {
+    const { generateProformaInvoicePDF } = await import(
+      '../services/pdfGeneratorService'
+    );
     generateProformaInvoicePDF({
       customer: proforma.customer,
       billNo: formatDocumentNumber(
@@ -76,14 +80,7 @@ const ProformaInvoiceList = () => {
       challanDate: proforma.challanDate?.split('T')[0],
       orderNo: proforma.orderNo,
       orderDate: proforma.orderDate?.split('T')[0],
-      companyName: user.companyDetails?.name,
-      companyAddress: user.companyDetails?.address,
-      companyGST: user.companyDetails?.gstin,
-      companyPhone: user.companyDetails?.mobile,
-      companyBank: user.bankDetails || {},
-      userSignature: user.signature || null,
-      companyLogo: user.companyLogo || null,
-      template: user.pdfTemplate || 'classic',
+      ...getPdfExtras(user),
     });
   };
 
@@ -102,9 +99,13 @@ const ProformaInvoiceList = () => {
     });
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Delete this proforma invoice?')) {
-      dispatch(deleteProformaInvoice(id));
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this proforma invoice?')) return;
+    const result = await dispatch(deleteProformaInvoice(id));
+    if (deleteProformaInvoice.fulfilled.match(result)) {
+      toast.success('Proforma invoice deleted');
+    } else {
+      toast.error(result.payload || 'Unable to delete proforma invoice');
     }
   };
 

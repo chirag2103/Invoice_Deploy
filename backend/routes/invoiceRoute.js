@@ -11,10 +11,6 @@ import {
   updateInvoice,
 } from '../controller/InvoiceController.js';
 import { isAuthenticatedUser } from '../middlewares/auth.js';
-import {
-  getFinancialYearAnalytics,
-  getFinancialYears,
-} from '../controller/analyticsController.js';
 
 const router = express.Router();
 router.route('/invoice/new').post(isAuthenticatedUser, createInvoice);
@@ -28,7 +24,5 @@ router.route('/invoice/:id').delete(isAuthenticatedUser, deleteInvoice);
 router.route('/lastinvoice').get(isAuthenticatedUser, getLastInvoice);
 router.route('/billingInfo').get(isAuthenticatedUser, getCustomerBillingInfo);
 router.route('/statement/:id').get(isAuthenticatedUser, getStatementByCustomer);
-router.get('/financial-years', isAuthenticatedUser, getFinancialYears);
-router.get('/financial-year', isAuthenticatedUser, getFinancialYearAnalytics);
 
 export default router;

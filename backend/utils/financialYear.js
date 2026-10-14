@@ -1,4 +1,5 @@
 import DocumentSequence from '../models/DocumentSequence.js';
+import ErrorHandler from './errorHandler.js';
 
 export const getFinancialYearStart = (dateInput = new Date()) => {
   const date = new Date(dateInput);
@@ -58,7 +59,7 @@ export const getFinancialYearDateRange = (fyValue) => {
     };
   }
 
-  throw new Error('Invalid financial year. Use format like 25-26.');
+  throw new ErrorHandler('Invalid financial year. Use format like 25-26.', 400);
 };
 
 export const buildFinancialYearFilter = (query, fieldName) => {
@@ -73,36 +74,6 @@ export const buildFinancialYearFilter = (query, fieldName) => {
       $lte: endDate,
     },
   };
-};
-
-export const getAvailableFinancialYearsFromDocuments = (
-  documents,
-  dateFieldName
-) => {
-  const years = new Map();
-
-  documents.forEach((document) => {
-    if (document.financialYearLabel) {
-      years.set(
-        document.financialYearLabel,
-        document.financialYearStart ||
-          Number(`20${document.financialYearLabel.split('-')[0]}`)
-      );
-      return;
-    }
-
-    if (document[dateFieldName]) {
-      const yearInfo = getFinancialYearInfo(document[dateFieldName]);
-      years.set(yearInfo.financialYearLabel, yearInfo.financialYearStart);
-    }
-  });
-
-  const currentYearInfo = getFinancialYearInfo();
-  years.set(currentYearInfo.financialYearLabel, currentYearInfo.financialYearStart);
-
-  return Array.from(years.entries())
-    .sort((first, second) => second[1] - first[1])
-    .map(([label]) => label);
 };
 
 export const getNextDocumentNumber = async (
@@ -168,3 +139,26 @@ export const peekNextDocumentNumber = async (userId, documentType, dateInput) =>
 
 export const formatDocumentDisplayNumber = (documentNumber, financialYearLabel) =>
   financialYearLabel ? `${financialYearLabel}/${documentNumber}` : String(documentNumber);
+
+/**
+ * List of financial years a user has documents in, for a list page's FY
+ * filter dropdown. Uses `distinct` (index-friendly, returns only the unique
+ * labels) instead of loading every document — replaces the old pattern of
+ * fetching `date`/`financialYearLabel` for the whole collection on every
+ * list request.
+ */
+export const getAvailableFinancialYearsForUser = async (Model, userId) => {
+  const labels = await Model.distinct('financialYearLabel', {
+    user: userId,
+    financialYearLabel: { $exists: true, $nin: [null, ''] },
+  });
+
+  const currentLabel = getFinancialYearInfo().financialYearLabel;
+  const unique = new Set([...labels, currentLabel]);
+
+  return Array.from(unique).sort((first, second) => {
+    const firstYear = Number(`20${String(first).split('-')[0]}`);
+    const secondYear = Number(`20${String(second).split('-')[0]}`);
+    return secondYear - firstYear;
+  });
+};

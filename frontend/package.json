@@ -5,22 +5,14 @@
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.1",
     "axios": "^1.6.8",
-    "chart.js": "^4.4.2",
-    "cra-template": "1.2.0",
-    "frontend": "file:",
-    "html2canvas": "^1.4.1",
-    "inr-words": "^1.0.4",
-    "jspdf": "^2.5.1",
-    "jspdf-autotable": "^3.8.2",
     "pdfmake": "^0.2.21",
     "react": "^18.2.0",
-    "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.6.1",
     "react-icons": "^5.2.0",
     "react-redux": "^9.1.0",
     "react-router-dom": "^6.22.2",
     "react-scripts": "5.0.1",
-    "react-table": "^7.8.0",
     "to-words": "^4.0.1",
     "web-vitals": "^3.5.2"
   },
@@ -36,6 +28,11 @@
       "react-app/jest"
     ]
   },
+  "jest": {
+    "transformIgnorePatterns": [
+      "node_modules/(?!(axios)/)"
+    ]
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -49,6 +46,8 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "sass": "^1.76.0"
   }
 }
