@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminSidebar from '../components/AdminSidebar';
-import { ListToolbar, PaginationControls } from '../components/ListControls';
-import { fetchSellers } from '../slices/customerSlice';
+import { ListToolbar, PaginationControls, AMOUNT_SORT_OPTIONS } from '../components/ListControls';
+import { fetchSellersForPicker } from '../slices/customerSlice';
 import { fetchPurchasePayments } from '../slices/purchasePaymentSlice';
 import api from '../axiosSetup.js';
 import { formatNumberWithCommas } from '../services/helper.js';
@@ -20,7 +20,9 @@ const initialForm = {
 const SellerPayments = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const dispatch = useDispatch();
-  const { sellers } = useSelector((state) => state.customers);
+  const pickerLoading = useSelector((state) => state.customers.sellerOptionsLoading);
+  const pickerError = useSelector((state) => state.customers.sellerOptionsError);
+  const { sellerOptions: sellers } = useSelector((state) => state.customers);
   const { purchasePayments, pagination, loading, error } = useSelector(
     (state) => state.purchasePayment
   );
@@ -29,16 +31,17 @@ const SellerPayments = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 300);
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
   useEffect(() => {
-    dispatch(fetchSellers({ limit: 200 }));
+    dispatch(fetchSellersForPicker());
   }, [dispatch]);
 
   useEffect(() => {
-    dispatch(fetchPurchasePayments({ page, limit, search }));
-  }, [dispatch, page, limit, search]);
+    dispatch(fetchPurchasePayments({ page, limit, search, sort }));
+  }, [dispatch, page, limit, search, sort]);
 
   const resetForm = () => {
     setFormData(initialForm);
@@ -55,7 +58,7 @@ const SellerPayments = () => {
       }
       toast.success(editingId ? 'Payment updated' : 'Payment added');
       resetForm();
-      dispatch(fetchPurchasePayments({ page, limit, search }));
+      dispatch(fetchPurchasePayments({ page, limit, search, sort }));
     } catch (requestError) {
       toast.error(
         getErrorMessage(requestError, 'Unable to save seller payment')
@@ -78,7 +81,7 @@ const SellerPayments = () => {
     try {
       await api.delete(`${apiUrl}/api/purchase/payment/${paymentId}`);
       toast.success('Payment deleted');
-      dispatch(fetchPurchasePayments({ page, limit, search }));
+      dispatch(fetchPurchasePayments({ page, limit, search, sort }));
     } catch (requestError) {
       toast.error(
         getErrorMessage(requestError, 'Unable to delete seller payment')
@@ -103,12 +106,15 @@ const SellerPayments = () => {
               required
             >
               <option value=''>Select seller</option>
+              {editingId && formData.seller && !sellers.some((item) => item._id === formData.seller) && <option value={formData.seller} disabled>Current seller (archived)</option>}
               {sellers.map((seller) => (
                 <option key={seller._id} value={seller._id}>
                   {seller.name}
                 </option>
               ))}
             </select>
+            {pickerLoading && <p>Loading options...</p>}
+            {pickerError && <p role='alert'>{pickerError}</p>}
             <label className='form-label'>Amount</label>
             <input
               type='number'
@@ -153,6 +159,9 @@ const SellerPayments = () => {
         </div>
         <div className='customer-list-container'>
           <ListToolbar
+            sort={sort}
+            sortOptions={AMOUNT_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
             title='Purchase Payments'
             subtitle='Search and manage seller payments.'
             search={searchInput}

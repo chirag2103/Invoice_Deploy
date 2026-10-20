@@ -1,3 +1,4 @@
+import { getSessionVersion } from './services/session';
 // src/axiosSetup.js
 import axios from 'axios';
 import { getErrorMessage } from './services/apiError';
@@ -21,6 +22,7 @@ export const setRedirectToLogin = (redirectFn) => {
 // Request interceptor to add token to headers
 api.interceptors.request.use(
   (config) => {
+    config.sessionVersion = getSessionVersion();
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -40,8 +42,16 @@ const AUTH_ENDPOINT_PATTERN =
 
 // Response interceptor to handle token expiration and other auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config.sessionVersion !== getSessionVersion()) {
+      throw new axios.CanceledError('Session changed');
+    }
+    return response;
+  },
   (error) => {
+    if (error.config && error.config.sessionVersion !== getSessionVersion()) {
+      return Promise.reject(new axios.CanceledError('Session changed'));
+    }
     error.uiMessage = getErrorMessage(error);
 
     const isAuthEndpoint = AUTH_ENDPOINT_PATTERN.test(error.config?.url || '');

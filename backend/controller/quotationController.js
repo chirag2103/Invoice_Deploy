@@ -16,6 +16,7 @@ import {
 const QUOTATION_SEARCH_FIELDS = [
   { field: 'quoteNo', type: 'number' },
   'financialYearLabel',
+  { field: 'date', type: 'date' },
 ];
 const QUOTATION_ALLOWED_SORT = {
   date: { date: -1 },
@@ -54,6 +55,7 @@ export const createQuotation = catchAsyncError(async (req, res, next) => {
   const customerDoc = await Customer.findOne({
     _id: customer,
     user: req.user.id,
+    isArchived: { $ne: true },
   });
   if (!customerDoc) {
     return next(new ErrorHandler('Customer not found', 404));
@@ -174,6 +176,7 @@ export const updateQuotation = catchAsyncError(async (req, res, next) => {
     const customerDoc = await Customer.findOne({
       _id: customer,
       user: req.user.id,
+      isArchived: { $ne: true },
     });
     if (!customerDoc) {
       return next(new ErrorHandler('Customer not found', 404));

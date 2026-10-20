@@ -53,7 +53,7 @@ export const createSeller = async (req, res, next) => {
 export const getSellers = async (req, res, next) => {
   try {
     const { data, pagination } = await paginateQuery(Seller, {
-      filter: { user: req.user.id },
+      filter: { user: req.user.id, ...(req.query.includeArchived === 'true' ? {} : { isArchived: { $ne: true } }) },
       query: req.query,
       searchFields: SELLER_SEARCH_FIELDS,
       allowedSort: SELLER_ALLOWED_SORT,
@@ -122,10 +122,10 @@ export const updateSeller = async (req, res, next) => {
 
 export const deleteSeller = async (req, res, next) => {
   try {
-    const seller = await Seller.findOneAndDelete({
+    const seller = await Seller.findOneAndUpdate({
       _id: req.params.id,
       user: req.user.id,
-    });
+    }, { $set: { isArchived: true } }, { new: true });
 
     if (!seller) {
       return next(new ErrorHandler('Seller not found', 404));
@@ -133,9 +133,22 @@ export const deleteSeller = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Seller deleted successfully',
+      message: 'Seller archived. Existing documents and balances are preserved.',
+      archived: true,
     });
   } catch (error) {
     next(error);
   }
+};
+
+export const restoreSeller = async (req, res, next) => {
+  try {
+    const seller = await Seller.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      { $set: { isArchived: false } },
+      { new: true }
+    );
+    if (!seller) return next(new ErrorHandler('Seller not found', 404));
+    res.status(200).json({ success: true, seller });
+  } catch (error) { next(error); }
 };

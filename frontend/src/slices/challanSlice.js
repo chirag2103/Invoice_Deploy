@@ -135,11 +135,13 @@ const challanSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      .addCase(fetchChallans.pending, (state) => {
+      .addCase(fetchChallans.pending, (state, action) => {
+        state.fetchChallansRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchChallans.fulfilled, (state, action) => {
+        if (state.fetchChallansRequestId && state.fetchChallansRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.challans = action.payload.challans || [];
         state.pagination = action.payload.pagination || initialPagination;
@@ -147,6 +149,7 @@ const challanSlice = createSlice({
         state.currentFinancialYear = action.payload.currentFinancialYear || '';
       })
       .addCase(fetchChallans.rejected, (state, action) => {
+        if (state.fetchChallansRequestId && state.fetchChallansRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.error = action.payload || action.error.message;
       })

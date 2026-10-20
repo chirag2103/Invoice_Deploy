@@ -1,3 +1,5 @@
+import { savedDocumentPdf } from '../services/savedDocumentPdf';
+import { computeTaxBreakup, lineAmount } from '../services/documentTotals';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -12,7 +14,7 @@ import {
   updateProduct,
   clearAllData,
 } from '../slices/proformaSlice.js';
-import { fetchCustomers } from '../slices/customerSlice.js';
+import { fetchCustomersForPicker } from '../slices/customerSlice.js';
 import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup.js';
@@ -41,9 +43,9 @@ const ProformaInvoiceForm = () => {
   const quotationData = location.state?.quotation;
 
   const {
-    customers,
-    loading: customersLoading,
-    error: customersError,
+    customerOptions: customers,
+    customerOptionsLoading: customersLoading,
+    customerOptionsError: customersError,
   } = useSelector((state) => state.customers);
 
   const {
@@ -85,10 +87,11 @@ const ProformaInvoiceForm = () => {
 
   // ---------------- INITIAL LOAD ----------------
   useEffect(() => {
-    dispatch(fetchCustomers());
+    dispatch(fetchCustomersForPicker());
     if (isFromQuotation && quotationData) {
       dispatch(setCustomer(quotationData.customer));
       dispatch(setGst(quotationData.gst));
+      dispatch(setInvoiceDiscount(quotationData.invoiceDiscount || 0));
       if (quotationData.gstType) dispatch(setGstType(quotationData.gstType));
       quotationData.quotationProducts.forEach((p) => dispatch(addProduct(p)));
       setDate(new Date().toISOString().split('T')[0]);
@@ -175,7 +178,7 @@ const ProformaInvoiceForm = () => {
       );
       generateProformaInvoicePDF(buildPdfPayload({
         shipTo: payload.shipTo,
-        billNo: formatDocumentNumber(savedProforma.proformaNo, savedProforma.financialYearLabel),
+        ...savedDocumentPdf(savedProforma, 'proforma'),
       }));
       navigate('/proformas/all');
     } catch (err) {
@@ -204,7 +207,7 @@ const ProformaInvoiceForm = () => {
       );
       generateProformaInvoicePDF(buildPdfPayload({
         shipTo: payload.shipTo,
-        billNo: formatDocumentNumber(savedProforma.proformaNo, savedProforma.financialYearLabel),
+        ...savedDocumentPdf(savedProforma, 'proforma'),
       }));
       navigate('/proformas/all');
     } catch (err) {
@@ -212,10 +215,10 @@ const ProformaInvoiceForm = () => {
     } finally { setSaving(false); }
   };
 
-  const calcLineAmt = (p) => Number(p.quantity) * Number(p.rate) * (1 - (Number(p.discount) || 0) / 100);
-  const taxable = Math.max(totalAmount - (invoiceDiscount || 0), 0);
+  const calcLineAmt = lineAmount;
   const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST+SGST (${gst}%+${gst}%)`;
-  const taxAmt = taxable * (gst * 2) / 100;
+  const previewTax = computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
+  const taxAmt = previewTax.cgst + previewTax.sgst + previewTax.igst;
 
   return (
     <div className='invoice-container'>
@@ -242,6 +245,7 @@ const ProformaInvoiceForm = () => {
           <label className='form-label'>Customer:</label>
           <select className='form-select' value={customer?._id || ''} onChange={handleCustomerChange}>
             <option value=''>Select</option>
+            {isEdit && customer?._id && !customers.some((item) => item._id === customer._id) && <option value={customer._id} disabled>{customer.name} (current)</option>}
             {customersLoading ? <option>Loading...</option>
               : customersError ? <option>Error</option>
               : customers.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
@@ -427,7 +431,7 @@ const ProformaInvoiceForm = () => {
             <input type='number' className='form-input' value={invoiceDiscount || 0} min={0}
               onChange={(e) => dispatch(setInvoiceDiscount(Number(e.target.value)))} style={{ width: '8rem' }} />
           </div>
-          <p>Taxable Amount: <span>₹{taxable.toFixed(2)}</span></p>
+          <p>Taxable Amount: <span>₹{previewTax.taxable.toFixed(2)}</span></p>
           <p>{taxLabel}: <span>₹{taxAmt.toFixed(2)}</span></p>
           <p>Grand Total: <span>₹{grandTotal?.toFixed?.(2) || grandTotal}</span></p>
         </div>

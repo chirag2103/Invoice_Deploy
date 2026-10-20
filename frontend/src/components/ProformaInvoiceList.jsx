@@ -1,3 +1,4 @@
+import { savedDocumentPdf } from '../services/savedDocumentPdf';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -6,7 +7,7 @@ import AdminSidebar from './AdminSidebar';
 import { fetchProformaInvoices, deleteProformaInvoice } from '../slices/proformaSlice';
 import { formatDocumentNumber, formatNumberWithCommas } from '../services/helper';
 import { getPdfExtras } from '../services/pdfPayload';
-import { ListToolbar, PaginationControls } from './ListControls';
+import { ListToolbar, PaginationControls, AMOUNT_SORT_OPTIONS } from './ListControls';
 
 const ProformaInvoiceList = () => {
   const dispatch = useDispatch();
@@ -21,7 +22,8 @@ const ProformaInvoiceList = () => {
   } = useSelector((state) => state.proforma);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState(null);
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -42,7 +44,7 @@ const ProformaInvoiceList = () => {
   }, [searchInput]);
 
   useEffect(() => {
-    if (!selectedFinancialYear && currentFinancialYear) {
+    if (selectedFinancialYear === null && currentFinancialYear) {
       setSelectedFinancialYear(currentFinancialYear);
       return;
     }
@@ -52,10 +54,11 @@ const ProformaInvoiceList = () => {
         page,
         limit,
         search,
+        sort,
         financialYear: selectedFinancialYear || undefined,
       })
     );
-  }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
+  }, [dispatch, page, limit, search, sort, selectedFinancialYear, currentFinancialYear]);
 
   const handlePrint = async (proforma) => {
     const { generateProformaInvoicePDF } = await import(
@@ -80,6 +83,7 @@ const ProformaInvoiceList = () => {
       challanDate: proforma.challanDate?.split('T')[0],
       orderNo: proforma.orderNo,
       orderDate: proforma.orderDate?.split('T')[0],
+      ...savedDocumentPdf(proforma, 'proforma'),
       ...getPdfExtras(user),
     });
   };
@@ -116,12 +120,15 @@ const ProformaInvoiceList = () => {
         <div className='invoice-container'>
           <h2>Proforma Invoice List</h2>
           <ListToolbar
+            sort={sort}
+            sortOptions={AMOUNT_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
             search={searchInput}
             onSearchChange={setSearchInput}
             searchPlaceholder='Search proforma invoices'
             actions={
               <select
-                value={selectedFinancialYear}
+                value={selectedFinancialYear || ''}
                 onChange={(event) => {
                   setSelectedFinancialYear(event.target.value);
                   setPage(1);

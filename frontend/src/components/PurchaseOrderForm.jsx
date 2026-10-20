@@ -1,3 +1,5 @@
+import { savedDocumentPdf } from '../services/savedDocumentPdf';
+import { computeTaxBreakup, lineAmount } from '../services/documentTotals';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -7,7 +9,7 @@ import { getErrorMessage } from '../services/apiError';
 import { getPdfExtras } from '../services/pdfPayload';
 import AdminSidebar from './AdminSidebar';
 import '../styles/InvoiceForm.css';
-import { fetchSellers } from '../slices/customerSlice';
+import { fetchSellersForPicker } from '../slices/customerSlice';
 import {
   addProduct,
   clearPoData,
@@ -40,7 +42,7 @@ const PurchaseOrderForm = () => {
   const addBtnRef = useRef(null);
   const nameTextareaRef = useRef(null);
 
-  const { sellers, loading, error } = useSelector((state) => state.customers);
+  const { sellerOptions: sellers, sellerOptionsLoading: loading, sellerOptionsError: error } = useSelector((state) => state.customers);
   const {
     seller,
     products,
@@ -60,7 +62,7 @@ const PurchaseOrderForm = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchSellers());
+    dispatch(fetchSellersForPicker());
     return () => dispatch(clearPoData());
   }, [dispatch]);
 
@@ -91,10 +93,10 @@ const PurchaseOrderForm = () => {
   };
 
   const selectedSeller = sellers.find((item) => item._id === seller);
-  const calcLineAmt = (p) => Number(p.quantity) * Number(p.rate) * (1 - (Number(p.discount) || 0) / 100);
-  const taxable = Math.max(totalAmount - (invoiceDiscount || 0), 0);
+  const calcLineAmt = lineAmount;
   const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST+SGST (${gst}%+${gst}%)`;
-  const taxAmt = taxable * (gst * 2) / 100;
+  const previewTax = computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
+  const taxAmt = previewTax.cgst + previewTax.sgst + previewTax.igst;
 
   const pdfData = (savedValues = {}) => ({
     seller: selectedSeller,
@@ -133,13 +135,13 @@ const PurchaseOrderForm = () => {
         const { data } = await api.put(`${apiUrl}/api/po/${poToEdit._id}`, savePayload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        generatePurchaseOrderPDF(pdfData({ poNo: data.po.poNo, financialYearLabel: data.po.financialYearLabel }));
+        generatePurchaseOrderPDF({ ...pdfData(data.po), ...savedDocumentPdf(data.po, 'po') });
       } else {
         const result = await dispatch(sendPOData(savePayload));
         if (result.meta.requestStatus !== 'fulfilled' || !result.payload?.po) {
           throw new Error(result.payload || 'Unable to save purchase order');
         }
-        generatePurchaseOrderPDF(pdfData({ poNo: result.payload.po.poNo, financialYearLabel: result.payload.po.financialYearLabel }));
+        generatePurchaseOrderPDF({ ...pdfData(result.payload.po), ...savedDocumentPdf(result.payload.po, 'po') });
       }
       navigate('/pos/all');
     } catch (requestError) {
@@ -196,6 +198,7 @@ const PurchaseOrderForm = () => {
               <label className='form-label'>Seller</label>
               <select className='form-select' value={seller || ''} onChange={(e) => dispatch(setSeller(e.target.value))} required>
                 <option value=''>Select Seller</option>
+            {isEdit && seller && !sellers.some((item) => item._id === seller) && <option value={seller} disabled>Current seller (archived)</option>}
                 {loading ? <option>Loading...</option>
                   : error ? <option>Error loading sellers</option>
                   : sellers.map((item) => <option key={item._id} value={item._id}>{item.name}</option>)}
@@ -334,7 +337,7 @@ const PurchaseOrderForm = () => {
                 <input type='number' className='form-input' value={invoiceDiscount || 0} min={0}
                   onChange={(e) => dispatch(setInvoiceDiscount(Number(e.target.value)))} style={{ width: '8rem' }} />
               </div>
-              <p>Taxable Amount: <span>₹{taxable.toFixed(2)}</span></p>
+              <p>Taxable Amount: <span>₹{previewTax.taxable.toFixed(2)}</span></p>
               <p>{taxLabel}: <span>₹{taxAmt.toFixed(2)}</span></p>
               <p>Grand Total: <span>₹{grandTotal.toFixed(2)}</span></p>
             </div>

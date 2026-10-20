@@ -16,6 +16,7 @@ import {
 const PROFORMA_SEARCH_FIELDS = [
   { field: 'proformaNo', type: 'number' },
   'financialYearLabel',
+  { field: 'date', type: 'date' },
   { field: 'grandTotal', type: 'number' },
 ];
 const PROFORMA_ALLOWED_SORT = {
@@ -82,6 +83,7 @@ export const createProformaInvoice = catchAsyncError(async (req, res, next) => {
   const customerDoc = await Customer.findOne({
     _id: customer,
     user: req.user.id,
+    isArchived: { $ne: true },
   });
   if (!customerDoc) {
     return next(new ErrorHandler('Customer not found', 404));
@@ -214,6 +216,7 @@ export const updateProformaInvoice = catchAsyncError(async (req, res, next) => {
     const customerDoc = await Customer.findOne({
       _id: customer,
       user: req.user.id,
+      isArchived: { $ne: true },
     });
     if (!customerDoc) {
       return next(new ErrorHandler('Customer not found', 404));

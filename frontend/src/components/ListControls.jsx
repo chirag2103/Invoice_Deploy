@@ -7,6 +7,9 @@ export const ListToolbar = ({
   onSearchChange,
   searchPlaceholder = 'Search',
   actions,
+  sort,
+  onSortChange,
+  sortOptions = [],
 }) => (
   <div className='list-toolbar'>
     <div>
@@ -20,6 +23,11 @@ export const ListToolbar = ({
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
       />
+      {sortOptions.length > 0 && (
+        <select aria-label='Sort by' value={sort} onChange={(event) => onSortChange(event.target.value)}>
+          {sortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      )}
       {actions}
     </div>
   </div>
@@ -69,3 +77,7 @@ export const PaginationControls = ({
     </div>
   );
 };
+
+export const DATE_SORT_OPTIONS = [['', 'Default order'], ['date', 'Newest first'], ['-date', 'Oldest first']];
+export const AMOUNT_SORT_OPTIONS = [...DATE_SORT_OPTIONS, ['amount', 'Amount: high to low'], ['-amount', 'Amount: low to high']];
+export const NAME_SORT_OPTIONS = [['name', 'Name: A to Z'], ['-name', 'Name: Z to A'], ['balance', 'Balance: high to low'], ['-balance', 'Balance: low to high']];

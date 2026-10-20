@@ -43,6 +43,8 @@ const analyticsSlice = createSlice({
   reducers: {
     setSelectedFy(state, action) {
       state.selectedFy = action.payload;
+      state.fyData = null;
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -62,15 +64,19 @@ const analyticsSlice = createSlice({
         state.loadingYears = false;
         state.error = action.payload?.message || 'Failed to load years';
       })
-      .addCase(fetchFinancialYearAnalytics.pending, (state) => {
+      .addCase(fetchFinancialYearAnalytics.pending, (state, action) => {
+        state.summaryRequestId = action.meta.requestId;
+        state.fyData = null;
         state.loadingFy = true;
         state.error = null;
       })
       .addCase(fetchFinancialYearAnalytics.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.summaryRequestId || action.meta.arg !== state.selectedFy) return;
         state.loadingFy = false;
         state.fyData = action.payload;
       })
       .addCase(fetchFinancialYearAnalytics.rejected, (state, action) => {
+        if (action.meta.requestId !== state.summaryRequestId || action.meta.arg !== state.selectedFy) return;
         state.loadingFy = false;
         state.error = action.payload?.message || 'Failed to load FY data';
       });

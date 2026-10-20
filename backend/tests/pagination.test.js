@@ -1,6 +1,21 @@
 import { authAgent, makeCustomer, makeUser, sampleProduct } from './helpers/index.js';
 
 describe('list pagination', () => {
+  it('still searches document dates after moving pagination to MongoDB', async () => {
+    const { token } = await makeUser();
+    const api = authAgent(token);
+    const customer = await makeCustomer(token);
+    await api.post('/api/invoice/new').send({
+      customer: customer._id,
+      gst: 9,
+      date: '2025-06-15',
+      invoiceProducts: [sampleProduct()],
+    });
+    const res = await api.get('/api/invoices?search=2025-06-15');
+    expect(res.status).toBe(200);
+    expect(res.body.pagination.totalItems).toBe(1);
+  });
+
   it('defaults to a bounded page size instead of returning everything', async () => {
     const { token } = await makeUser();
     const api = authAgent(token);

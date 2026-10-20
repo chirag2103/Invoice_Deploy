@@ -1,3 +1,4 @@
+import { recalculateDocument } from '../services/documentTotals';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
 import { initialPagination } from '../constants/pagination.js';
@@ -24,14 +25,7 @@ const initialState = {
   message: '',
 };
 
-const lineAmount = (p) =>
-  Number(p.quantity || 0) * Number(p.rate || 0) * (1 - (Number(p.discount) || 0) / 100);
-
-const recalc = (state) => {
-  state.totalAmount = state.products.reduce((sum, p) => sum + lineAmount(p), 0);
-  const taxable = Math.max(state.totalAmount - (state.invoiceDiscount || 0), 0);
-  state.grandTotal = Math.round(taxable + taxable * (state.gst * 2) / 100);
-};
+const recalc = recalculateDocument;
 
 export const fetchProformaInvoices = createAsyncThunk(
   'proforma/fetchProformaInvoices',
@@ -133,11 +127,13 @@ const proformaSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      .addCase(fetchProformaInvoices.pending, (state) => {
+      .addCase(fetchProformaInvoices.pending, (state, action) => {
+        state.fetchProformaInvoicesRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchProformaInvoices.fulfilled, (state, action) => {
+        if (state.fetchProformaInvoicesRequestId && state.fetchProformaInvoicesRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.proformas = action.payload.proformas || [];
         state.pagination = action.payload.pagination || initialPagination;
@@ -145,6 +141,7 @@ const proformaSlice = createSlice({
         state.currentFinancialYear = action.payload.currentFinancialYear || '';
       })
       .addCase(fetchProformaInvoices.rejected, (state, action) => {
+        if (state.fetchProformaInvoicesRequestId && state.fetchProformaInvoicesRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.error = action.payload || action.error.message;
       })

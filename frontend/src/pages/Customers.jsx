@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
-import { ListToolbar, PaginationControls } from '../components/ListControls';
+import { ListToolbar, PaginationControls, NAME_SORT_OPTIONS } from '../components/ListControls';
 import { fetchCustomers } from '../slices/customerSlice';
 import api from '../axiosSetup.js';
 import { getErrorMessage } from '../services/apiError';
@@ -28,12 +28,14 @@ const Customers = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 300);
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [sort, setSort] = useState('name');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
   useEffect(() => {
-    dispatch(fetchCustomers({ page, limit, search }));
-  }, [dispatch, page, limit, search]);
+    dispatch(fetchCustomers({ page, limit, search, sort, includeArchived }));
+  }, [dispatch, page, limit, search, sort, includeArchived]);
 
   const resetForm = () => {
     setFormData(initialForm);
@@ -56,7 +58,7 @@ const Customers = () => {
 
       toast.success(editingId ? 'Customer updated' : 'Customer added');
       resetForm();
-      dispatch(fetchCustomers({ page, limit, search }));
+      dispatch(fetchCustomers({ page, limit, search, sort, includeArchived }));
     } catch (requestError) {
       toast.error(getErrorMessage(requestError, 'Unable to save customer'));
     }
@@ -73,17 +75,26 @@ const Customers = () => {
   };
 
   const handleDelete = async (customerId) => {
-    if (!window.confirm('Delete this customer?')) {
+    if (!window.confirm('Archive this customer? Existing documents and balances will remain available.')) {
       return;
     }
 
     try {
       await api.delete(`${apiUrl}/api/customer/${customerId}`);
-      toast.success('Customer deleted');
-      dispatch(fetchCustomers({ page, limit, search }));
+      toast.success('Customer archived');
+      resetForm();
+      dispatch(fetchCustomers({ page, limit, search, sort, includeArchived }));
     } catch (requestError) {
-      toast.error(getErrorMessage(requestError, 'Unable to delete customer'));
+      toast.error(getErrorMessage(requestError, 'Unable to archive customer'));
     }
+  };
+
+  const handleRestore = async (id) => {
+    try {
+      await api.put(`${apiUrl}/api/customer/${id}/restore`);
+      toast.success('Customer restored');
+      dispatch(fetchCustomers({ page, limit, search, sort, includeArchived }));
+    } catch (requestError) { toast.error(getErrorMessage(requestError, 'Unable to restore customer')); }
   };
 
   return (
@@ -145,8 +156,12 @@ const Customers = () => {
         </div>
         <div className='customer-list-container'>
           <ListToolbar
+            sort={sort}
+            sortOptions={NAME_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
+            actions={<label><input type='checkbox' checked={includeArchived} onChange={(event) => { setIncludeArchived(event.target.checked); setPage(1); }} /> Show archived</label>}
             title='Customers'
-            subtitle='Search, edit, delete, and open invoice history.'
+            subtitle='Search, edit, archive, and open invoice history.'
             search={searchInput}
             onSearchChange={(value) => {
               setSearchInput(value);
@@ -170,7 +185,7 @@ const Customers = () => {
               <tbody>
                 {customers.map((customer) => (
                   <tr key={customer._id}>
-                    <td>{customer.name}</td>
+                    <td>{customer.name}{customer.isArchived ? ' (archived)' : ''}</td>
                     <td>{customer.gstNo || '-'}</td>
                     <td>{customer.address || '-'}</td>
                     <td>{customer.openingBalance || 0}</td>
@@ -191,9 +206,9 @@ const Customers = () => {
                       <button
                         type='button'
                         className='delete-btn'
-                        onClick={() => handleDelete(customer._id)}
+                        onClick={() => customer.isArchived ? handleRestore(customer._id) : handleDelete(customer._id)}
                       >
-                        Delete
+                        {customer.isArchived ? 'Restore' : 'Archive'}
                       </button>
                     </td>
                   </tr>

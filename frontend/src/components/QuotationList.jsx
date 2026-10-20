@@ -1,3 +1,4 @@
+import { savedDocumentPdf } from '../services/savedDocumentPdf';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -5,7 +6,7 @@ import AdminSidebar from './AdminSidebar';
 import { fetchQuotations } from '../slices/quotationSlice';
 import { formatDocumentNumber, formatNumberWithCommas } from '../services/helper';
 import { getPdfExtras } from '../services/pdfPayload';
-import { ListToolbar, PaginationControls } from './ListControls';
+import { ListToolbar, PaginationControls, AMOUNT_SORT_OPTIONS } from './ListControls';
 
 const QuotationList = () => {
   const dispatch = useDispatch();
@@ -22,7 +23,8 @@ const QuotationList = () => {
   );
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState(null);
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -43,7 +45,7 @@ const QuotationList = () => {
   }, [searchInput]);
 
   useEffect(() => {
-    if (!selectedFinancialYear && currentFinancialYear) {
+    if (selectedFinancialYear === null && currentFinancialYear) {
       setSelectedFinancialYear(currentFinancialYear);
       return;
     }
@@ -53,10 +55,11 @@ const QuotationList = () => {
         page,
         limit,
         search,
+        sort,
         financialYear: selectedFinancialYear || undefined,
       })
     );
-  }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
+  }, [dispatch, page, limit, search, sort, selectedFinancialYear, currentFinancialYear]);
 
   const handlePrint = async (quotation) => {
     const { generateQuotationPDF } = await import(
@@ -76,6 +79,7 @@ const QuotationList = () => {
       grandTotal: quotation.grandTotal,
       technicalSpecifications: quotation.technicalSpecifications || [],
       termsAndConditions: quotation.termsAndConditions || [],
+      ...savedDocumentPdf(quotation, 'quotation'),
       ...getPdfExtras(user),
     });
   };
@@ -93,6 +97,7 @@ const QuotationList = () => {
   const handleOldPrint = (quotation) => {
     navigate('/invoices/preview', {
       state: {
+        ...savedDocumentPdf(quotation, 'quotation'),
         gst: quotation.gst,
         invoicefor: 'Quotation',
         billNo: formatDocumentNumber(
@@ -115,12 +120,15 @@ const QuotationList = () => {
         <div className='invoice-container'>
           <h2>Quotation List</h2>
           <ListToolbar
+            sort={sort}
+            sortOptions={AMOUNT_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
             search={searchInput}
             onSearchChange={setSearchInput}
             searchPlaceholder='Search quotations'
             actions={
               <select
-                value={selectedFinancialYear}
+                value={selectedFinancialYear || ''}
                 onChange={(event) => {
                   setSelectedFinancialYear(event.target.value);
                   setPage(1);

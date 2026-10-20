@@ -3,13 +3,14 @@ import AdminSidebar from './AdminSidebar';
 import { formatNumberWithCommas } from '../services/helper.js';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPurchaseInvoices } from '../slices/purchaseInvoiceSlice';
-import { ListToolbar, PaginationControls } from './ListControls';
+import { ListToolbar, PaginationControls, AMOUNT_SORT_OPTIONS } from './ListControls';
 const PurchaseInvoiceList = () => {
   const dispatch = useDispatch();
   const { purchaseInvoices, pagination, loading, error } = useSelector(
     (state) => state.purchaseInvoice
   );
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -20,8 +21,8 @@ const PurchaseInvoiceList = () => {
   };
 
   useEffect(() => {
-    dispatch(fetchPurchaseInvoices({ page, limit, search }));
-  }, [dispatch, page, limit, search]);
+    dispatch(fetchPurchaseInvoices({ page, limit, search, sort }));
+  }, [dispatch, page, limit, search, sort]);
 
   return (
     <div className='admin-container'>
@@ -30,6 +31,9 @@ const PurchaseInvoiceList = () => {
         <div className='invoice-container'>
           <h2>Purchase Invoices</h2>
           <ListToolbar
+            sort={sort}
+            sortOptions={AMOUNT_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
             search={search}
             onSearchChange={(value) => {
               setSearch(value);

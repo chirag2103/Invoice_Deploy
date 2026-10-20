@@ -23,6 +23,21 @@ const invoiceSchema = mongoose.Schema({
     ref: 'Customer',
     required: true,
   },
+  issuedSnapshot: {
+    type: new mongoose.Schema({
+      version: Number,
+      capturedAt: Date,
+      customer: { name: String, address: String, gstNo: String },
+      company: {
+        companyName: String, companyAddress: String, companyGST: String, companyPhone: String,
+        companyBank: { bankName: String, accountNumber: String, ifsc: String },
+        userSignature: { type: mongoose.Schema.Types.Mixed, default: null },
+        companyLogo: { type: mongoose.Schema.Types.Mixed, default: null },
+        template: { type: String, enum: ['classic', 'modern', 'minimal'] },
+      },
+    }, { _id: false }),
+    default: undefined,
+  },
   shipTo: {
     name: { type: String },
     address: { type: String },

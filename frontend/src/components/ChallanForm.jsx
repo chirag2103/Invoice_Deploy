@@ -15,7 +15,7 @@ import {
   sendChallanData,
 } from '../slices/challanSlice';
 
-import { fetchCustomers } from '../slices/customerSlice';
+import { fetchCustomersForPicker } from '../slices/customerSlice';
 import { useNavigate } from 'react-router-dom';
 import {
   formatDocumentNumber,
@@ -26,9 +26,11 @@ import { getPdfExtras } from '../services/pdfPayload';
 
 const ChallanForm = () => {
   const dispatch = useDispatch();
+  const pickerLoading = useSelector((state) => state.customers.customerOptionsLoading);
+  const pickerError = useSelector((state) => state.customers.customerOptionsError);
   const navigate = useNavigate();
 
-  const customers = useSelector((state) => state.customers.customers);
+  const customers = useSelector((state) => state.customers.customerOptions);
   const challan = useSelector((state) => state.challan);
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -50,16 +52,9 @@ const ChallanForm = () => {
   const [saving, setSaving] = useState(false);
   const addBtnRef = useRef(null);
 
-  // Disable Tab on product name textarea
-  const handleNewProductNameKeyDown = (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-    }
-  };
-
   // Initial Load
   useEffect(() => {
-    dispatch(fetchCustomers());
+    dispatch(fetchCustomersForPicker());
   }, [dispatch]);
 
   useEffect(() => {
@@ -196,6 +191,8 @@ const ChallanForm = () => {
               </option>
             ))}
           </select>
+            {pickerLoading && <p>Loading options...</p>}
+            {pickerError && <p role='alert'>{pickerError}</p>}
         </div>
 
         {/* Ship To Same */}
@@ -329,7 +326,6 @@ const ChallanForm = () => {
                       }),
                     )
                   }
-                  onKeyDown={(e) => { if (e.key === 'Tab') e.preventDefault(); }}
                 />
               </td>
 
@@ -410,7 +406,6 @@ const ChallanForm = () => {
             onChange={(e) =>
               setNewProduct({ ...newProduct, name: e.target.value })
             }
-            onKeyDown={handleNewProductNameKeyDown}
           />
         </div>
 

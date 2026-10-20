@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
-import { ListToolbar, PaginationControls } from '../components/ListControls';
+import { ListToolbar, PaginationControls, NAME_SORT_OPTIONS } from '../components/ListControls';
 import { fetchSellers } from '../slices/customerSlice';
 import api from '../axiosSetup.js';
 import { getErrorMessage } from '../services/apiError';
@@ -29,12 +29,14 @@ const Sellers = () => {
   const [editingId, setEditingId] = useState(null);
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 300);
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [sort, setSort] = useState('name');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
   useEffect(() => {
-    dispatch(fetchSellers({ page, limit, search }));
-  }, [dispatch, page, limit, search]);
+    dispatch(fetchSellers({ page, limit, search, sort, includeArchived }));
+  }, [dispatch, page, limit, search, sort, includeArchived]);
 
   const resetForm = () => {
     setFormData(initialForm);
@@ -57,7 +59,7 @@ const Sellers = () => {
 
       toast.success(editingId ? 'Seller updated' : 'Seller added');
       resetForm();
-      dispatch(fetchSellers({ page, limit, search }));
+      dispatch(fetchSellers({ page, limit, search, sort, includeArchived }));
     } catch (requestError) {
       toast.error(getErrorMessage(requestError, 'Unable to save seller'));
     }
@@ -75,17 +77,26 @@ const Sellers = () => {
   };
 
   const handleDelete = async (sellerId) => {
-    if (!window.confirm('Delete this seller?')) {
+    if (!window.confirm('Archive this seller? Existing documents and balances will remain available.')) {
       return;
     }
 
     try {
       await api.delete(`${apiUrl}/api/seller/${sellerId}`);
-      toast.success('Seller deleted');
-      dispatch(fetchSellers({ page, limit, search }));
+      toast.success('Seller archived');
+      resetForm();
+      dispatch(fetchSellers({ page, limit, search, sort, includeArchived }));
     } catch (requestError) {
-      toast.error(getErrorMessage(requestError, 'Unable to delete seller'));
+      toast.error(getErrorMessage(requestError, 'Unable to archive seller'));
     }
+  };
+
+  const handleRestore = async (id) => {
+    try {
+      await api.put(`${apiUrl}/api/seller/${id}/restore`);
+      toast.success('Seller restored');
+      dispatch(fetchSellers({ page, limit, search, sort, includeArchived }));
+    } catch (requestError) { toast.error(getErrorMessage(requestError, 'Unable to restore seller')); }
   };
 
   return (
@@ -156,6 +167,10 @@ const Sellers = () => {
         </div>
         <div className='customer-list-container'>
           <ListToolbar
+            sort={sort}
+            sortOptions={NAME_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
+            actions={<label><input type='checkbox' checked={includeArchived} onChange={(event) => { setIncludeArchived(event.target.checked); setPage(1); }} /> Show archived</label>}
             title='Sellers'
             subtitle='Manage seller details and open seller statements.'
             search={searchInput}
@@ -181,7 +196,7 @@ const Sellers = () => {
               <tbody>
                 {sellers.map((seller) => (
                   <tr key={seller._id}>
-                    <td>{seller.name}</td>
+                    <td>{seller.name}{seller.isArchived ? ' (archived)' : ''}</td>
                     <td>{seller.gstNo || '-'}</td>
                     <td>{seller.contact || '-'}</td>
                     <td>{seller.openingBalance || 0}</td>
@@ -202,9 +217,9 @@ const Sellers = () => {
                       <button
                         type='button'
                         className='delete-btn'
-                        onClick={() => handleDelete(seller._id)}
+                        onClick={() => seller.isArchived ? handleRestore(seller._id) : handleDelete(seller._id)}
                       >
-                        Delete
+                        {seller.isArchived ? 'Restore' : 'Archive'}
                       </button>
                     </td>
                   </tr>

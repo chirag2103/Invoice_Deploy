@@ -25,12 +25,12 @@ const documentSequenceSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 documentSequenceSchema.index(
   { user: 1, documentType: 1, financialYearStart: 1 },
-  { unique: true, name: 'document_sequence_unique_idx' }
+  { unique: true, name: 'document_sequence_unique_idx' },
 );
 
 export default mongoose.model('DocumentSequence', documentSequenceSchema);

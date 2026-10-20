@@ -44,11 +44,13 @@ const paymentSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchPayments.pending, (state) => {
+      .addCase(fetchPayments.pending, (state, action) => {
+        state.fetchPaymentsRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchPayments.fulfilled, (state, action) => {
+        if (state.fetchPaymentsRequestId && state.fetchPaymentsRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.payments = action.payload.payments || [];
         state.pagination = action.payload.pagination || initialPagination;
@@ -56,6 +58,7 @@ const paymentSlice = createSlice({
         state.customerName = action.payload.customerName || '';
       })
       .addCase(fetchPayments.rejected, (state, action) => {
+        if (state.fetchPaymentsRequestId && state.fetchPaymentsRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.error = action.payload || action.error.message;
       });

@@ -4,7 +4,8 @@ import { HiTrendingDown, HiTrendingUp } from 'react-icons/hi';
 import { FiDownload, FiFileText } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
 import AdminSidebar from '../components/AdminSidebar';
-import api from '../axiosSetup';
+import { fetchAllPages } from '../services/fetchAllPages';
+import { savedDocumentPdf } from '../services/savedDocumentPdf';
 import {
   fetchFinancialYears,
   fetchFinancialYearAnalytics,
@@ -52,7 +53,7 @@ const Dashboard = () => {
   const [downloadingMonth, setDownloadingMonth] = useState(null);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  const { years, loadingYears, fyData, loadingFy, selectedFy } = useSelector(
+  const { years, loadingYears, fyData, loadingFy, selectedFy, error } = useSelector(
     (state) => state.analytics
   );
 
@@ -75,10 +76,7 @@ const Dashboard = () => {
     setDownloadingMonth(monthData.monthKey);
     try {
       const { from, to } = buildMonthDateRange(monthData.monthKey);
-      const { data } = await api.get(`${apiUrl}/api/invoices`, {
-        params: { from, to, limit: 500 },
-      });
-      const monthInvoices = data.invoices || [];
+      const monthInvoices = await fetchAllPages(`${apiUrl}/api/invoices`, 'invoices', { from, to });
 
       if (!monthInvoices.length) {
         toast.error('No invoices found for this month.');
@@ -106,22 +104,8 @@ const Dashboard = () => {
             return new Date(first.date) - new Date(second.date);
           })
           .map((invoice) => ({
-            billNo: formatDocumentNumber(
-              invoice.invoiceNo,
-              invoice.financialYearLabel
-            ),
-            date: invoice.date,
-            challanNo: invoice.challanNo,
-            challanDate: invoice.challanDate,
-            orderNo: invoice.orderNo,
-            orderDate: invoice.orderDate,
             customer: invoice.customer,
-            shipTo: invoice.shipTo,
-            products: invoice.invoiceProducts || [],
-            totalAmount: invoice.invoiceTotal,
-            termsAndConditions: invoice.termsAndConditions,
-            gst: invoice.gst,
-            grandTotal: invoice.grandTotal,
+            ...savedDocumentPdf(invoice, 'invoice'),
           })),
       });
     } catch (error) {
@@ -133,7 +117,22 @@ const Dashboard = () => {
     }
   };
 
-  const loading = (loadingYears && !years.length) || (loadingFy && !fyData);
+  const loading = loadingYears || loadingFy || (selectedFy && fyData?.financialYearLabel !== selectedFy && !error);
+
+  if (error) {
+    return (
+      <div className='admin-container'>
+        <AdminSidebar />
+        <main className='dashboard'>
+          <p role='alert'>{error}</p>
+          <button type='button' onClick={() => {
+            if (!years.length) dispatch(fetchFinancialYears());
+            else dispatch(fetchFinancialYearAnalytics(selectedFy));
+          }}>Retry</button>
+        </main>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

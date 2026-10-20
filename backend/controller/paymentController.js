@@ -32,6 +32,7 @@ export const createPayment = catchAsyncError(async (req, res, next) => {
   const customerDoc = await Customer.findOne({
     _id: customer,
     user: req.user.id,
+    isArchived: { $ne: true },
   });
   if (!customerDoc) {
     return next(new ErrorHandler('Customer not found', 404));
@@ -136,6 +137,7 @@ export const updatePayment = catchAsyncError(async (req, res, next) => {
     const customerDoc = await Customer.findOne({
       _id: customer,
       user: req.user.id,
+      isArchived: { $ne: true },
     });
     if (!customerDoc) {
       return next(new ErrorHandler('Customer not found', 404));

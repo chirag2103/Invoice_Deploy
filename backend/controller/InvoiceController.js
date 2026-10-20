@@ -1,3 +1,5 @@
+import { billingSummary } from '../services/billingSummary.js';
+import { buildInvoiceSnapshot } from '../services/invoiceSnapshot.js';
 import mongoose from 'mongoose';
 import Invoice from '../models/Invoice.js';
 import Payment from '../models/Payment.js';
@@ -5,7 +7,6 @@ import Customer from '../models/Customer.js';
 import catchAsyncError from '../middlewares/catchAsyncError.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import paginateQuery from '../utils/paginateQuery.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
 import { pickProducts } from '../utils/pickProduct.js';
 import computeDocumentTotals from '../services/documentTotals.js';
 import createNumberedDocument from '../services/createNumberedDocument.js';
@@ -19,6 +20,7 @@ import {
 const INVOICE_SEARCH_FIELDS = [
   { field: 'invoiceNo', type: 'number' },
   'financialYearLabel',
+  { field: 'date', type: 'date' },
   { field: 'grandTotal', type: 'number' },
 ];
 const INVOICE_ALLOWED_SORT = {
@@ -99,6 +101,7 @@ export const createInvoice = catchAsyncError(async (req, res, next) => {
   const customerDoc = await Customer.findOne({
     _id: customer,
     user: req.user.id,
+    isArchived: { $ne: true },
   });
   if (!customerDoc) {
     return next(new ErrorHandler('Customer not found', 404));
@@ -115,6 +118,7 @@ export const createInvoice = catchAsyncError(async (req, res, next) => {
     buildDoc: ({ numbering }) => ({
       user: req.user.id,
       customer,
+      issuedSnapshot: buildInvoiceSnapshot(req.user, customerDoc),
       shipTo: shipTo || undefined,
       gst,
       gstType,
@@ -289,11 +293,15 @@ export const updateInvoice = catchAsyncError(async (req, res, next) => {
     const customerDoc = await Customer.findOne({
       _id: customer,
       user: req.user.id,
+      isArchived: { $ne: true },
     });
     if (!customerDoc) {
       return next(new ErrorHandler('Customer not found', 404));
     }
     invoice.customer = customer;
+    if (invoice.issuedSnapshot) {
+      invoice.issuedSnapshot.customer = buildInvoiceSnapshot(req.user, customerDoc).customer;
+    }
   }
 
   if (Array.isArray(invoiceProducts)) {
@@ -394,12 +402,14 @@ export const getCustomerBillingInfo = catchAsyncError(async (req, res, next) => 
         const totalBill = invoiceMap.get(customerId) || 0;
         const totalPaid = paymentMap.get(customerId) || 0;
 
-        if (totalBill === 0 && totalPaid === 0) {
+        if (totalBill === 0 && totalPaid === 0 && !customer.openingBalance) {
           return null;
         }
 
         return {
+          customerId: customer._id,
           customerName: customer.name,
+          openingBalance: Number(customer.openingBalance || 0),
           totalBill,
           totalPaid,
           remainingAmount:
@@ -413,17 +423,15 @@ export const getCustomerBillingInfo = catchAsyncError(async (req, res, next) => 
           .localeCompare(second.customerName.toLowerCase())
       );
 
-    const { results, pagination } = filterAndPaginate(result, req.query, [
-      'customerName',
-      'totalBill',
-      'totalPaid',
-      'remainingAmount',
-    ]);
+    const { results, pagination, totals } = billingSummary(result, req.query, [
+      'customerName', 'openingBalance', 'totalBill', 'totalPaid', 'remainingAmount',
+    ], 'remainingAmount', ['openingBalance', 'totalBill', 'totalPaid', 'remainingAmount']);
 
     res.status(200).json({
       success: true,
       data: results,
       pagination,
+      totals,
     });
   } catch (error) {
     next(new ErrorHandler('Error fetching customer billing info', 500));

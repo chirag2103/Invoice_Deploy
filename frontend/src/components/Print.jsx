@@ -1,3 +1,4 @@
+import { computeTaxBreakup, lineAmount } from '../services/documentTotals';
 import React, { useEffect, useRef } from 'react';
 import './Print.css';
 import { Navigate, useLocation } from 'react-router-dom';
@@ -5,7 +6,15 @@ import { ToWords } from 'to-words';
 import { useSelector } from 'react-redux';
 
 const Print = () => {
-  const user = useSelector((state) => state.user.user);
+  const currentUser = useSelector((state) => state.user.user);
+  const location = useLocation();
+  const savedCompany = location.state?.issuedSnapshot?.company;
+  const user = savedCompany ? {
+    ...currentUser,
+    companyDetails: { name: savedCompany.companyName, address: savedCompany.companyAddress, gstin: savedCompany.companyGST, mobile: savedCompany.companyPhone },
+    bankDetails: savedCompany.companyBank,
+    signature: savedCompany.userSignature,
+  } : currentUser;
   // Update specific item
 
   // console.log(user);
@@ -29,10 +38,12 @@ const Print = () => {
       },
     },
   });
-  const location = useLocation();
   const {
     challanNo,
     gst,
+    gstType = 'intraState',
+    invoiceDiscount = 0,
+    taxBreakup,
     invoicefor,
     billNo,
     products,
@@ -53,6 +64,7 @@ const Print = () => {
   const hasValidState =
     Boolean(location.state) && Array.isArray(products) && Boolean(user);
 
+  const taxes = taxBreakup || computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
   const isQuotation = invoicefor === 'Quotation';
   const isChallan = invoicefor === 'Challan';
   const rowsToRender = isQuotation
@@ -69,7 +81,7 @@ const Print = () => {
 
   const formatDate = (inputDate) => {
     if (!inputDate) return '';
-    const [yyyy, mm, dd] = inputDate.split('-');
+    const [yyyy, mm, dd] = inputDate.split('T')[0].split('-');
     return `${dd}-${mm}-${yyyy}`;
   };
 
@@ -138,10 +150,10 @@ const Print = () => {
                 </p>
                 <p>
                   <b>Mobile No.</b>
-                  {customer.name === 'CERACOATS' &&
+                  {savedCompany ? savedCompany.companyPhone : (customer.name === 'CERACOATS' &&
                   user.email === 'parmarnikunj454@gmail.com'
                     ? '7567654590'
-                    : user.companyDetails.mobile}
+                    : user.companyDetails.mobile)}
                 </p>
               </td>
               <td style={{ width: '20%' }}>
@@ -248,7 +260,7 @@ const Print = () => {
                     <>
                       <td className='center'>{product?.rate || ''}</td>
                       <td className='center'>
-                        {product ? product.quantity * product.rate : ''}
+                        {product ? lineAmount(product).toFixed(2) : ''}
                       </td>
                     </>
                   )}
@@ -261,7 +273,7 @@ const Print = () => {
           <div className='calculation'>
             <table className='table-3 center'>
               <tr>
-                <td rowSpan={4} style={{ width: '60%' }}>
+                <td rowSpan={(gstType === 'interState' ? 4 : 5) + (invoiceDiscount > 0 ? 1 : 0)} style={{ width: '60%' }}>
                   Ruppes in Words :{' '}
                   <b>{toWords.convert(grandTotal, { currency: true })}</b>
                 </td>
@@ -272,14 +284,12 @@ const Print = () => {
                   <b className='bold'>{totalAmount}</b>
                 </td>
               </tr>
-              <tr>
-                <td>CGST ({gst}%)</td>
-                <td>{(totalAmount * (gst / 100)).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td>SGST ({gst}%)</td>
-                <td>{(totalAmount * (gst / 100)).toFixed(2)}</td>
-              </tr>
+              {invoiceDiscount > 0 && <tr><td>Discount</td><td>-{Number(invoiceDiscount).toFixed(2)}</td></tr>}
+              {gstType === 'interState' ? <tr><td>IGST ({gst * 2}%)</td><td>{taxes.igst.toFixed(2)}</td></tr> : <>
+                <tr><td>CGST ({gst}%)</td><td>{taxes.cgst.toFixed(2)}</td></tr>
+                <tr><td>SGST ({gst}%)</td><td>{taxes.sgst.toFixed(2)}</td></tr>
+              </>}
+              <tr><td>Round Off</td><td>{taxes.roundOff.toFixed(2)}</td></tr>
               <tr>
                 <td>
                   <b className='bold'>Grand Total</b>

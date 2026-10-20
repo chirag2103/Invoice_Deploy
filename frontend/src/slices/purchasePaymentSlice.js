@@ -43,17 +43,20 @@ const purchasePaymentSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchPurchasePayments.pending, (state) => {
+      .addCase(fetchPurchasePayments.pending, (state, action) => {
+        state.fetchPurchasePaymentsRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchPurchasePayments.fulfilled, (state, action) => {
+        if (state.fetchPurchasePaymentsRequestId && state.fetchPurchasePaymentsRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.purchasePayments = action.payload.payments || [];
         state.pagination = action.payload.pagination || initialPagination;
         state.paidAmount = action.payload.paidAmount || 0;
       })
       .addCase(fetchPurchasePayments.rejected, (state, action) => {
+        if (state.fetchPurchasePaymentsRequestId && state.fetchPurchasePaymentsRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.error = action.payload || action.error.message;
       });

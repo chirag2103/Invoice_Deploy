@@ -1,3 +1,5 @@
+import { computeTaxBreakup, lineAmount } from '../services/documentTotals';
+import { savedDocumentPdf } from '../services/savedDocumentPdf';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,7 +18,7 @@ import {
   sendQuotationData,
 } from '../slices/quotationSlice';
 
-import { fetchCustomers } from '../slices/customerSlice';
+import { fetchCustomersForPicker } from '../slices/customerSlice';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup';
 import { uomList } from '../services/helper';
@@ -42,7 +44,7 @@ const QuotationForm = () => {
   const isEdit = Boolean(location.state?.quotation);
   const quotationToEdit = location.state?.quotation;
 
-  const { customers, loading, error } = useSelector((state) => state.customers);
+  const { customerOptions: customers, customerOptionsLoading: loading, customerOptionsError: error } = useSelector((state) => state.customers);
   const {
     customer,
     products,
@@ -65,7 +67,7 @@ const QuotationForm = () => {
   // Load Customers + Prefill for Edit
   // ---------------------------------------------------------
   useEffect(() => {
-    dispatch(fetchCustomers());
+    dispatch(fetchCustomersForPicker());
     if (!isEdit) dispatch(fetchQuoteNo(quotationDate));
 
     if (isEdit && quotationToEdit) {
@@ -128,8 +130,9 @@ const QuotationForm = () => {
 
     setSaving(true);
     try {
+      let savedQuotation;
       if (isEdit) {
-        await api.put(
+        const { data } = await api.put(
           `${apiUrl}/api/quotation/${quotationToEdit._id}`,
           {
             customer, gst, gstType,
@@ -143,6 +146,7 @@ const QuotationForm = () => {
           },
           { headers: { Authorization: `Bearer ${token}` } },
         );
+        savedQuotation = data.quotation;
       } else {
         const result = await dispatch(
           sendQuotationData({
@@ -163,16 +167,13 @@ const QuotationForm = () => {
           return;
         }
 
-        pdfData.quotationNo = formatDocumentNumber(
-          result.payload.quotation.quoteNo,
-          result.payload.quotation.financialYearLabel
-        );
+        savedQuotation = result.payload.quotation;
       }
 
       const { generateQuotationPDF } = await import(
         '../services/pdfGeneratorService'
       );
-      generateQuotationPDF(pdfData);
+      generateQuotationPDF({ ...pdfData, ...savedDocumentPdf(savedQuotation, 'quotation') });
       dispatch(clearQuotationData());
       navigate('/quotations/all');
     } catch (err) {
@@ -182,10 +183,10 @@ const QuotationForm = () => {
     }
   };
 
-  const calcLineAmt = (p) => Number(p.quantity) * Number(p.rate) * (1 - (Number(p.discount) || 0) / 100);
-  const taxable = Math.max(totalAmount - (invoiceDiscount || 0), 0);
+  const calcLineAmt = lineAmount;
   const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST+SGST (${gst}%+${gst}%)`;
-  const taxAmt = taxable * (gst * 2) / 100;
+  const previewTax = computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
+  const taxAmt = previewTax.cgst + previewTax.sgst + previewTax.igst;
 
   // ---------------------------------------------------------
   // UI
@@ -237,6 +238,7 @@ const QuotationForm = () => {
           <label className='form-label'>Customer</label>
           <select className='form-select' value={customer || ''} onChange={(e) => dispatch(setCustomer(e.target.value))} required>
             <option value=''>Select Customer</option>
+            {isEdit && customer && !customers.some((item) => item._id === customer) && <option value={customer} disabled>Current customer (archived)</option>}
             {loading ? <option>Loading...</option>
               : error ? <option>Error loading customers</option>
               : customers.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
@@ -378,7 +380,7 @@ const QuotationForm = () => {
             <input type='number' className='form-input' value={invoiceDiscount || 0} min={0}
               onChange={(e) => dispatch(setInvoiceDiscount(Number(e.target.value)))} style={{ width: '8rem' }} />
           </div>
-          <p>Taxable Amount: <span>₹{taxable.toFixed(2)}</span></p>
+          <p>Taxable Amount: <span>₹{previewTax.taxable.toFixed(2)}</span></p>
           <p>{taxLabel}: <span>₹{taxAmt.toFixed(2)}</span></p>
           <p>Grand Total: <span>₹{grandTotal}</span></p>
         </div>

@@ -1,3 +1,4 @@
+import { recalculateDocument } from '../services/documentTotals';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
 import { initialPagination } from '../constants/pagination.js';
@@ -24,14 +25,7 @@ const initialState = {
 
 const apiUrl = process.env.REACT_APP_API_URL;
 
-const lineAmount = (p) =>
-  Number(p.quantity || 0) * Number(p.rate || 0) * (1 - (Number(p.discount) || 0) / 100);
-
-const recalc = (state) => {
-  state.totalAmount = state.products.reduce((sum, p) => sum + lineAmount(p), 0);
-  const taxable = Math.max(state.totalAmount - (state.invoiceDiscount || 0), 0);
-  state.grandTotal = Math.round(taxable + taxable * (state.gst * 2) / 100);
-};
+const recalc = recalculateDocument;
 
 export const fetchQuotations = createAsyncThunk(
   'quotation/fetchQuotations',
@@ -125,11 +119,13 @@ const quotationSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchQuotations.pending, (state) => {
+      .addCase(fetchQuotations.pending, (state, action) => {
+        state.fetchQuotationsRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchQuotations.fulfilled, (state, action) => {
+        if (state.fetchQuotationsRequestId && state.fetchQuotationsRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.quotations = action.payload.quotations || [];
         state.pagination = action.payload.pagination || initialPagination;
@@ -137,6 +133,7 @@ const quotationSlice = createSlice({
         state.currentFinancialYear = action.payload.currentFinancialYear || '';
       })
       .addCase(fetchQuotations.rejected, (state, action) => {
+        if (state.fetchQuotationsRequestId && state.fetchQuotationsRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.error = action.payload || action.error.message;
       })

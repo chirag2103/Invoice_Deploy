@@ -51,7 +51,7 @@ export const createCustomer = async (req, res, next) => {
 export const getCustomers = async (req, res, next) => {
   try {
     const { data, pagination } = await paginateQuery(Customer, {
-      filter: { user: req.user.id },
+      filter: { user: req.user.id, ...(req.query.includeArchived === 'true' ? {} : { isArchived: { $ne: true } }) },
       query: req.query,
       searchFields: CUSTOMER_SEARCH_FIELDS,
       allowedSort: CUSTOMER_ALLOWED_SORT,
@@ -118,10 +118,10 @@ export const updateCustomer = async (req, res, next) => {
 
 export const deleteCustomer = async (req, res, next) => {
   try {
-    const customer = await Customer.findOneAndDelete({
+    const customer = await Customer.findOneAndUpdate({
       _id: req.params.id,
       user: req.user.id,
-    });
+    }, { $set: { isArchived: true } }, { new: true });
 
     if (!customer) {
       return next(new ErrorHandler('Customer not found', 404));
@@ -129,9 +129,22 @@ export const deleteCustomer = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Customer deleted successfully',
+      message: 'Customer archived. Existing documents and balances are preserved.',
+      archived: true,
     });
   } catch (error) {
     next(error);
   }
+};
+
+export const restoreCustomer = async (req, res, next) => {
+  try {
+    const customer = await Customer.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      { $set: { isArchived: false } },
+      { new: true }
+    );
+    if (!customer) return next(new ErrorHandler('Customer not found', 404));
+    res.status(200).json({ success: true, customer });
+  } catch (error) { next(error); }
 };

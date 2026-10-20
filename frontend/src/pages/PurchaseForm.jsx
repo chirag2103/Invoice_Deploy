@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../axiosSetup.js';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchSellers } from '../slices/customerSlice';
+import { fetchSellersForPicker } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
 import { getTodayDate } from '../services/helper.js';
 import '../styles/InvoiceForm.css';
@@ -16,11 +16,13 @@ const PurchaseForm = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
 
   const dispatch = useDispatch();
+  const pickerLoading = useSelector((state) => state.customers.sellerOptionsLoading);
+  const pickerError = useSelector((state) => state.customers.sellerOptionsError);
   useEffect(() => {
     // console.log('Hello World');
-    dispatch(fetchSellers());
+    dispatch(fetchSellersForPicker());
   }, [dispatch]);
-  const { sellers } = useSelector((state) => state.customers);
+  const { sellerOptions: sellers } = useSelector((state) => state.customers);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,6 +75,8 @@ const PurchaseForm = () => {
                 );
               })}
             </select>
+            {pickerLoading && <p>Loading options...</p>}
+            {pickerError && <p role='alert'>{pickerError}</p>}
           </div>
 
           {/* Invoice Number */}

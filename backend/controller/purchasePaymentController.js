@@ -31,6 +31,7 @@ export const createPayment = async (req, res, next) => {
     const sellerDoc = await Seller.findOne({
       _id: seller,
       user: req.user._id,
+      isArchived: { $ne: true },
     });
     if (!sellerDoc) {
       return next(new ErrorHandler('Seller not found', 404));
@@ -101,6 +102,7 @@ export const updatePayment = async (req, res, next) => {
       const sellerDoc = await Seller.findOne({
         _id: seller,
         user: req.user._id,
+        isArchived: { $ne: true },
       });
       if (!sellerDoc) {
         return next(new ErrorHandler('Seller not found', 404));

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchChallans } from '../slices/challanSlice';
 import AdminSidebar from './AdminSidebar';
 import { useNavigate } from 'react-router-dom';
-import { ListToolbar, PaginationControls } from './ListControls';
+import { ListToolbar, PaginationControls, DATE_SORT_OPTIONS } from './ListControls';
 import { formatDocumentNumber } from '../services/helper';
 import { getPdfExtras } from '../services/pdfPayload';
 
@@ -21,7 +21,8 @@ const ChallanList = () => {
   } = useSelector((state) => state.challan);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState(null);
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -43,7 +44,7 @@ const ChallanList = () => {
   }, [searchInput]);
 
   useEffect(() => {
-    if (!selectedFinancialYear && currentFinancialYear) {
+    if (selectedFinancialYear === null && currentFinancialYear) {
       setSelectedFinancialYear(currentFinancialYear);
       return;
     }
@@ -53,6 +54,7 @@ const ChallanList = () => {
         page,
         limit,
         search,
+        sort,
         financialYear: selectedFinancialYear || undefined,
       }),
     );
@@ -61,6 +63,7 @@ const ChallanList = () => {
     page,
     limit,
     search,
+    sort,
     selectedFinancialYear,
     currentFinancialYear,
   ]);
@@ -119,6 +122,9 @@ const ChallanList = () => {
       <main className='invoice-list'>
         <div className='invoice-container'>
           <ListToolbar
+            sort={sort}
+            sortOptions={DATE_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
             title='Challan List'
             subtitle='Search challan number, customer, or date.'
             search={searchInput}
@@ -126,7 +132,7 @@ const ChallanList = () => {
             searchPlaceholder='Search challans'
             actions={
               <select
-                value={selectedFinancialYear}
+                value={selectedFinancialYear || ''}
                 onChange={(event) => {
                   setSelectedFinancialYear(event.target.value);
                   setPage(1);

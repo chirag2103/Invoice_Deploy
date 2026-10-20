@@ -1,9 +1,9 @@
+import { billingSummary } from '../services/billingSummary.js';
 import PurchaseInvoice from '../models/PurchaseInvoice.js';
 import PurchasePayment from '../models/PurchasePayment.js';
 import Seller from '../models/Seller.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import paginateQuery from '../utils/paginateQuery.js';
-import { filterAndPaginate } from '../utils/listResponse.js';
 
 const PURCHASE_SEARCH_FIELDS = [
   'invoiceNo',
@@ -64,6 +64,7 @@ export const createPurchaseInvoice = async (req, res, next) => {
     const sellerDoc = await Seller.findOne({
       _id: seller,
       user: req.user._id,
+      isArchived: { $ne: true },
     });
     if (!sellerDoc) {
       return next(new ErrorHandler('Seller not found', 404));
@@ -134,6 +135,7 @@ export const updatePurchaseInvoice = async (req, res, next) => {
       const sellerDoc = await Seller.findOne({
         _id: seller,
         user: req.user._id,
+        isArchived: { $ne: true },
       });
       if (!sellerDoc) {
         return next(new ErrorHandler('Seller not found', 404));
@@ -414,6 +416,7 @@ export const getAllSellerSummary = async (req, res, next) => {
             _id: seller._id,
             name: seller.name,
           },
+          openingBalance: Number(seller.openingBalance || 0),
           totalBills,
           totalPaid,
           remaining: Number(seller.openingBalance || 0) + totalBills - totalPaid,
@@ -422,17 +425,15 @@ export const getAllSellerSummary = async (req, res, next) => {
       .filter(Boolean)
       .sort((first, second) => first.seller.name.localeCompare(second.seller.name));
 
-    const { results, pagination } = filterAndPaginate(summary, req.query, [
-      'seller.name',
-      'totalBills',
-      'totalPaid',
-      'remaining',
-    ]);
+    const { results, pagination, totals } = billingSummary(summary, req.query, [
+      'seller.name', 'openingBalance', 'totalBills', 'totalPaid', 'remaining',
+    ], 'remaining', ['openingBalance', 'totalBills', 'totalPaid', 'remaining']);
 
     res.status(200).json({
       success: true,
       summary: results,
       pagination,
+      totals,
     });
   } catch (err) {
     next(err);

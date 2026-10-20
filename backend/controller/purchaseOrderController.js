@@ -16,6 +16,7 @@ import {
 const PO_SEARCH_FIELDS = [
   { field: 'poNo', type: 'number' },
   'financialYearLabel',
+  { field: 'date', type: 'date' },
 ];
 const PO_ALLOWED_SORT = {
   date: { date: -1 },
@@ -51,7 +52,7 @@ export const createPO = catchAsyncError(async (req, res, next) => {
     );
   }
 
-  const sellerDoc = await Seller.findOne({ _id: seller, user: req.user.id });
+  const sellerDoc = await Seller.findOne({ _id: seller, user: req.user.id, isArchived: { $ne: true } });
   if (!sellerDoc) {
     return next(new ErrorHandler('Seller not found', 404));
   }
@@ -161,7 +162,7 @@ export const updatePO = catchAsyncError(async (req, res, next) => {
   }
 
   if (seller && String(seller) !== String(po.seller)) {
-    const sellerDoc = await Seller.findOne({ _id: seller, user: req.user.id });
+    const sellerDoc = await Seller.findOne({ _id: seller, user: req.user.id, isArchived: { $ne: true } });
     if (!sellerDoc) {
       return next(new ErrorHandler('Seller not found', 404));
     }

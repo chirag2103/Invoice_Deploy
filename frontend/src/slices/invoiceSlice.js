@@ -1,3 +1,4 @@
+import { recalculateDocument } from '../services/documentTotals';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import api from '../axiosSetup.js';
 import { initialPagination } from '../constants/pagination.js';
@@ -27,18 +28,7 @@ const initialState = {
 };
 
 // lineAmount = qty × rate × (1 - disc/100)
-const lineAmount = (p) =>
-  Number(p.quantity || 0) * Number(p.rate || 0) * (1 - (Number(p.discount) || 0) / 100);
-
-const recalc = (state) => {
-  state.totalAmount = state.products.reduce((sum, p) => sum + lineAmount(p), 0);
-  const taxable = Math.max(state.totalAmount - (state.invoiceDiscount || 0), 0);
-  // `state.gst` is stored as the half-rate (e.g. 9 => 18% total GST). The total
-  // tax is the same for intra-state (CGST+SGST) and inter-state (IGST); only the
-  // split differs, which is applied on the PDF / server side.
-  const totalTaxRate = ((Number(state.gst) || 0) * 2) / 100;
-  state.grandTotal = Math.round(taxable + taxable * totalTaxRate);
-};
+const recalc = recalculateDocument;
 
 export const fetchInvoices = createAsyncThunk(
   'invoice/fetchInvoices',
@@ -145,11 +135,13 @@ const invoiceSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-      .addCase(fetchInvoices.pending, (state) => {
+      .addCase(fetchInvoices.pending, (state, action) => {
+        state.fetchInvoicesRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchInvoices.fulfilled, (state, action) => {
+        if (state.fetchInvoicesRequestId && state.fetchInvoicesRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.invoices = action.payload.invoices || [];
         state.pagination = action.payload.pagination || initialPagination;
@@ -159,6 +151,7 @@ const invoiceSlice = createSlice({
         state.currentFinancialYear = action.payload.currentFinancialYear || '';
       })
       .addCase(fetchInvoices.rejected, (state, action) => {
+        if (state.fetchInvoicesRequestId && state.fetchInvoicesRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.error = action.payload || action.error.message;
       })

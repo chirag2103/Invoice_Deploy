@@ -7,6 +7,7 @@ const customerSchema = mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    isArchived: { type: Boolean, default: false },
     name: {
       type: String,
       required: true,

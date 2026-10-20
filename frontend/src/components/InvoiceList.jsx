@@ -1,9 +1,10 @@
+import { savedDocumentPdf } from '../services/savedDocumentPdf';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import { fetchInvoices } from '../slices/invoiceSlice';
-import { ListToolbar, PaginationControls } from './ListControls';
+import { ListToolbar, PaginationControls, AMOUNT_SORT_OPTIONS } from './ListControls';
 import {
   formatDocumentNumber,
   formatNumberWithCommas,
@@ -26,7 +27,8 @@ const InvoiceList = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState(null);
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -46,7 +48,7 @@ const InvoiceList = () => {
   }, [searchInput]);
 
   useEffect(() => {
-    if (!selectedFinancialYear && currentFinancialYear) {
+    if (selectedFinancialYear === null && currentFinancialYear) {
       setSelectedFinancialYear(currentFinancialYear);
       return;
     }
@@ -56,10 +58,11 @@ const InvoiceList = () => {
         page,
         limit,
         search,
+        sort,
         financialYear: selectedFinancialYear || undefined,
       })
     );
-  }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
+  }, [dispatch, page, limit, search, sort, selectedFinancialYear, currentFinancialYear]);
 
   const handlePrint = async (invoice, invoicefor) => {
     const { generateInvoicePDF } = await import(
@@ -85,27 +88,19 @@ const InvoiceList = () => {
       orderNo: invoice?.orderNo,
       orderDate: invoice?.orderDate?.split('T'),
       ...getPdfExtras(user),
+      ...savedDocumentPdf(invoice, 'invoice'),
     });
   };
 
   const handleOldPrint = (invoice, invoicefor) => {
     navigate('/invoices/preview', {
       state: {
-        challanNo: invoice.challanNo || '',
-        gst: invoice.gst,
+        ...savedDocumentPdf(invoice, 'invoice'),
+        customer: invoice.issuedSnapshot?.customer || invoice.customer,
         invoicefor,
-        billNo: formatDocumentNumber(
-          invoice.invoiceNo,
-          invoice.financialYearLabel
-        ),
-        products: invoice.invoiceProducts,
-        customer: invoice.customer,
         date: invoice.date.split('T')[0],
         challanDate: invoice.challanDate?.split('T')[0],
-        grandTotal: invoice.grandTotal,
-        totalAmount: invoice.invoiceTotal,
-        orderNo: invoice?.orderNo,
-        orderDate: invoice?.orderDate?.split('T')[0],
+        orderDate: invoice.orderDate?.split('T')[0],
       },
     });
   };
@@ -116,6 +111,9 @@ const InvoiceList = () => {
       <main className='invoice-list'>
         <div className='invoice-container'>
           <ListToolbar
+            sort={sort}
+            sortOptions={AMOUNT_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
             title='Invoices'
             subtitle='Search invoice number, customer, amount, or place of supply.'
             search={searchInput}
@@ -123,7 +121,7 @@ const InvoiceList = () => {
             searchPlaceholder='Search invoices'
             actions={
               <select
-                value={selectedFinancialYear}
+                value={selectedFinancialYear || ''}
                 onChange={(event) => {
                   setSelectedFinancialYear(event.target.value);
                   setPage(1);

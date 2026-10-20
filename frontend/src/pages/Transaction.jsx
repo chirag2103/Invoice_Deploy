@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { formatNumberWithCommas } from '../services/helper.js';
 import { fetchPayments } from '../slices/paymentSlice';
-import { ListToolbar, PaginationControls } from '../components/ListControls';
+import { ListToolbar, PaginationControls, AMOUNT_SORT_OPTIONS } from '../components/ListControls';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const Transaction = () => {
@@ -11,6 +11,7 @@ const Transaction = () => {
   const { payments, pagination } = useSelector((state) => state.payment);
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 300);
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const formatDate = (inputDate) => {
@@ -20,8 +21,8 @@ const Transaction = () => {
   };
   useEffect(() => {
     document.title = 'Transactions';
-    dispatch(fetchPayments({ page, limit, search }));
-  }, [dispatch, page, limit, search]);
+    dispatch(fetchPayments({ page, limit, search, sort }));
+  }, [dispatch, page, limit, search, sort]);
   const total = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
   return (
     <>
@@ -30,6 +31,9 @@ const Transaction = () => {
         <main className='invoice-list'>
           <div className='invoice-container'>
             <ListToolbar
+            sort={sort}
+            sortOptions={AMOUNT_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
               title='Customer Transactions'
               search={searchInput}
               onSearchChange={(value) => {

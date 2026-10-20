@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+import { getErrorMessage } from '../services/apiError';
 import React, { useEffect, useState } from 'react';
 import api from '../axiosSetup.js';
 import AdminSidebar from '../components/AdminSidebar';
@@ -10,6 +12,7 @@ const CustomerBills = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [totals, setTotals] = useState({});
   const [pagination, setPagination] = useState(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -17,41 +20,37 @@ const CustomerBills = () => {
   const [hideZeroBalance, setHideZeroBalance] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
     async function fetchCustomerBillingInfo() {
       try {
         const response = await api.get(`${apiUrl}/api/billingInfo`, {
-          params: { page, limit, search },
+          params: { page, limit, search, hideSettled: hideZeroBalance },
+          signal: controller.signal,
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
+        if (controller.signal.aborted) return;
         setCustomers(response.data.data);
+        setTotals(response.data.totals || {});
         setPagination(response.data.pagination);
         setLoading(false);
       } catch (error) {
-        setError('Error fetching customer billing info');
+        if (controller.signal.aborted) return;
+        setError(getErrorMessage(error, 'Error fetching customer billing info'));
         setLoading(false);
       }
     }
     fetchCustomerBillingInfo();
-  }, [apiUrl, token, page, limit, search]);
+    return () => controller.abort();
+  }, [apiUrl, token, page, limit, search, hideZeroBalance]);
 
-  const filteredCustomers = hideZeroBalance
-    ? customers.filter((c) => c.remainingAmount !== 0)
-    : customers;
-
-  const totalBill = filteredCustomers.reduce(
-    (acc, customer) => acc + customer.totalBill,
-    0
-  );
-  const totalPaid = filteredCustomers.reduce(
-    (acc, customer) => acc + customer.totalPaid,
-    0
-  );
-  const totalRemaining = filteredCustomers.reduce(
-    (acc, customer) => acc + customer.remainingAmount,
-    0
-  );
+  const filteredCustomers = customers;
+  const totalBill = totals.totalBill || 0;
+  const totalPaid = totals.totalPaid || 0;
+  const totalRemaining = totals.remainingAmount || 0;
 
   return (
     <div className='admin-container'>
@@ -84,7 +83,7 @@ const CustomerBills = () => {
             <input
               type='checkbox'
               checked={!hideZeroBalance}
-              onChange={(e) => setHideZeroBalance(!e.target.checked)}
+              onChange={(e) => { setHideZeroBalance(!e.target.checked); setPage(1); }}
               style={{ accentColor: '#c35a20' }}
             />
             Show settled accounts
@@ -99,6 +98,7 @@ const CustomerBills = () => {
             <thead>
               <tr>
                 <th>Customer Name</th>
+                <th>Opening Balance</th>
                 <th>Total Bill</th>
                 <th>Paid Amount</th>
                 <th>Remaining Amount</th>
@@ -107,14 +107,15 @@ const CustomerBills = () => {
             <tbody>
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan='4' style={{ textAlign: 'center', color: '#6b7280', padding: '24px' }}>
+                  <td colSpan='5' style={{ textAlign: 'center', color: '#6b7280', padding: '24px' }}>
                     {hideZeroBalance ? 'No outstanding balances found.' : 'No billing records found.'}
                   </td>
                 </tr>
               ) : (
                 filteredCustomers.map((customer, index) => (
-                  <tr key={index}>
-                    <td>{customer.customerName}</td>
+                  <tr key={customer.customerId || index}>
+                    <td><Link to={`/statement/${customer.customerId}`}>{customer.customerName}</Link></td>
+                    <td>{formatNumberWithCommas(customer.openingBalance)}</td>
                     <td>{formatNumberWithCommas(customer.totalBill)}</td>
                     <td>{formatNumberWithCommas(customer.totalPaid)}</td>
                     <td>{formatNumberWithCommas(customer.remainingAmount)}</td>
@@ -123,7 +124,8 @@ const CustomerBills = () => {
               )}
               {filteredCustomers.length > 0 && (
                 <tr className='totalRow'>
-                  <td>Total</td>
+                  <td>Total (all matching accounts)</td>
+                  <td>{formatNumberWithCommas(totals.openingBalance)}</td>
                   <td>{formatNumberWithCommas(totalBill)}</td>
                   <td>{formatNumberWithCommas(totalPaid)}</td>
                   <td>{formatNumberWithCommas(totalRemaining)}</td>

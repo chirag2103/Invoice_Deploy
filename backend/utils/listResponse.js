@@ -23,6 +23,7 @@ export const filterAndPaginate = (items, query, searchFields = []) => {
 
   return {
     results: filteredItems.slice(startIndex, startIndex + limit),
+    matchingItems: filteredItems,
     pagination: {
       page,
       limit,

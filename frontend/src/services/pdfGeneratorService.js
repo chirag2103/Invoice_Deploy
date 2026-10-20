@@ -1,3 +1,4 @@
+import { computeTaxBreakup, lineAmount } from './documentTotals';
 import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 
@@ -241,7 +242,7 @@ const getInvoiceRows = (products = [], hasDiscount = false) =>
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
     const disc = Number(p.discount || 0);
-    const amount = qty * rate * (1 - disc / 100);
+    const amount = lineAmount(p);
 
     const row = [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
@@ -507,15 +508,15 @@ const buildInvoiceFooterSections = ({
   invoiceDiscount = 0,
   gst,
   gstType = 'intraState',
+  taxBreakup,
   grandTotal,
   termsAndConditions,
   userSignature,
 }) => {
   const isIGST = gstType === 'interState';
-  const taxable = Math.max(Number(totalAmount || 0) - Number(invoiceDiscount || 0), 0);
-  const igstRate = gst * 2;
-  const igstAmount = taxable * (igstRate / 100);
-  const cgstSgstAmount = taxable * (gst / 100);
+  const taxes = taxBreakup || computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
+  const igstAmount = taxes.igst;
+  const cgstSgstAmount = taxes.cgst;
 
   const discountRow = invoiceDiscount > 0
     ? [[
@@ -529,7 +530,7 @@ const buildInvoiceFooterSections = ({
     ? [
         [
           {},
-          { text: `IGST (${igstRate}%)`, ...FONT.small },
+          { text: `IGST (${gst * 2}%)`, ...FONT.small },
           {
             text: formatCurrency(igstAmount),
             ...FONT.small,
@@ -558,7 +559,7 @@ const buildInvoiceFooterSections = ({
         ],
       ];
 
-  const totalRows = discountRow.length + taxRows.length + 2; // subtotal + discount + tax rows + grand total
+  const totalRows = discountRow.length + taxRows.length + 3; // subtotal + discount + tax rows + grand total
 
   return [
   {
@@ -583,6 +584,7 @@ const buildInvoiceFooterSections = ({
         ],
         ...discountRow,
         ...taxRows,
+        [{}, { text: 'Round Off', ...FONT.small }, { text: formatCurrency(taxes.roundOff), ...FONT.small, alignment: 'right' }],
         [
           {},
           { text: 'Grand Total', ...FONT.label },
@@ -848,11 +850,11 @@ const buildModernProductsTable = (rows, colWidths, headerLabels, fillerCount = 0
 };
 
 // ---- Modern: totals + footer ----
-const buildModernTotalsFooter = ({ companyName, companyBank, totalAmount, invoiceDiscount = 0, gst, gstType, grandTotal, termsAndConditions, userSignature }) => {
+const buildModernTotalsFooter = ({ companyName, companyBank, totalAmount, invoiceDiscount = 0, gst, gstType, taxBreakup, grandTotal, termsAndConditions, userSignature }) => {
   const isIGST = gstType === 'interState';
-  const taxable = Math.max(Number(totalAmount || 0) - Number(invoiceDiscount || 0), 0);
-  const taxAmount = taxable * (gst / 100);
-  const igstAmount = taxable * ((gst * 2) / 100);
+  const taxes = taxBreakup || computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
+  const taxAmount = taxes.cgst;
+  const igstAmount = taxes.igst;
   const taxRows = isIGST
     ? [[{ text: `IGST (${gst * 2}%)`, fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(igstAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }]]
     : [
@@ -883,6 +885,7 @@ const buildModernTotalsFooter = ({ companyName, companyBank, totalAmount, invoic
               [{ text: 'Subtotal', fontSize: 9, color: MODERN_COLORS.textDark }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: MODERN_COLORS.textDark }],
               ...discountRows,
               ...taxRows,
+              [{ text: 'Round Off', fontSize: 9 }, { text: formatCurrency(taxes.roundOff), fontSize: 9, alignment: 'right' }],
               [
                 { text: 'GRAND TOTAL', bold: true, fontSize: 10, color: MODERN_COLORS.blue, fillColor: MODERN_COLORS.light },
                 { text: formatCurrency(grandTotal), bold: true, fontSize: 10, alignment: 'right', color: MODERN_COLORS.blue, fillColor: MODERN_COLORS.light },
@@ -1026,14 +1029,14 @@ const buildMinimalProductsTable = (rows, colWidths, headerLabels, fillerCount = 
 };
 
 // ---- Minimal: totals + footer ----
-const buildMinimalTotalsFooter = ({ companyName, companyBank, totalAmount, invoiceDiscount = 0, gst, gstType, grandTotal, termsAndConditions, userSignature }) => {
+const buildMinimalTotalsFooter = ({ companyName, companyBank, totalAmount, invoiceDiscount = 0, gst, gstType, taxBreakup, grandTotal, termsAndConditions, userSignature }) => {
   const LINE_COLOR = MINIMAL_COLORS.line;
   const DARK = MINIMAL_COLORS.dark;
   const GRAY = MINIMAL_COLORS.gray;
   const isIGST = gstType === 'interState';
-  const taxable = Math.max(Number(totalAmount || 0) - Number(invoiceDiscount || 0), 0);
-  const taxAmount = taxable * (gst / 100);
-  const igstAmount = taxable * ((gst * 2) / 100);
+  const taxes = taxBreakup || computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
+  const taxAmount = taxes.cgst;
+  const igstAmount = taxes.igst;
 
   const discountLine = invoiceDiscount > 0
     ? [{ columns: [{ text: 'Discount', fontSize: 9, color: GRAY }, { text: `- ${formatCurrency(invoiceDiscount)}`, fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] }]
@@ -1056,6 +1059,7 @@ const buildMinimalTotalsFooter = ({ companyName, companyBank, totalAmount, invoi
             { columns: [{ text: 'Subtotal', fontSize: 9, color: GRAY }, { text: formatCurrency(totalAmount), fontSize: 9, alignment: 'right', color: DARK }] },
             ...discountLine,
             ...taxLines,
+            { columns: [{ text: 'Round Off', fontSize: 9, color: GRAY }, { text: formatCurrency(taxes.roundOff), fontSize: 9, alignment: 'right', color: DARK }] },
             { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 220, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 4, 0, 4] },
             { columns: [{ text: 'Grand Total', fontSize: 11, bold: true, color: DARK }, { text: formatCurrency(grandTotal), fontSize: 11, bold: true, alignment: 'right', color: DARK }] },
             { text: `(${convertToWords(grandTotal)})`, fontSize: 8, italic: true, color: GRAY, margin: [0, 2, 0, 0] },
@@ -1125,6 +1129,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
     termsAndConditions,
     gst,
     gstType = 'intraState',
+    taxBreakup,
     grandTotal = 0,
     companyBank,
     invoicefor = 'Original Copy',
@@ -1174,7 +1179,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
       layout: { hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 0.5 : 0.3), vLineWidth: () => 0, hLineColor: () => MODERN_COLORS.border, paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 3, paddingBottom: () => 3 },
       margin: [0, 0, 0, 8],
     };
-    const footerSections = buildModernTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature });
+    const footerSections = buildModernTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, taxBreakup, grandTotal, termsAndConditions, userSignature });
 
     content = [
       ...headerSections,
@@ -1201,7 +1206,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
       ...buildMinimalParty({ label: 'SHIP TO', party: shipToData }),
     ];
     const productsTable = buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS);
-    const footerSections = buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature });
+    const footerSections = buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, taxBreakup, grandTotal, termsAndConditions, userSignature });
 
     content = [
       ...headerSections,
@@ -1222,7 +1227,7 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
       ];
 
       if (pageIndex === chunks.length - 1) {
-        pageContent.push(...buildInvoiceFooterSections({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }));
+        pageContent.push(...buildInvoiceFooterSections({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, taxBreakup, grandTotal, termsAndConditions, userSignature }));
       } else {
         pageContent.push({ text: '', pageBreak: 'after' });
       }
@@ -1294,9 +1299,16 @@ export const generateMonthlyInvoicesPDF = ({
         totalAmount: invoice.totalAmount,
         termsAndConditions: invoice.termsAndConditions,
         gst: invoice.gst,
+        gstType: invoice.gstType,
+        invoiceDiscount: invoice.invoiceDiscount,
+        taxBreakup: invoice.taxBreakup,
         grandTotal: invoice.grandTotal,
         invoicefor,
         userSignature,
+        ...(invoice.issuedSnapshot ? {
+          ...invoice.issuedSnapshot.company,
+          customer: invoice.issuedSnapshot.customer,
+        } : {}),
       },
       { download: false },
     );
@@ -1552,6 +1564,7 @@ export const generateQuotationPDF = (data) => {
     totalAmount,
     gst,
     gstType = 'intraState',
+    taxBreakup,
     grandTotal = 0,
     companyBank,
     termsAndConditions,
@@ -1564,16 +1577,15 @@ export const generateQuotationPDF = (data) => {
   const invoiceDiscount = Number(data.invoiceDiscount || 0);
   const hasDiscount = products.some(p => Number(p.discount) > 0);
   const isIGST = gstType === 'interState';
-  const taxable = Math.max(Number(totalAmount || 0) - invoiceDiscount, 0);
-  const igstRate = gst * 2;
-  const igstAmount = taxable * (igstRate / 100);
-  const cgstSgstAmount = taxable * (gst / 100);
+  const taxes = taxBreakup || computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
+  const igstAmount = taxes.igst;
+  const cgstSgstAmount = taxes.cgst;
 
   const rows = products.map((p, i) => {
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
     const disc = Number(p.discount || 0);
-    const amount = qty * rate * (1 - disc / 100);
+    const amount = lineAmount(p);
     const row = [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
       formatProductName(p.name),
@@ -1623,7 +1635,7 @@ export const generateQuotationPDF = (data) => {
       ...buildModernHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: 'QUOTATION' }),
       { columns: [{ width: '55%', ...buildModernMetaCard([['Quotation No', quotationNo || '-'], ['Date', formatDate(date)]]) }, { width: '5%', text: '' }, { width: '40%', ...partyCard }], margin: [0, 0, 0, 8] },
       buildModernProductsTable(rows, COL_WIDTHS, COL_LABELS, Math.max(MIN_ROWS - rows.length, 0)),
-      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, taxBreakup, grandTotal, termsAndConditions, userSignature }),
       ...extraSections,
     ];
 
@@ -1633,7 +1645,7 @@ export const generateQuotationPDF = (data) => {
       ...buildMinimalParty({ label: 'TO', party: customer }),
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: MINIMAL_COLORS.line }], margin: [0, 4, 0, 8] },
       buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS, Math.max(MIN_ROWS - rows.length, 0)),
-      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, taxBreakup, grandTotal, termsAndConditions, userSignature }),
       ...extraSections,
     ];
 
@@ -1642,12 +1654,12 @@ export const generateQuotationPDF = (data) => {
       ? [[{}, { text: 'Discount', ...FONT.small }, { text: `- ${formatCurrency(invoiceDiscount)}`, ...FONT.small, alignment: 'right' }]]
       : [];
     const quotationTaxRows = isIGST
-      ? [[{}, { text: `IGST (${igstRate}%)`, ...FONT.small }, { text: formatCurrency(igstAmount), ...FONT.small, alignment: 'right' }]]
+      ? [[{}, { text: `IGST (${gst * 2}%)`, ...FONT.small }, { text: formatCurrency(igstAmount), ...FONT.small, alignment: 'right' }]]
       : [
           [{}, { text: `CGST (${gst}%)`, ...FONT.small }, { text: formatCurrency(cgstSgstAmount), ...FONT.small, alignment: 'right' }],
           [{}, { text: `SGST (${gst}%)`, ...FONT.small }, { text: formatCurrency(cgstSgstAmount), ...FONT.small, alignment: 'right' }],
         ];
-    const totalRowCount = discountRows.length + quotationTaxRows.length + 2;
+    const totalRowCount = discountRows.length + quotationTaxRows.length + 3;
 
     content = [
       { text: 'QUOTATION', ...FONT.title, alignment: 'center', margin: [0, 0, 0, 4] },
@@ -1684,6 +1696,7 @@ export const generateQuotationPDF = (data) => {
             [{ text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)], rowSpan: totalRowCount, ...FONT.small }, { text: 'Subtotal', ...FONT.small }, { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' }],
             ...discountRows,
             ...quotationTaxRows,
+            [{}, { text: 'Round Off', ...FONT.small }, { text: formatCurrency(taxes.roundOff), ...FONT.small, alignment: 'right' }],
             [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
           ],
         },
@@ -1728,6 +1741,7 @@ export const generatePurchaseOrderPDF = (data) => {
     products = [],
     gst,
     gstType = 'intraState',
+    taxBreakup,
     totalAmount,
     grandTotal,
     companyBank,
@@ -1745,7 +1759,7 @@ export const generatePurchaseOrderPDF = (data) => {
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
     const disc = Number(p.discount || 0);
-    const amount = qty * rate * (1 - disc / 100);
+    const amount = lineAmount(p);
     const row = [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
       formatProductName(p.name),
@@ -1786,7 +1800,7 @@ export const generatePurchaseOrderPDF = (data) => {
       ...buildModernHeader({ companyName, companyAddress, companyGST, companyPhone, companyLogo, docType: 'PURCHASE ORDER' }),
       { columns: [{ width: '55%', ...buildModernMetaCard([['PO No', poNo || '-'], ['Date', formatDate(date)]]) }, { width: '5%', text: '' }, { width: '40%', ...sellerCard }], margin: [0, 0, 0, 8] },
       buildModernProductsTable(rows, COL_WIDTHS, COL_LABELS, fillerCount),
-      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...buildModernTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, taxBreakup, grandTotal, termsAndConditions, userSignature }),
       ...extraSections,
     ];
 
@@ -1796,20 +1810,20 @@ export const generatePurchaseOrderPDF = (data) => {
       ...buildMinimalParty({ label: 'TO (SELLER)', party: seller }),
       { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: MINIMAL_COLORS.line }], margin: [0, 4, 0, 8] },
       buildMinimalProductsTable(rows, COL_WIDTHS, COL_LABELS, fillerCount),
-      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, grandTotal, termsAndConditions, userSignature }),
+      ...buildMinimalTotalsFooter({ companyName, companyBank, totalAmount, invoiceDiscount, gst, gstType, taxBreakup, grandTotal, termsAndConditions, userSignature }),
       ...extraSections,
     ];
 
   } else {
     // Classic
-    const taxable = Math.max(Number(totalAmount || 0) - invoiceDiscount, 0);
+    const taxes = taxBreakup || computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
     const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST (${gst}%)`;
     const secondTaxLabel = gstType === 'interState' ? null : `SGST (${gst}%)`;
-    const taxAmount = taxable * (gst / 100);
-    const totalTaxAmount = gstType === 'interState' ? taxable * ((gst * 2) / 100) : taxAmount;
+    const taxAmount = taxes.cgst;
+    const totalTaxAmount = gstType === 'interState' ? taxes.igst : taxAmount;
     const fillerRows = Array.from({ length: fillerCount }).map(() => Array(numCols).fill({ text: ' ', ...FONT.small }));
     const discountRow = invoiceDiscount > 0 ? [[{}, { text: 'Discount', ...FONT.small }, { text: `- ${formatCurrency(invoiceDiscount)}`, ...FONT.small, alignment: 'right' }]] : [];
-    const totalRowCount = (discountRow.length) + (secondTaxLabel ? 2 : 1) + 2;
+    const totalRowCount = (discountRow.length) + (secondTaxLabel ? 2 : 1) + 2 + 1;
 
     content = [
       { text: 'PURCHASE ORDER', ...FONT.title, alignment: 'center', margin: [0, 0, 0, 4] },
@@ -1836,6 +1850,7 @@ export const generatePurchaseOrderPDF = (data) => {
             ...discountRow,
             [{}, { text: taxLabel, ...FONT.small }, { text: formatCurrency(totalTaxAmount), ...FONT.small, alignment: 'right' }],
             ...(secondTaxLabel ? [[{}, { text: secondTaxLabel, ...FONT.small }, { text: formatCurrency(taxAmount), ...FONT.small, alignment: 'right' }]] : []),
+            [{}, { text: 'Round Off', ...FONT.small }, { text: formatCurrency(taxes.roundOff), ...FONT.small, alignment: 'right' }],
             [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
           ],
         },
@@ -2013,6 +2028,7 @@ export const generateProformaInvoicePDF = (data) => {
     products = [],
     gst,
     gstType = 'intraState',
+    taxBreakup,
     totalAmount,
     grandTotal,
     companyBank,
@@ -2033,7 +2049,7 @@ export const generateProformaInvoicePDF = (data) => {
     const qty = Number(p.quantity || 0);
     const rate = Number(p.rate || 0);
     const disc = Number(p.discount || 0);
-    const amount = qty * rate * (1 - disc / 100);
+    const amount = lineAmount(p);
     const row = [
       { text: String(i + 1), ...FONT.small, alignment: 'center' },
       formatProductName(p.name),
@@ -2047,11 +2063,11 @@ export const generateProformaInvoicePDF = (data) => {
     return row;
   });
 
-  const taxable = Math.max(Number(totalAmount || 0) - invoiceDiscount, 0);
+  const taxes = taxBreakup || computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
   const taxLabel = gstType === 'interState' ? `IGST (${gst * 2}%)` : `CGST (${gst}%)`;
   const secondTaxLabel = gstType === 'interState' ? null : `SGST (${gst}%)`;
-  const taxAmount = taxable * (gst / 100);
-  const totalTaxAmount = gstType === 'interState' ? taxable * ((gst * 2) / 100) : taxAmount;
+  const taxAmount = taxes.cgst;
+  const totalTaxAmount = gstType === 'interState' ? taxes.igst : taxAmount;
 
   const shipToData = shipTo || customer;
 
@@ -2181,13 +2197,14 @@ export const generateProformaInvoicePDF = (data) => {
           widths: ['50%', '25%', '25%'],
           body: (() => {
             const discRow = invoiceDiscount > 0 ? [[{}, { text: 'Discount', ...FONT.small }, { text: `- ${formatCurrency(invoiceDiscount)}`, ...FONT.small, alignment: 'right' }]] : [];
-            const span = discRow.length + (secondTaxLabel ? 2 : 1) + 2;
+            const span = discRow.length + (secondTaxLabel ? 2 : 1) + 3;
             return [
               [{ text: [{ text: 'Rupees in Words:\n', bold: true }, convertToWords(grandTotal)], rowSpan: span, ...FONT.small },
                { text: 'Subtotal', ...FONT.small }, { text: formatCurrency(totalAmount), ...FONT.small, alignment: 'right' }],
               ...discRow,
               [{}, { text: taxLabel, ...FONT.small }, { text: formatCurrency(totalTaxAmount), ...FONT.small, alignment: 'right' }],
               ...(secondTaxLabel ? [[{}, { text: secondTaxLabel, ...FONT.small }, { text: formatCurrency(taxAmount), ...FONT.small, alignment: 'right' }]] : []),
+            [{}, { text: 'Round Off', ...FONT.small }, { text: formatCurrency(taxes.roundOff), ...FONT.small, alignment: 'right' }],
               [{}, { text: 'Grand Total', ...FONT.label }, { text: formatCurrency(grandTotal), ...FONT.label, alignment: 'right' }],
             ];
           })(),
@@ -2482,6 +2499,7 @@ export const generateProformaInvoicePDF = (data) => {
                 ...(secondTaxLabel
                   ? [[{ text: secondTaxLabel, fontSize: 9, color: '#374151' }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: '#374151' }]]
                   : []),
+                [{ text: 'Round Off', fontSize: 9 }, { text: formatCurrency(taxes.roundOff), fontSize: 9, alignment: 'right' }],
                 [
                   { text: 'GRAND TOTAL', bold: true, fontSize: 10, color: MODERN_BLUE, fillColor: MODERN_LIGHT },
                   { text: formatCurrency(grandTotal), bold: true, fontSize: 10, alignment: 'right', color: MODERN_BLUE, fillColor: MODERN_LIGHT },
@@ -2670,6 +2688,7 @@ export const generateProformaInvoicePDF = (data) => {
               ...(secondTaxLabel
                 ? [{ columns: [{ text: secondTaxLabel, fontSize: 9, color: GRAY }, { text: formatCurrency(taxAmount), fontSize: 9, alignment: 'right', color: DARK }], margin: [0, 2, 0, 0] }]
                 : []),
+              { columns: [{ text: 'Round Off', fontSize: 9, color: GRAY }, { text: formatCurrency(taxes.roundOff), fontSize: 9, alignment: 'right', color: DARK }] },
               { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 220, y2: 0, lineWidth: 0.5, lineColor: LINE_COLOR }], margin: [0, 4, 0, 4] },
               { columns: [{ text: 'Grand Total', fontSize: 11, bold: true, color: DARK }, { text: formatCurrency(grandTotal), fontSize: 11, bold: true, alignment: 'right', color: DARK }] },
               { text: `(${convertToWords(grandTotal)})`, fontSize: 8, italic: true, color: GRAY, margin: [0, 2, 0, 0] },

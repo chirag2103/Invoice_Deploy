@@ -1,3 +1,4 @@
+import { savedDocumentPdf } from '../services/savedDocumentPdf';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
@@ -12,7 +13,7 @@ import {
 } from '../services/helper';
 import { getErrorMessage } from '../services/apiError';
 import { getPdfExtras } from '../services/pdfPayload';
-import { ListToolbar, PaginationControls } from './ListControls';
+import { ListToolbar, PaginationControls, AMOUNT_SORT_OPTIONS } from './ListControls';
 
 const PurchaseOrderList = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -32,7 +33,8 @@ const PurchaseOrderList = () => {
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedFinancialYear, setSelectedFinancialYear] = useState('');
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState(null);
+  const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
@@ -46,7 +48,7 @@ const PurchaseOrderList = () => {
   }, [searchInput]);
 
   useEffect(() => {
-    if (!selectedFinancialYear && currentFinancialYear) {
+    if (selectedFinancialYear === null && currentFinancialYear) {
       setSelectedFinancialYear(currentFinancialYear);
       return;
     }
@@ -56,10 +58,11 @@ const PurchaseOrderList = () => {
         page,
         limit,
         search,
+        sort,
         financialYear: selectedFinancialYear || undefined,
       })
     );
-  }, [dispatch, page, limit, search, selectedFinancialYear, currentFinancialYear]);
+  }, [dispatch, page, limit, search, sort, selectedFinancialYear, currentFinancialYear]);
 
   const handlePrint = async (po) => {
     const { generatePurchaseOrderPDF } = await import(
@@ -76,6 +79,7 @@ const PurchaseOrderList = () => {
       grandTotal: po.grandTotal,
       technicalSpecifications: po.technicalSpecifications || '',
       termsAndConditions: po.termsAndConditions || '',
+      ...savedDocumentPdf(po, 'po'),
       ...getPdfExtras(user),
     });
   };
@@ -99,6 +103,7 @@ const PurchaseOrderList = () => {
           page,
           limit,
           search,
+        sort,
           financialYear: selectedFinancialYear || undefined,
         })
       );
@@ -115,6 +120,9 @@ const PurchaseOrderList = () => {
       <main className='invoice-list'>
         <div className='invoice-container'>
           <ListToolbar
+            sort={sort}
+            sortOptions={AMOUNT_SORT_OPTIONS}
+            onSortChange={(value) => { setSort(value); setPage(1); }}
             title='Purchase Orders'
             subtitle='Search PO number, seller, or date.'
             search={searchInput}
@@ -122,7 +130,7 @@ const PurchaseOrderList = () => {
             searchPlaceholder='Search purchase orders'
             actions={
               <select
-                value={selectedFinancialYear}
+                value={selectedFinancialYear || ''}
                 onChange={(event) => {
                   setSelectedFinancialYear(event.target.value);
                   setPage(1);

@@ -38,16 +38,19 @@ const purchaseInvoiceSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchPurchaseInvoices.pending, (state) => {
+      .addCase(fetchPurchaseInvoices.pending, (state, action) => {
+        state.fetchPurchaseInvoicesRequestId = action.meta.requestId;
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchPurchaseInvoices.fulfilled, (state, action) => {
+        if (state.fetchPurchaseInvoicesRequestId && state.fetchPurchaseInvoicesRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.purchaseInvoices = action.payload.purchases || [];
         state.pagination = action.payload.pagination || initialPagination;
       })
       .addCase(fetchPurchaseInvoices.rejected, (state, action) => {
+        if (state.fetchPurchaseInvoicesRequestId && state.fetchPurchaseInvoicesRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.error = action.payload || action.error.message;
       });
