@@ -1,0 +1,187 @@
+/* Shared controls are loaded at startup, including on a fresh payment-page visit. */
+.customer-container {
+  align-content: start;
+}
+
+.payment-form .form-group {
+  min-width: 0;
+  grid-column: auto;
+}
+
+.payment-form .payment-form-party,
+.payment-form .payment-form-notes {
+  grid-column: 1 / -1;
+}
+
+.payment-form .form-input,
+.payment-form .form-select {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+.payment-form .form-actions {
+  margin-top: 0;
+}
+
+.list-toolbar {
+  flex-wrap: wrap;
+}
+
+.list-toolbar > div {
+  min-width: 0;
+}
+
+.list-toolbar p {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.list-toolbar-actions {
+  width: auto;
+  max-width: 100%;
+  flex: 1 1 420px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.list-toolbar-actions input[type='search'] {
+  flex: 1 1 220px;
+  width: auto;
+  min-width: 0;
+  min-height: 46px;
+  font-size: 16px;
+}
+
+.list-toolbar-actions select,
+.list-pagination-actions select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 46px;
+  padding: 0.75rem 2.75rem 0.75rem 1rem;
+  border: 1px solid var(--border-strong, #d8cbbd);
+  border-radius: 12px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' fill='none' stroke='%2359667b' stroke-width='1.8' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  color: var(--text, #172033);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.list-toolbar-actions select {
+  flex: 1 1 175px;
+}
+
+.list-toolbar-actions > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+}
+
+.row-actions button,
+.invoice-list table button,
+.customer-list-container table button,
+.add-customer .form-actions button,
+.list-pagination-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #c35a20, #de7340);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(131, 70, 30, 0.12);
+  transition: filter 0.18s ease, box-shadow 0.18s ease;
+  touch-action: manipulation;
+}
+
+.list-pagination-actions button {
+  background: #fff;
+  border-color: var(--border-strong, #d8cbbd);
+  color: var(--primary-dark, #8f3d14);
+  box-shadow: none;
+}
+
+.row-actions button:hover:not(:disabled),
+.invoice-list table button:hover:not(:disabled),
+.customer-list-container table button:hover:not(:disabled),
+.add-customer .form-actions button:hover:not(:disabled),
+.list-pagination-actions button:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.list-toolbar-actions :is(input, select):focus-visible,
+.list-pagination-actions :is(button, select):focus-visible,
+.row-actions button:focus-visible,
+.invoice-list table button:focus-visible,
+.add-customer .form-actions button:focus-visible {
+  outline: 3px solid rgba(195, 90, 32, 0.5);
+  outline-offset: 3px;
+}
+
+.list-pagination-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.row-actions {
+  width: auto;
+  min-width: 160px;
+}
+
+@media (max-width: 768px) {
+  .list-toolbar-actions {
+    flex: 0 1 auto;
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .list-toolbar-actions input[type='search'],
+  .list-toolbar-actions select {
+    flex: 0 1 auto;
+    width: 100%;
+  }
+
+  .list-pagination-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .list-pagination-actions select {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .row-actions button {
+    flex: 0 0 auto;
+  }
+
+  .payment-form input[type='date'] {
+    display: block;
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+}

@@ -91,60 +91,72 @@ const Payments = () => {
       <div className='customer-container'>
         <div className='add-customer'>
           <p>{editingId ? 'Update Payment' : 'Add Payment'}</p>
-          <form className='invoice-form' onSubmit={handleSubmit}>
-            <label className='form-label'>Customer</label>
-            <select
-              className='form-select'
-              value={formData.customer}
-              onChange={(event) =>
-                setFormData((prev) => ({ ...prev, customer: event.target.value }))
-              }
-              required
-            >
-              <option value=''>Select customer</option>
-              {editingId && formData.customer && !customers.some((item) => item._id === formData.customer) && <option value={formData.customer} disabled>Current customer (archived)</option>}
-              {customers.map((customer) => (
-                <option key={customer._id} value={customer._id}>
-                  {customer.name}
-                </option>
-              ))}
-            </select>
-            {pickerLoading && <p>Loading options...</p>}
-            {pickerError && <p role='alert'>{pickerError}</p>}
-            <label className='form-label'>Amount</label>
-            <input
-              type='number'
-              className='form-input'
-              value={formData.amountPaid}
-              onChange={(event) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  amountPaid: event.target.value,
-                }))
-              }
-              required
-            />
-            <label className='form-label'>Date</label>
-            <input
-              type='date'
-              className='form-input'
-              value={formData.date}
-              onChange={(event) =>
-                setFormData((prev) => ({ ...prev, date: event.target.value }))
-              }
-              required
-            />
-            <label className='form-label'>Remarks</label>
-            <textarea
-              rows='4'
-              className='form-input'
-              value={formData.remarks}
-              onChange={(event) =>
-                setFormData((prev) => ({ ...prev, remarks: event.target.value }))
-              }
-            />
+          <form className='invoice-form payment-form' onSubmit={handleSubmit}>
+            <div className='form-group payment-form-party'>
+              <label className='form-label' htmlFor='customer-payment-party'>Customer</label>
+              <select
+                id='customer-payment-party'
+                className='form-select'
+                value={formData.customer}
+                onChange={(event) =>
+                  setFormData((prev) => ({ ...prev, customer: event.target.value }))
+                }
+                required
+              >
+                <option value=''>Select customer</option>
+                {editingId && formData.customer && !customers.some((item) => item._id === formData.customer) && <option value={formData.customer} disabled>Current customer (archived)</option>}
+                {customers.map((customer) => (
+                  <option key={customer._id} value={customer._id}>
+                    {customer.name}
+                  </option>
+                ))}
+              </select>
+              {pickerLoading && <p>Loading options...</p>}
+              {pickerError && <p role='alert'>{pickerError}</p>}
+            </div>
+            <div className='form-group'>
+              <label className='form-label' htmlFor='customer-payment-amount'>Amount</label>
+              <input
+                type='number'
+                id='customer-payment-amount'
+                className='form-input'
+                value={formData.amountPaid}
+                onChange={(event) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    amountPaid: event.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+            <div className='form-group'>
+              <label className='form-label' htmlFor='customer-payment-date'>Date</label>
+              <input
+                type='date'
+                id='customer-payment-date'
+                className='form-input'
+                value={formData.date}
+                onChange={(event) =>
+                  setFormData((prev) => ({ ...prev, date: event.target.value }))
+                }
+                required
+              />
+            </div>
+            <div className='form-group payment-form-notes'>
+              <label className='form-label' htmlFor='customer-payment-remarks'>Remarks</label>
+              <textarea
+                id='customer-payment-remarks'
+                rows='4'
+                className='form-input'
+                value={formData.remarks}
+                onChange={(event) =>
+                  setFormData((prev) => ({ ...prev, remarks: event.target.value }))
+                }
+              />
+            </div>
             <div className='form-actions'>
-              <button type='submit'>{editingId ? 'Update' : 'Add'}</button>
+              <button type='submit' className='save-btn'>{editingId ? 'Update' : 'Add'}</button>
               {editingId ? (
                 <button type='button' className='delete-btn' onClick={resetForm}>
                   Cancel

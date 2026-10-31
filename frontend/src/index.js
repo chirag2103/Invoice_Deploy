@@ -5,6 +5,8 @@ import App from './App';
 import store from './store.js';
 import { Provider } from 'react-redux';
 import './styles/app.scss';
+import './styles/InvoiceForm.css';
+import './styles/controls.css';
 import { logout } from './slices/userSlice';
 import { setLogoutHandler } from './axiosSetup';
 const root = ReactDOM.createRoot(document.getElementById('root'));

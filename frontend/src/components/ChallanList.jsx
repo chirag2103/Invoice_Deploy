@@ -132,6 +132,7 @@ const ChallanList = () => {
             searchPlaceholder='Search challans'
             actions={
               <select
+                aria-label='Financial year'
                 value={selectedFinancialYear || ''}
                 onChange={(event) => {
                   setSelectedFinancialYear(event.target.value);

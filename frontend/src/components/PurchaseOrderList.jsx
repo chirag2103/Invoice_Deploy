@@ -130,6 +130,7 @@ const PurchaseOrderList = () => {
             searchPlaceholder='Search purchase orders'
             actions={
               <select
+                aria-label='Financial year'
                 value={selectedFinancialYear || ''}
                 onChange={(event) => {
                   setSelectedFinancialYear(event.target.value);

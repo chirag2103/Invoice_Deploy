@@ -15,7 +15,6 @@ import {
   clearAllData,
 } from '../slices/proformaSlice.js';
 import { fetchCustomersForPicker } from '../slices/customerSlice.js';
-import '../styles/InvoiceForm.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../axiosSetup.js';
 import {

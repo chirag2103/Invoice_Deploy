@@ -121,6 +121,7 @@ const InvoiceList = () => {
             searchPlaceholder='Search invoices'
             actions={
               <select
+                aria-label='Financial year'
                 value={selectedFinancialYear || ''}
                 onChange={(event) => {
                   setSelectedFinancialYear(event.target.value);

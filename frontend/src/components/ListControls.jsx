@@ -19,6 +19,7 @@ export const ListToolbar = ({
     <div className='list-toolbar-actions'>
       <input
         type='search'
+        aria-label={searchPlaceholder}
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
@@ -50,6 +51,7 @@ export const PaginationControls = ({
       </p>
       <div className='list-pagination-actions'>
         <select
+          aria-label='Rows per page'
           value={pagination.limit}
           onChange={(event) => onLimitChange(Number(event.target.value))}
         >

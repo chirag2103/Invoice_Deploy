@@ -3,7 +3,6 @@ import { savedDocumentPdf } from '../services/savedDocumentPdf';
 import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import '../styles/InvoiceForm.css';
 
 import {
   setCustomer,

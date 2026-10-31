@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchSellersForPicker } from '../slices/customerSlice';
 import AdminSidebar from '../components/AdminSidebar';
 import { getTodayDate } from '../services/helper.js';
-import '../styles/InvoiceForm.css';
 
 const PurchaseForm = () => {
   //   const [sellers, setSellers] = useState([]);

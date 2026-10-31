@@ -8,7 +8,6 @@ import api from '../axiosSetup.js';
 import { getErrorMessage } from '../services/apiError';
 import { getPdfExtras } from '../services/pdfPayload';
 import AdminSidebar from './AdminSidebar';
-import '../styles/InvoiceForm.css';
 import { fetchSellersForPicker } from '../slices/customerSlice';
 import {
   addProduct,

@@ -128,6 +128,7 @@ const ProformaInvoiceList = () => {
             searchPlaceholder='Search proforma invoices'
             actions={
               <select
+                aria-label='Financial year'
                 value={selectedFinancialYear || ''}
                 onChange={(event) => {
                   setSelectedFinancialYear(event.target.value);
