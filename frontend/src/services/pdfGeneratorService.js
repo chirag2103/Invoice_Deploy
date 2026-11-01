@@ -1165,6 +1165,10 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
     const orderCard = buildModernMetaCard([
       ['Order No', orderNo || '-'],
       ['Order Date', formatDate(orderDate)],
+      ['Dis.Doc. No', disDocNo || '-'],
+      ['Delivery Date', formatDate(deliveryDate) || '-'],
+      ['Dispatched Through', dispatchedThrough || '-'],
+      ['Destination', destination || '-'],
     ]);
     const partySection = buildModernPartySection({ leftLabel: 'BILL TO', leftParty: customer, rightLabel: 'SHIP TO', rightParty: shipToData });
     const modernRows = rows.map((row, i) => row.map(cell => ({ ...cell, fillColor: i % 2 === 1 ? MODERN_COLORS.rowAlt : null })));
@@ -1199,6 +1203,10 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
         ['Date', formatDate(date)],
         ['Challan No', challanNo || '-'],
         ['Order No', orderNo || '-'],
+        ['Dis.Doc. No', disDocNo || '-'],
+        ['Delivery Date', formatDate(deliveryDate) || '-'],
+        ['Dispatched Through', dispatchedThrough || '-'],
+        ['Destination', destination || '-'],
       ],
     });
     const partyBlocks = [

@@ -80,6 +80,10 @@ export const createInvoice = catchAsyncError(async (req, res, next) => {
     challanDate,
     orderNo,
     orderDate,
+    deliveryDate,
+    disDocNo,
+    dispatchedThrough,
+    destination,
     termsAndConditions,
     shipTo,
   } = req.body;
@@ -132,6 +136,10 @@ export const createInvoice = catchAsyncError(async (req, res, next) => {
       challanDate,
       orderNo,
       orderDate,
+      deliveryDate: deliveryDate || undefined,
+      disDocNo,
+      dispatchedThrough,
+      destination,
       termsAndConditions: termsAndConditions || '',
       invoiceNo: numbering.invoiceNo,
       sequenceNumber: numbering.sequenceNumber,
@@ -271,6 +279,10 @@ export const updateInvoice = catchAsyncError(async (req, res, next) => {
     challanDate,
     orderNo,
     orderDate,
+    deliveryDate,
+    disDocNo,
+    dispatchedThrough,
+    destination,
     termsAndConditions,
     shipTo,
   } = req.body;
@@ -315,6 +327,10 @@ export const updateInvoice = catchAsyncError(async (req, res, next) => {
   if (challanDate !== undefined) invoice.challanDate = challanDate;
   if (orderNo !== undefined) invoice.orderNo = orderNo;
   if (orderDate !== undefined) invoice.orderDate = orderDate;
+  if (deliveryDate !== undefined) invoice.deliveryDate = deliveryDate || undefined;
+  if (disDocNo !== undefined) invoice.disDocNo = disDocNo;
+  if (dispatchedThrough !== undefined) invoice.dispatchedThrough = dispatchedThrough;
+  if (destination !== undefined) invoice.destination = destination;
   if (termsAndConditions !== undefined) {
     invoice.termsAndConditions = termsAndConditions;
   }

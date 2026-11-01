@@ -1,4 +1,5 @@
 import pdfMake from 'pdfmake/build/pdfmake';
+import { savedDocumentPdf } from './savedDocumentPdf';
 import { generateInvoicePDF, generateQuotationPDF, generatePurchaseOrderPDF, generateProformaInvoicePDF, generateMonthlyInvoicesPDF } from './pdfGeneratorService';
 
 jest.mock('pdfmake/build/pdfmake', () => ({ createPdf: jest.fn(() => ({ download: jest.fn() })) }));
@@ -23,6 +24,20 @@ const validateSpans = (value) => {
 
 beforeEach(() => pdfMake.createPdf.mockReturnValue({ download: jest.fn() }));
 afterEach(() => jest.clearAllMocks());
+
+test.each(['classic', 'modern', 'minimal'])('%s invoices print saved delivery details', (template) => {
+  const invoice = { invoiceNo: 1, invoiceProducts: document.products, ...document,
+    disDocNo: 'DD-125', deliveryDate: '2026-11-14', dispatchedThrough: 'Example Transport', destination: 'Anand' };
+  generateInvoicePDF({ ...document, ...savedDocumentPdf(invoice, 'invoice'), template });
+  const content = JSON.stringify(pdfMake.createPdf.mock.calls[0][0]);
+  for (const value of ['DD-125', '14/11/2026', 'Example Transport', 'Anand']) expect(content).toContain(value);
+});
+
+test('monthly exports include saved dispatch and delivery values', () => {
+  generateMonthlyInvoicesPDF({ companyName: 'Example', invoices: [{ ...document, disDocNo: 'DD-125', deliveryDate: '2026-11-14', dispatchedThrough: 'Example Transport', destination: 'Anand' }] });
+  const content = JSON.stringify(pdfMake.createPdf.mock.calls[0][0]);
+  for (const value of ['DD-125', '14/11/2026', 'Example Transport', 'Anand']) expect(content).toContain(value);
+});
 
 test.each(['classic', 'modern', 'minimal'])('all %s document PDFs retain saved tax, discounts and valid row spans', (template) => {
   for (const generate of [generateInvoicePDF, generateQuotationPDF, generatePurchaseOrderPDF, generateProformaInvoicePDF]) {

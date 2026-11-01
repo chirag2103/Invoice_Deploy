@@ -69,6 +69,10 @@ const invoiceSchema = mongoose.Schema({
   },
   challanDate: Date,
   orderDate: Date,
+  deliveryDate: Date,
+  disDocNo: { type: String, trim: true },
+  dispatchedThrough: { type: String, trim: true },
+  destination: { type: String, trim: true },
   invoiceProducts: [productSchema],
   invoiceTotal: Number,
   invoiceDiscount: { type: Number, default: 0 }, // invoice-level flat discount ₹

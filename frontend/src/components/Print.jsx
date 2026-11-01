@@ -54,6 +54,10 @@ const Print = () => {
     challanDate,
     orderNo,
     orderDate,
+    disDocNo,
+    deliveryDate,
+    dispatchedThrough,
+    destination,
     specs,
     terms,
   } = location.state || {};
@@ -216,17 +220,21 @@ const Print = () => {
             <tr>
               <td>
                 <p>Dis.Doc. No-</p>
+                <b>{disDocNo || ''}</b>
               </td>
               <td>
                 <p>Delivery Date-</p>
+                <b>{formatDate(deliveryDate) || ''}</b>
               </td>
             </tr>
             <tr>
               <td>
                 <p>Dispatched Through-</p>
+                <b>{dispatchedThrough || ''}</b>
               </td>
               <td>
                 <p>Destination-</p>
+                <b>{destination || ''}</b>
               </td>
             </tr>
           </table>

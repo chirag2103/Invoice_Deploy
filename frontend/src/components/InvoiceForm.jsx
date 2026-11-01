@@ -73,6 +73,10 @@ const InvoiceForm = () => {
   const [challanDate, setChallanDate] = useState('');
   const [orderNo, setOrderNo] = useState('');
   const [orderDate, setOrderDate] = useState('');
+  const [deliveryDate, setDeliveryDate] = useState('');
+  const [disDocNo, setDisDocNo] = useState('');
+  const [dispatchedThrough, setDispatchedThrough] = useState('');
+  const [destination, setDestination] = useState('');
   const [saving, setSaving] = useState(false);
 
   // product input
@@ -90,7 +94,7 @@ const InvoiceForm = () => {
   const [shipToGst, setShipToGst] = useState('');
   const [termsAndConditions, setTermsAndConditions] = useState(DEFAULT_PAYMENT_TERMS);
 
-  const parseDate = (d) => d?.split('T')[0];
+  const parseDate = (d) => d?.split('T')[0] || '';
 
   // ---------------- INITIAL LOAD ----------------
   useEffect(() => {
@@ -153,6 +157,10 @@ const InvoiceForm = () => {
       setChallanDate(parseDate(invoiceToEdit.challanDate));
       setOrderNo(invoiceToEdit.orderNo || '');
       setOrderDate(parseDate(invoiceToEdit.orderDate));
+      setDeliveryDate(parseDate(invoiceToEdit.deliveryDate) || '');
+      setDisDocNo(invoiceToEdit.disDocNo || '');
+      setDispatchedThrough(invoiceToEdit.dispatchedThrough || '');
+      setDestination(invoiceToEdit.destination || '');
       setTermsAndConditions(invoiceToEdit.termsAndConditions || '');
       if (invoiceToEdit.shipTo) {
         setSameAsBillTo(false);
@@ -203,6 +211,7 @@ const InvoiceForm = () => {
     challanDate,
     orderNo,
     orderDate,
+    deliveryDate, disDocNo, dispatchedThrough, destination,
     termsAndConditions,
     ...getPdfExtras(user),
     ...(isEdit && invoiceToEdit?.issuedSnapshot ? {
@@ -223,6 +232,7 @@ const InvoiceForm = () => {
         invoiceProducts: products,
         invoiceTotal: totalAmount, invoiceDiscount, grandTotal, date,
         challanNo, challanDate, orderNo, orderDate, termsAndConditions,
+        deliveryDate, disDocNo, dispatchedThrough, destination,
         shipTo: sameAsBillTo ? null : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
       };
       const { data } = await api.post(`${apiUrl}/api/invoice/new`, payload, {
@@ -252,6 +262,7 @@ const InvoiceForm = () => {
         invoiceProducts: products,
         invoiceTotal: totalAmount, invoiceDiscount, grandTotal, date,
         challanNo, challanDate, orderNo, orderDate, termsAndConditions,
+        deliveryDate, disDocNo, dispatchedThrough, destination,
         shipTo: sameAsBillTo ? null : { name: shipToName, address: shipToAddress, gstNo: shipToGst },
       };
       const { data } = await api.put(`${apiUrl}/api/invoice/${invoiceToEdit._id}`, payload, {
@@ -404,6 +415,24 @@ const InvoiceForm = () => {
         <div className='form-group'>
           <label className='form-label'>Order Date:</label>
           <input type='date' className='form-input' value={orderDate} onChange={(e) => setOrderDate(e.target.value)} style={{ width: '10rem' }} />
+        </div>
+
+        {/* Dispatch and delivery details (optional) */}
+        <div className='form-group'>
+          <label className='form-label' htmlFor='disDocNo'>Dispatch Document No.</label>
+          <input id='disDocNo' name='disDocNo' type='text' className='form-input' value={disDocNo} onChange={(e) => setDisDocNo(e.target.value)} />
+        </div>
+        <div className='form-group'>
+          <label className='form-label' htmlFor='deliveryDate'>Delivery Date</label>
+          <input id='deliveryDate' name='deliveryDate' type='date' className='form-input' value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+        </div>
+        <div className='form-group'>
+          <label className='form-label' htmlFor='dispatchedThrough'>Dispatched Through</label>
+          <input id='dispatchedThrough' name='dispatchedThrough' type='text' className='form-input' value={dispatchedThrough} onChange={(e) => setDispatchedThrough(e.target.value)} />
+        </div>
+        <div className='form-group'>
+          <label className='form-label' htmlFor='destination'>Destination</label>
+          <input id='destination' name='destination' type='text' className='form-input' value={destination} onChange={(e) => setDestination(e.target.value)} />
         </div>
 
         {/* Products Table */}
