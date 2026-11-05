@@ -74,3 +74,21 @@ test('monthly PDFs retain each invoice historical company and customer details',
   expect(content).toContain('Original customer');
   expect(content).not.toContain('Current company');
 });
+
+
+test.each(['classic', 'modern', 'minimal'])('%s void reprints have a watermark and cancellation reason', (template) => {
+  generateInvoicePDF({ ...document, template, ...savedDocumentPdf({ ...document, invoiceProducts: document.products, invoiceNo: 5, status: 'void', voidReason: 'Duplicate order' }, 'invoice') });
+  const definition = pdfMake.createPdf.mock.calls[0][0];
+  expect(definition.watermark.text).toBe('VOID');
+  expect(JSON.stringify(definition.content)).toContain('Duplicate order');
+});
+
+test('monthly exports omit void invoices and keep legacy invoices', () => {
+  generateMonthlyInvoicesPDF({ companyName: 'Example', invoices: [
+    { ...document, billNo: 'VOID-5', status: 'void', customer: { name: 'Void customer' } },
+    { ...document, billNo: 'ACTIVE-6', customer: { name: 'Active customer' } },
+  ] });
+  const definition = JSON.stringify(pdfMake.createPdf.mock.calls[0][0]);
+  expect(definition).not.toContain('Void customer');
+  expect(definition).toContain('Active customer');
+});

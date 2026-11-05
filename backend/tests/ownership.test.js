@@ -7,7 +7,7 @@ import {
 } from './helpers/index.js';
 
 describe('tenant isolation / ownership', () => {
-  it('a second user cannot delete the first user\'s invoice (IDOR)', async () => {
+  it('a second user cannot void the first user\'s invoice (IDOR)', async () => {
     const owner = await makeUser();
     const attacker = await makeUser();
     const ownerApi = authAgent(owner.token);
@@ -26,8 +26,9 @@ describe('tenant isolation / ownership', () => {
     const del = await attackerApi.delete(`/api/invoice/${created.body.invoice._id}`);
     expect(del.status).toBe(404);
 
-    const ownDel = await ownerApi.delete(`/api/invoice/${created.body.invoice._id}`);
+    const ownDel = await ownerApi.delete(`/api/invoice/${created.body.invoice._id}`).send({ reason: 'Issued in error' });
     expect(ownDel.status).toBe(200);
+    expect((await ownerApi.get(`/api/invoice/${created.body.invoice._id}`)).body.invoice.status).toBe('void');
   });
 
   it('a second user cannot delete the first user\'s challan (regression: was unscoped)', async () => {

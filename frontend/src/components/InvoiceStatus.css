@@ -1,0 +1,16 @@
+.invoice-status { display: inline-block; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; }
+.invoice-status-active { background: #e8f4ee; color: #206345; }
+.invoice-status-void { background: #fdeaea; color: #9b2929; }
+.invoice-void-details { display: flex; align-items: flex-start; flex-direction: column; gap: 5px; max-width: 240px; white-space: normal; overflow-wrap: anywhere; }
+.invoice-void-details small, .invoice-excluded { color: #795858; font-size: 12px; }
+.invoice-excluded { display: block; }
+.invoice-void-overlay { position: fixed; inset: 0; z-index: 2000; background: #0007; display: grid; place-items: center; padding: 16px; text-align: left; white-space: normal; }
+.invoice-void-dialog { box-sizing: border-box; width: min(100%, 460px); max-height: 90vh; overflow: auto; background: white; border-radius: 16px; padding: 24px; box-shadow: 0 16px 48px #0003; }
+.invoice-void-dialog p { line-height: 1.6; }
+.invoice-void-dialog label { display: grid; gap: 8px; }
+.invoice-void-dialog textarea { box-sizing: border-box; width: 100%; min-height: 100px; border: 1px solid #ccc; border-radius: 8px; padding: 12px; font: inherit; }
+.invoice-void-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+.invoice-void-dialog button { min-height: 44px; border: 1px solid #d8cbbd; border-radius: 10px; background: #fff; color: #603c28; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+.invoice-void-dialog button.delete-btn { background: #a72d2d; color: #fff; border-color: #a72d2d; }
+.invoice-void-dialog button:disabled { opacity: 0.5; cursor: not-allowed; }
+.invoice-void-dialog :is(button, textarea):focus-visible { outline: 3px solid #c35a2080; outline-offset: 2px; }

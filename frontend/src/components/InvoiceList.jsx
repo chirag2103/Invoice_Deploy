@@ -2,6 +2,7 @@ import { savedDocumentPdf } from '../services/savedDocumentPdf';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import { InvoiceStatus, VoidInvoiceButton } from './InvoiceStatus';
 import AdminSidebar from './AdminSidebar';
 import { fetchInvoices } from '../slices/invoiceSlice';
 import { ListToolbar, PaginationControls, AMOUNT_SORT_OPTIONS } from './ListControls';
@@ -147,6 +148,8 @@ const InvoiceList = () => {
                   <td>Company</td>
                   <td>Date</td>
                   <td>Amount</td>
+                  <td>Status</td>
+                  <td>Actions</td>
                   <td>Original Print</td>
                   <td>Duplicate Print</td>
                   <td>Old Original Print</td>
@@ -164,7 +167,9 @@ const InvoiceList = () => {
                       </td>
                     <td>{invoice?.customer?.name}</td>
                     <td>{formatDate(invoice.date.split('T')[0])}</td>
-                    <td>{formatNumberWithCommas(invoice.grandTotal)}</td>
+                    <td>{formatNumberWithCommas(invoice.grandTotal)}{invoice.status === 'void' && <small className='invoice-excluded'>Excluded from totals</small>}</td>
+                    <td><InvoiceStatus invoice={invoice} /></td>
+                    <td><VoidInvoiceButton invoice={invoice} onVoided={() => dispatch(fetchInvoices({ page, limit, search, sort, financialYear: selectedFinancialYear || undefined }))} /></td>
                     <td>
                       <button onClick={() => handlePrint(invoice, 'Original Copy')}>
                         Original

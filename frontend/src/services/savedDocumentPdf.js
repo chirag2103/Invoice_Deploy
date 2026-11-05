@@ -10,6 +10,7 @@ const documentFields = {
 export const savedDocumentPdf = (document, type) => {
   const [productsField, numberField, pdfNumberField] = documentFields[type];
   return {
+    ...(type === 'invoice' ? { status: document.status, voidReason: document.voidReason, voidedAt: document.voidedAt } : {}),
     date: document.date,
     products: document[productsField] || [],
     totalAmount: document.invoiceTotal,

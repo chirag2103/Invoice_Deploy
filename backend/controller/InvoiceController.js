@@ -241,6 +241,7 @@ export const getInvoicesByCustomer = catchAsyncError(async (req, res, next) => {
           // aggregate $match does not auto-cast string ids like .find() does
           $match: {
             ...filter,
+            status: { $ne: 'void' },
             user: new mongoose.Types.ObjectId(req.user.id),
             customer: new mongoose.Types.ObjectId(customerId),
           },
@@ -266,6 +267,10 @@ export const updateInvoice = catchAsyncError(async (req, res, next) => {
 
   if (!invoice) {
     return next(new ErrorHandler('Invoice not found', 404));
+  }
+
+  if (invoice.status === 'void') {
+    return next(new ErrorHandler('Void invoices cannot be edited', 409));
   }
 
   const {
@@ -347,35 +352,44 @@ export const updateInvoice = catchAsyncError(async (req, res, next) => {
   invoice.grandTotal = totals.grandTotal;
   invoice.taxBreakup = totals.taxBreakup;
 
-  await invoice.save();
+  try {
+    await invoice.save();
+  } catch (error) {
+    if (error.name === 'VersionError') return next(new ErrorHandler('Invoice changed. Reload before editing.', 409));
+    throw error;
+  }
 
   res.status(200).json({ success: true, invoice });
 });
 
-export const deleteInvoice = catchAsyncError(async (req, res, next) => {
-  const invoice = await Invoice.findOne({
-    _id: req.params.id,
-    user: req.user.id,
-  });
-
-  if (!invoice) {
-    return next(new ErrorHandler('Invoice not found', 404));
+export const voidInvoice = catchAsyncError(async (req, res, next) => {
+  const existing = await Invoice.findOne({ _id: req.params.id, user: req.user.id }).select('status');
+  if (!existing) return next(new ErrorHandler('Invoice not found', 404));
+  if (existing.status === 'void') return next(new ErrorHandler('Invoice is already void', 409));
+  const reason = typeof req.body.reason === 'string' ? req.body.reason.trim() : '';
+  if (!reason || reason.length > 500) {
+    return next(new ErrorHandler('A void reason between 1 and 500 characters is required', 400));
   }
-
-  await Invoice.deleteOne({ _id: invoice._id, user: req.user.id });
-
-  res.status(200).json({
-    success: true,
-    message: 'Invoice Deleted',
-  });
+  const invoice = await Invoice.findOneAndUpdate(
+    { _id: req.params.id, user: req.user.id, status: { $ne: 'void' } },
+    { $set: { status: 'void', voidReason: reason, voidedAt: new Date(), voidedBy: req.user.id }, $inc: { __v: 1 } },
+    { new: true, runValidators: true }
+  );
+  if (!invoice) {
+    return next(new ErrorHandler('Invoice is already void', 409));
+  }
+  res.status(200).json({ success: true, message: 'Invoice voided', invoice });
 });
+
+// Older clients must never physically delete an issued invoice.
+export const deleteInvoice = voidInvoice;
 
 export const getCustomerBillingInfo = catchAsyncError(async (req, res, next) => {
   try {
     const userId = req.user._id;
 
     const invoiceAgg = await Invoice.aggregate([
-      { $match: { user: userId } },
+      { $match: { user: userId, status: { $ne: 'void' } } },
       {
         $group: {
           _id: '$customer',
@@ -472,6 +486,7 @@ export const getStatementByCustomer = catchAsyncError(async (req, res, next) => 
     const toDate = parseQueryDate(to, true);
 
     const invoices = await Invoice.find({
+      status: { $ne: 'void' },
       user: req.user.id,
       customer: customerId,
     }).sort({ date: 1 });

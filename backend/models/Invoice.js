@@ -23,6 +23,10 @@ const invoiceSchema = mongoose.Schema({
     ref: 'Customer',
     required: true,
   },
+  status: { type: String, enum: ['active', 'void'], default: 'active' },
+  voidReason: { type: String, trim: true, maxlength: 500 },
+  voidedAt: Date,
+  voidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   issuedSnapshot: {
     type: new mongoose.Schema({
       version: Number,
@@ -89,7 +93,7 @@ const invoiceSchema = mongoose.Schema({
     required: true,
   },
   termsAndConditions: { type: String, default: '' },
-}, { timestamps: true });
+}, { timestamps: true, optimisticConcurrency: true });
 
 invoiceSchema.index(
   { user: 1, financialYearStart: 1, invoiceNo: 1 },

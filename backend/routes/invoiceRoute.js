@@ -2,6 +2,7 @@ import express from 'express';
 import {
   createInvoice,
   deleteInvoice,
+  voidInvoice,
   getCustomerBillingInfo,
   getInvoices,
   getInvoicesByCustomer,
@@ -20,6 +21,7 @@ router
   .get(isAuthenticatedUser, getInvoicesByCustomer);
 router.route('/invoice/:id').get(isAuthenticatedUser, getSingleInvoice);
 router.route('/invoice/:id').put(isAuthenticatedUser, updateInvoice);
+router.post('/invoice/:id/void', isAuthenticatedUser, voidInvoice);
 router.route('/invoice/:id').delete(isAuthenticatedUser, deleteInvoice);
 router.route('/lastinvoice').get(isAuthenticatedUser, getLastInvoice);
 router.route('/billingInfo').get(isAuthenticatedUser, getCustomerBillingInfo);

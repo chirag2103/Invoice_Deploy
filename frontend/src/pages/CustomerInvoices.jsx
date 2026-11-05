@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { fetchInvoices, deleteInvoice } from '../slices/invoiceSlice';
+import { fetchInvoices } from '../slices/invoiceSlice';
 import api from '../axiosSetup';
+import { InvoiceStatus, VoidInvoiceButton } from '../components/InvoiceStatus';
 import AdminSidebar from '../components/AdminSidebar';
 import { ListToolbar, PaginationControls, AMOUNT_SORT_OPTIONS } from '../components/ListControls';
 import { formatDocumentNumber, formatNumberWithCommas } from '../services/helper';
@@ -54,16 +54,6 @@ const CustomerInvoices = () => {
     return () => controller.abort();
   }, [customerId, paymentPage, paymentLimit, search, paymentSort]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this invoice?')) return;
-    try {
-      await dispatch(deleteInvoice(id)).unwrap();
-      dispatch(fetchInvoices({ customerId, page, limit, search, sort }));
-    } catch (failure) {
-      toast.error(typeof failure === 'string' ? failure : getErrorMessage(failure, 'Unable to delete invoice'));
-    }
-  };
-
   return (
     <div className='admin-container'>
       <AdminSidebar />
@@ -82,13 +72,14 @@ const CustomerInvoices = () => {
           {loading && <p>Loading invoices...</p>}
           {error && <p role='alert'>{error}</p>}
           {!loading && !error && <table className='invoices-table'>
-            <thead><tr><th>Invoice No</th><th>Date</th><th>Amount</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Invoice No</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>{invoices.map((invoice) => <tr key={invoice._id}>
               <td>{formatDocumentNumber(invoice.invoiceNo, invoice.financialYearLabel)}</td>
               <td>{invoice.date?.split('T')[0]}</td>
-              <td>{formatNumberWithCommas(invoice.grandTotal)}</td>
-              <td><button onClick={() => navigate(`/invoices/${invoice._id}/edit`, { state: { invoice } })}>Edit</button>
-                <button onClick={() => handleDelete(invoice._id)}>Delete</button></td>
+              <td>{formatNumberWithCommas(invoice.grandTotal)}{invoice.status === 'void' && <small className='invoice-excluded'>Excluded from totals</small>}</td>
+              <td><InvoiceStatus invoice={invoice} /></td>
+              <td>{invoice.status !== 'void' && <button onClick={() => navigate(`/invoices/${invoice._id}/edit`, { state: { invoice } })}>Edit</button>}
+                <VoidInvoiceButton invoice={invoice} onVoided={() => dispatch(fetchInvoices({ customerId, page, limit, search, sort }))} /></td>
             </tr>)}</tbody>
           </table>}
           <PaginationControls pagination={pagination} onPageChange={setPage}

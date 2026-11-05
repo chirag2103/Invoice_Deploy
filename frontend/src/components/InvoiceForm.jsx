@@ -299,6 +299,10 @@ const InvoiceForm = () => {
   const previewTax = computeTaxBreakup({ totalAmount, invoiceDiscount, gst, gstType });
   const taxAmt = previewTax.cgst + previewTax.sgst + previewTax.igst;
 
+  if (invoiceToEdit?.status === 'void') {
+    return <div className='admin-container'><main className='invoice-container'><h3>This invoice is void and cannot be edited.</h3><p>{invoiceToEdit.voidReason}</p><button onClick={() => navigate(-1)}>Go back</button></main></div>;
+  }
+
   return (
     <div className='invoice-container'>
       <h2 className='invoice-header'>

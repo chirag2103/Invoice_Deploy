@@ -1244,10 +1244,11 @@ const buildInvoiceDocDefinition = (data, options = {}) => {
   }
 
   const docDefinition = {
+    ...(data.status === 'void' ? { watermark: { text: 'VOID', color: '#b42318', opacity: 0.15, bold: true } } : {}),
     pageSize: 'A4',
     pageMargins: [20, 20, 20, 25],
     defaultStyle: { font: 'Roboto', fontSize: 10.5, color: COLORS.text, lineHeight: 1 },
-    content,
+    content: data.status === 'void' ? [{ text: `VOID - Excluded from totals. Reason: ${data.voidReason || ''}`, color: '#b42318', bold: true, margin: [0, 0, 0, 8] }, ...content] : content,
   };
 
   if (download) {
@@ -1274,6 +1275,7 @@ export const generateMonthlyInvoicesPDF = ({
   companyBank = {},
   userSignature,
 }) => {
+  invoices = invoices.filter((invoice) => invoice.status !== 'void');
   if (!invoices.length) {
     return;
   }

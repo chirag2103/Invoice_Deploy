@@ -76,7 +76,8 @@ const Dashboard = () => {
     setDownloadingMonth(monthData.monthKey);
     try {
       const { from, to } = buildMonthDateRange(monthData.monthKey);
-      const monthInvoices = await fetchAllPages(`${apiUrl}/api/invoices`, 'invoices', { from, to });
+      const monthInvoices = (await fetchAllPages(`${apiUrl}/api/invoices`, 'invoices', { from, to }))
+        .filter((invoice) => invoice.status !== 'void');
 
       if (!monthInvoices.length) {
         toast.error('No invoices found for this month.');

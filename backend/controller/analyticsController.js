@@ -117,6 +117,7 @@ export const getFinancialYearSummary = async (req, res, next) => {
     const [invMonthlyAgg, payMonthlyAgg, pbMonthlyAgg, spMonthlyAgg] =
       await Promise.all([
         Invoice.aggregate([
+          { $match: { status: { $ne: 'void' } } },
           matchByUserAndDate(userId, 'date', startDate, endDate),
           { $project: { date: 1, amount: '$grandTotal' } },
           ...groupByMonth('date', 'amount'),
@@ -171,6 +172,7 @@ export const getFinancialYearSummary = async (req, res, next) => {
     )[0];
 
     const recentInvoices = await Invoice.find({
+      status: { $ne: 'void' },
       user: userId,
       date: { $gte: startDate, $lte: endDate },
     })

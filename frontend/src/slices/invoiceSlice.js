@@ -67,15 +67,15 @@ export const fetchBillNo = createAsyncThunk(
   }
 );
 
-export const deleteInvoice = createAsyncThunk(
-  'invoice/deleteInvoice',
-  async (id, { rejectWithValue }) => {
+export const voidInvoice = createAsyncThunk(
+  'invoice/voidInvoice',
+  async ({ id, reason }, { rejectWithValue }) => {
     try {
-      const res = await api.delete(`${apiUrl}/api/invoice/${id}`);
-      return { id, message: res.data.message };
+      const res = await api.post(`${apiUrl}/api/invoice/${id}/void`, { reason });
+      return { id, message: res.data.message, invoice: res.data.invoice };
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to delete invoice'
+        error.response?.data?.message || 'Failed to void invoice'
       );
     }
   }
@@ -159,14 +159,11 @@ const invoiceSlice = createSlice({
         state.billNo = action.payload.invoiceNo;
         state.financialYearLabel = action.payload.financialYearLabel || '';
       })
-      .addCase(deleteInvoice.fulfilled, (state, action) => {
-        state.invoices = state.invoices.filter(
-          (invoice) => invoice._id !== action.payload.id
+      .addCase(voidInvoice.fulfilled, (state, action) => {
+        state.invoices = state.invoices.map(
+          (invoice) => invoice._id === action.payload.id ? { ...invoice, ...action.payload.invoice, customer: invoice.customer } : invoice
         );
         state.message = action.payload.message;
-      })
-      .addCase(deleteInvoice.rejected, (state, action) => {
-        state.error = action.payload || action.error.message;
       });
   },
 });

@@ -134,6 +134,7 @@ const Print = () => {
 
   return (
     <div ref={pdfRef}>
+      {location.state?.status === 'void' && <p style={{ color: '#b42318', fontWeight: 'bold', border: '2px solid #b42318', padding: 12 }}>VOID - Excluded from totals. Reason: {location.state.voidReason}</p>}
       <div className='Print'>
         <h2 className='bold'>
           {isQuotation ? 'QUOTATION' : isChallan ? 'CHALLAN' : 'TAX INVOICE'}
